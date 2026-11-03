@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grimms Business Tracker</title>
+    <title>Grimms Business Tracker - Automated Inventory</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -419,14 +419,14 @@
                                 <i class="fa-solid fa-chevron-right opacity-40 text-xs"></i>
                             </div>
 
-                            <div onclick="alert('Products catalog manager connected.')" class="custom-card p-4 rounded-2xl border flex items-center justify-between cursor-pointer hover:border-brand transition opacity-80">
+                            <div onclick="openProductRecipeModal()" class="custom-card p-4 rounded-2xl border flex items-center justify-between cursor-pointer hover:border-brand transition">
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 rounded-xl bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center font-bold">
-                                        <i class="fa-solid fa-shirt"></i>
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
+                                        <i class="fa-solid fa-wand-magic-sparkles"></i>
                                     </div>
                                     <div>
-                                        <h4 class="font-bold text-sm">Products</h4>
-                                        <p class="text-[11px] opacity-70">Curated inventory and handmade items.</p>
+                                        <h4 class="font-bold text-sm">Product Recipes & Assembly</h4>
+                                        <p class="text-[11px] opacity-70">Auto-deduct component stock on product creation.</p>
                                     </div>
                                 </div>
                                 <i class="fa-solid fa-chevron-right opacity-40 text-xs"></i>
@@ -448,49 +448,74 @@
                     </div>
                 </div>
 
-                <!-- TAB 4: COMPONENTS TRACKER (REDESIGNED) -->
+                <!-- TAB 4: COMPONENTS TRACKER (AUTOMATED SYSTEM) -->
                 <div id="tab-components-content" class="app-tab hidden space-y-4">
                     
-                    <!-- 1. Inventory Summary Bar -->
-                    <div class="grid grid-cols-3 gap-2.5">
-                        <div class="custom-card p-3 rounded-2xl border text-center">
-                            <span class="text-[10px] uppercase font-semibold opacity-60 block">Components</span>
-                            <span class="text-lg font-bold" id="stat-total-comps">9</span>
+                    <!-- 1. Top Summary Bar -->
+                    <div class="grid grid-cols-4 gap-2">
+                        <div class="custom-card p-2.5 rounded-2xl border text-center">
+                            <span class="text-[9px] uppercase font-semibold opacity-60 block">Components</span>
+                            <span class="text-sm font-bold" id="stat-total-comps">9</span>
                         </div>
-                        <div class="custom-card p-3 rounded-2xl border text-center">
-                            <span class="text-[10px] uppercase font-semibold opacity-60 block">Total Units</span>
-                            <span class="text-lg font-bold" id="stat-total-units">1,380</span>
+                        <div class="custom-card p-2.5 rounded-2xl border text-center">
+                            <span class="text-[9px] uppercase font-semibold opacity-60 block">Total Units</span>
+                            <span class="text-sm font-bold" id="stat-total-units">1,380</span>
                         </div>
-                        <div class="custom-card p-3 rounded-2xl border text-center">
-                            <span class="text-[10px] uppercase font-semibold opacity-60 block">Low Stock</span>
-                            <span class="text-lg font-bold text-amber-600" id="stat-low-stock">1</span>
+                        <div class="custom-card p-2.5 rounded-2xl border text-center">
+                            <span class="text-[9px] uppercase font-semibold opacity-60 block">Inv. Value</span>
+                            <span class="text-sm font-bold text-emerald-600" id="stat-total-val">$184.20</span>
+                        </div>
+                        <div class="custom-card p-2.5 rounded-2xl border text-center">
+                            <span class="text-[9px] uppercase font-semibold opacity-60 block">Low Stock</span>
+                            <span class="text-sm font-bold text-amber-600" id="stat-low-stock">1</span>
                         </div>
                     </div>
 
-                    <!-- 2. Main Action Button & Management Links -->
+                    <!-- 2. Main Actions Bar -->
                     <div class="space-y-2">
-                        <button onclick="openComponentModal()" class="w-full py-3.5 bg-brand text-white font-semibold rounded-2xl text-xs shadow-md shadow-brand/20 hover:opacity-95 transition flex items-center justify-center space-x-2">
-                            <i class="fa-solid fa-plus text-xs"></i>
-                            <span>Add Component</span>
-                        </button>
-                        <div class="flex justify-center items-center space-x-2 text-[11px] font-medium opacity-70 pt-1">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="openComponentModal()" class="py-3 bg-brand text-white font-semibold rounded-2xl text-xs shadow-md shadow-brand/20 hover:opacity-95 transition flex items-center justify-center space-x-1.5">
+                                <i class="fa-solid fa-plus text-xs"></i>
+                                <span>Add Component</span>
+                            </button>
+                            <button onclick="toggleArchivedView()" id="toggle-archive-btn" class="py-3 bg-brand-light text-brand font-semibold rounded-2xl text-xs border border-brand/20 hover:opacity-80 transition flex items-center justify-center space-x-1.5">
+                                <i class="fa-solid fa-box-archive text-xs"></i>
+                                <span id="archive-btn-text">View Archived</span>
+                            </button>
+                        </div>
+                        <div class="flex justify-center items-center space-x-2 text-[11px] font-medium opacity-70 pt-0.5">
                             <span onclick="openCategoryModal()" class="hover:text-brand cursor-pointer underline">Manage Categories</span>
                             <span>·</span>
                             <span onclick="openSupplierModal()" class="hover:text-brand cursor-pointer underline">Manage Suppliers</span>
+                            <span>·</span>
+                            <span onclick="openProductRecipeModal()" class="hover:text-brand cursor-pointer underline">Product Recipes</span>
                         </div>
                     </div>
 
-                    <!-- 3. Search and Filters Toolbar -->
+                    <!-- 3. Advanced Inventory Controls & Filters -->
                     <div class="space-y-2 pt-1">
                         <div class="relative">
                             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-xs opacity-40"></i>
-                            <input type="text" id="comp-search" oninput="currentComponentPage=1; renderComponents()" placeholder="Search components or supplier..." class="w-full pl-9 pr-3 py-3 rounded-2xl border text-xs custom-card outline-none">
+                            <input type="text" id="comp-search" oninput="currentComponentPage=1; renderComponents()" placeholder="Search components, name, or SKU..." class="w-full pl-9 pr-3 py-3 rounded-2xl border text-xs custom-card outline-none">
                         </div>
-                        <div class="grid grid-cols-2 gap-2 text-xs">
-                            <select id="comp-filter-cat" onchange="currentComponentPage=1; renderComponents()" class="p-3 rounded-2xl border custom-card outline-none font-medium">
+                        
+                        <div class="grid grid-cols-3 gap-1.5 text-[11px]">
+                            <select id="comp-filter-cat" onchange="currentComponentPage=1; renderComponents()" class="p-2.5 rounded-xl border custom-card outline-none font-medium">
                                 <option value="">All Categories</option>
                             </select>
-                            <select id="comp-sort" onchange="currentComponentPage=1; renderComponents()" class="p-3 rounded-2xl border custom-card outline-none font-medium">
+                            <select id="comp-filter-sup" onchange="currentComponentPage=1; renderComponents()" class="p-2.5 rounded-xl border custom-card outline-none font-medium">
+                                <option value="">All Suppliers</option>
+                            </select>
+                            <select id="comp-filter-status" onchange="currentComponentPage=1; renderComponents()" class="p-2.5 rounded-xl border custom-card outline-none font-medium">
+                                <option value="">All Status</option>
+                                <option value="In Stock">In Stock</option>
+                                <option value="Low Stock">Low Stock</option>
+                                <option value="Out of Stock">Out of Stock</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                            <select id="comp-sort" onchange="currentComponentPage=1; renderComponents()" class="p-2.5 rounded-xl border custom-card outline-none font-medium">
                                 <option value="name_asc">Sort: A - Z</option>
                                 <option value="name_desc">Sort: Z - A</option>
                                 <option value="cost_high">Cost: High to Low</option>
@@ -499,16 +524,24 @@
                                 <option value="qty_low">Quantity: Low to High</option>
                                 <option value="stock_out">Status: Out of Stock First</option>
                             </select>
+                            <select id="comp-per-page" onchange="currentComponentPage=1; renderComponents()" class="p-2.5 rounded-xl border custom-card outline-none font-medium">
+                                <option value="5">5 per page</option>
+                                <option value="8" selected>8 per page</option>
+                                <option value="10">10 per page</option>
+                                <option value="15">15 per page</option>
+                                <option value="20">20 per page</option>
+                                <option value="all">All items</option>
+                            </select>
                         </div>
                     </div>
 
                     <!-- Batch Delete bar if items selected -->
-                    <div id="batch-delete-bar" class="hidden flex justify-between items-center bg-brand-light px-4 py-2.5 rounded-2xl text-xs">
+                    <div id="batch-delete-bar" class="hidden flex justify-between items-center bg-brand-light px-4 py-2 rounded-2xl text-xs">
                         <span id="selected-count-label" class="font-semibold text-brand">0 selected</span>
                         <button onclick="batchDeleteComponents()" class="text-red-500 font-bold hover:underline">Delete Selected</button>
                     </div>
 
-                    <!-- 4. Component Cards Container (Slimmed & Cleaned) -->
+                    <!-- 4. Component Cards Container -->
                     <div id="components-list" class="space-y-2.5 pt-1"></div>
 
                     <!-- 5. Simple Pagination -->
@@ -669,9 +702,11 @@
 
     </div>
 
-    <!-- ================= ADD / EDIT COMPONENT MODAL ================= -->
+    <!-- ================= MODALS ================= -->
+
+    <!-- Add / Edit Component Modal -->
     <div id="component-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="custom-card w-full max-w-sm rounded-3xl p-6 border shadow-2xl relative">
+        <div class="custom-card w-full max-w-sm rounded-3xl p-6 border shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
                 <h3 id="modal-title" class="font-bold text-base">Add Component</h3>
                 <button onclick="closeComponentModal()" class="opacity-60 hover:opacity-100"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -684,15 +719,25 @@
                     <input type="text" id="comp-name" placeholder="e.g. 4x8 Bubble Mailers" required class="w-full p-2.5 border rounded-xl font-medium custom-card">
                 </div>
 
+                <div>
+                    <label class="block opacity-70 font-semibold mb-1">SKU (Auto-generated if empty)</label>
+                    <input type="text" id="comp-sku" placeholder="e.g. COMP-010" class="w-full p-2.5 border rounded-xl font-medium custom-card">
+                </div>
+
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block opacity-70 font-semibold mb-1">Quantity on Hand *</label>
+                        <label class="block opacity-70 font-semibold mb-1">Quantity *</label>
                         <input type="number" id="comp-qty" placeholder="e.g. 150" required min="0" class="w-full p-2.5 border rounded-xl font-medium custom-card">
                     </div>
                     <div>
-                        <label class="block opacity-70 font-semibold mb-1">Cost per Unit ($)</label>
-                        <input type="number" step="0.01" id="comp-cost" placeholder="e.g. 0.25" min="0" class="w-full p-2.5 border rounded-xl font-medium custom-card">
+                        <label class="block opacity-70 font-semibold mb-1">Low Stock Threshold</label>
+                        <input type="number" id="comp-threshold" placeholder="e.g. 10" required min="0" value="10" class="w-full p-2.5 border rounded-xl font-medium custom-card">
                     </div>
+                </div>
+
+                <div>
+                    <label class="block opacity-70 font-semibold mb-1">Cost per Unit ($)</label>
+                    <input type="number" step="0.01" id="comp-cost" placeholder="e.g. 0.25" min="0" class="w-full p-2.5 border rounded-xl font-medium custom-card">
                 </div>
 
                 <div>
@@ -706,8 +751,8 @@
                 </div>
 
                 <div>
-                    <label class="block opacity-70 font-semibold mb-1">Notes</label>
-                    <textarea id="comp-notes" placeholder="SKU links, dimensions, or reorder reminders..." class="w-full p-2.5 border rounded-xl font-medium custom-card h-16 resize-none"></textarea>
+                    <label class="block opacity-70 font-semibold mb-1">Notes & Reorder Link</label>
+                    <textarea id="comp-notes" placeholder="Supplier URL, dimensions, or reorder reminders..." class="w-full p-2.5 border rounded-xl font-medium custom-card h-16 resize-none"></textarea>
                 </div>
 
                 <div class="pt-2">
@@ -717,7 +762,7 @@
         </div>
     </div>
 
-    <!-- ================= MANAGE CATEGORIES MODAL ================= -->
+    <!-- Manage Categories Modal -->
     <div id="category-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="custom-card w-full max-w-sm rounded-3xl p-6 border shadow-2xl relative space-y-4">
             <div class="flex justify-between items-center">
@@ -732,7 +777,7 @@
         </div>
     </div>
 
-    <!-- ================= MANAGE SUPPLIERS MODAL ================= -->
+    <!-- Manage Suppliers Modal -->
     <div id="supplier-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="custom-card w-full max-w-sm rounded-3xl p-6 border shadow-2xl relative space-y-4">
             <div class="flex justify-between items-center">
@@ -744,6 +789,43 @@
                 <button onclick="addNewSupplier()" class="px-4 py-2.5 bg-brand text-white text-xs font-semibold rounded-xl">Add</button>
             </div>
             <div id="supplier-modal-list" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div>
+        </div>
+    </div>
+
+    <!-- Stock Movement History Modal -->
+    <div id="history-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="custom-card w-full max-w-sm rounded-3xl p-6 border shadow-2xl relative space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-base" id="history-modal-title">Stock Audit Trail</h3>
+                <button onclick="closeHistoryModal()" class="opacity-60 hover:opacity-100"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="history-log-list" class="space-y-2 max-h-60 overflow-y-auto text-xs"></div>
+        </div>
+    </div>
+
+    <!-- Product Recipe & Auto-Deduction Modal -->
+    <div id="recipe-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="custom-card w-full max-w-md rounded-3xl p-6 border shadow-2xl relative space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-base">Product Recipes & Assembly</h3>
+                <button onclick="closeProductRecipeModal()" class="opacity-60 hover:opacity-100"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <p class="text-xs opacity-70">Assemble finished products from your components to automatically deduct inventory and update audit logs.</p>
+            
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold mb-1">Select Product Template</label>
+                    <select id="recipe-product-select" class="w-full p-2.5 border rounded-xl custom-card font-medium">
+                        <option value="Handmade Gothic Necklace">Handmade Gothic Necklace (1 Chain, 1 Pendant, 2 Jump Rings, 1 Box)</option>
+                        <option value="Vintage Resin Ring">Vintage Resin Ring (1 Gemstone Bead, 1 Organza Pouch)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Quantity Built / Sold</label>
+                    <input type="number" id="recipe-build-qty" value="5" min="1" class="w-full p-2.5 border rounded-xl custom-card font-medium">
+                </div>
+                <button onclick="executeRecipeAssembly()" class="w-full py-3 bg-brand text-white font-semibold rounded-xl hover:opacity-95 transition">Assemble & Deduct Components</button>
+            </div>
         </div>
     </div>
 
@@ -774,6 +856,7 @@
         let hasNotification = true;
         let hasComponentNotification = true;
         let userPlatforms = ['Vinted', 'eBay'];
+        let showArchivedView = false;
 
         // Persistent State via localStorage
         let savedSettingsState = JSON.parse(localStorage.getItem('grimms_settings')) || {
@@ -787,19 +870,18 @@
         let componentSuppliers = JSON.parse(localStorage.getItem('grimms_suppliers')) || ['Uline', 'AliExpress', 'Amazon', 'Rio Grande'];
 
         let componentsList = JSON.parse(localStorage.getItem('grimms_components')) || [
-            { id: 1, name: '4x8 Bubble Mailers', qty: 145, cost: 0.18, category: 'Packaging', supplier: 'Uline', notes: 'Kraft paper bubble mailers' },
-            { id: 2, name: 'Gothic Bat Charms', qty: 0, cost: 0.45, category: 'Jewelry Supplies', supplier: 'AliExpress', notes: 'Out of stock, reorder soon' },
-            { id: 3, name: 'Thank You Stickers (Roll)', qty: 320, cost: 0.03, category: 'Stickers & Labels', supplier: 'Amazon', notes: 'Pink foil logo stickers' },
-            { id: 4, name: 'Stainless Steel Chains (18")', qty: 45, cost: 0.85, category: 'Jewelry Supplies', supplier: 'Rio Grande', notes: 'For pendant necklaces' },
-            { id: 5, name: 'Organza Gift Pouches', qty: 85, cost: 0.12, category: 'Packaging', supplier: 'Uline', notes: 'Black 3x4 pouches' },
-            { id: 6, name: 'Lobster Clasps 12mm', qty: 210, cost: 0.09, category: 'Jewelry Supplies', supplier: 'Rio Grande', notes: 'Silver plated' },
-            { id: 7, name: 'Warning Fragile Labels', qty: 500, cost: 0.01, category: 'Stickers & Labels', supplier: 'Amazon', notes: 'Red bold text' },
-            { id: 8, name: 'Cardboard Backing Sheets', qty: 60, cost: 0.20, category: 'Packaging', supplier: 'Uline', notes: '5x7 rigid sheets' },
-            { id: 9, name: 'Crystal Glass Beads', qty: 15, cost: 0.05, category: 'Jewelry Supplies', supplier: 'AliExpress', notes: 'Mixed dark shades' }
+            { id: 1, sku: 'COMP-001', name: '4x8 Bubble Mailers', qty: 145, threshold: 20, cost: 0.18, category: 'Packaging', supplier: 'Uline', notes: 'Kraft paper bubble mailers', archived: false, history: [{date: '2026-10-01', type: 'Created', note: 'Initial stock added: 145'}] },
+            { id: 2, sku: 'COMP-002', name: 'Gothic Bat Charms', qty: 0, threshold: 10, cost: 0.45, category: 'Jewelry Supplies', supplier: 'AliExpress', notes: 'Out of stock, reorder soon', archived: false, history: [{date: '2026-10-01', type: 'Created', note: 'Initial stock added: 0'}] },
+            { id: 3, sku: 'COMP-003', name: 'Thank You Stickers (Roll)', qty: 320, threshold: 50, cost: 0.03, category: 'Stickers & Labels', supplier: 'Amazon', notes: 'Pink foil logo stickers', archived: false, history: [{date: '2026-10-01', type: 'Created', note: 'Initial stock added: 320'}] },
+            { id: 4, sku: 'COMP-004', name: 'Stainless Steel Chains (18")', qty: 45, threshold: 15, cost: 0.85, category: 'Jewelry Supplies', supplier: 'Rio Grande', notes: 'For pendant necklaces', archived: false, history: [{date: '2026-10-01', type: 'Created', note: 'Initial stock added: 45'}] },
+            { id: 5, sku: 'COMP-005', name: 'Organza Gift Pouches', qty: 85, threshold: 20, cost: 0.12, category: 'Packaging', supplier: 'Uline', notes: 'Black 3x4 pouches', archived: false, history: [{date: '2026-10-01', type: 'Created', note: 'Initial stock added: 85'}] },
+            { id: 6, sku: 'COMP-006', name: 'Lobster Clasps 12mm', qty: 210, threshold: 30, cost: 0.09, category: 'Jewelry Supplies', supplier: 'Rio Grande', notes: 'Silver plated', archived: false, history: [{date: '2026-10-01', type: 'Created', note: 'Initial stock added: 210'}] },
+            { id: 7, sku: 'COMP-007', name: 'Warning Fragile Labels', qty: 500, threshold: 100, cost: 0.01, category: 'Stickers & Labels', supplier: 'Amazon', notes: 'Red bold text', archived: false, history: [{date: '2026-10-01', type: 'Created', note: 'Initial stock added: 500'}] },
+            { id: 8, sku: 'COMP-008', name: 'Cardboard Backing Sheets', qty: 60, threshold: 15, cost: 0.20, category: 'Packaging', supplier: 'Uline', notes: '5x7 rigid sheets', archived: false, history: [{date: '2026-10-01', type: 'Created', note: 'Initial stock added: 60'}] },
+            { id: 9, sku: 'COMP-009', name: 'Crystal Glass Beads', qty: 15, threshold: 25, cost: 0.05, category: 'Jewelry Supplies', supplier: 'AliExpress', notes: 'Mixed dark shades', archived: false, history: [{date: '2026-10-01', type: 'Created', note: 'Initial stock added: 15'}] }
         ];
 
         let currentComponentPage = 1;
-        const componentsPerPage = 8;
 
         const themes = {
             blush: { primary: '#d97793', light: '#fdf2f4', dark: '#b35470', accent: '#f4aabf', appBg: '#f7f3f4', cardBg: '#ffffff', text: '#2d2d2d', subText: '#737373', border: '#e5e5e5' },
@@ -1061,7 +1143,26 @@
             switchTab('home');
         }
 
-        // ================= CATEGORY & SUPPLIER MODAL MANAGEMENT =================
+        // ================= AUTOMATED SKU & ID LOGIC =================
+        function generateNextSku() {
+            let maxNum = 0;
+            componentsList.forEach(c => {
+                if (c.sku && c.sku.startsWith('COMP-')) {
+                    const num = parseInt(c.sku.replace('COMP-', ''), 10);
+                    if (!isNaN(num) && num > maxNum) maxNum = num;
+                }
+            });
+            const nextNum = maxNum + 1;
+            return `COMP-${String(nextNum).padStart(3, '0')}`;
+        }
+
+        function getStockStatus(qty, threshold) {
+            if (qty === 0) return 'Out of Stock';
+            if (qty <= threshold) return 'Low Stock';
+            return 'In Stock';
+        }
+
+        // ================= CATEGORY & SUPPLIER MODALS WITH SAFETY LOCKS =================
 
         function openCategoryModal() {
             renderCategoryModalList();
@@ -1081,7 +1182,7 @@
                 row.className = "flex justify-between items-center p-2 border rounded-xl custom-card";
                 row.innerHTML = `
                     <span class="font-medium">${cat}</span>
-                    <button onclick="deleteCategory(${index})" class="text-red-500 hover:text-red-700 px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
+                    <button onclick="deleteCategory('${cat}')" class="text-red-500 hover:text-red-700 px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
                 `;
                 listContainer.appendChild(row);
             });
@@ -1100,10 +1201,14 @@
             }
         }
 
-        function deleteCategory(index) {
-            const catToDelete = componentCategories[index];
-            if(confirm(`Delete category "${catToDelete}"?`)) {
-                componentCategories.splice(index, 1);
+        function deleteCategory(catName) {
+            const isUsed = componentsList.some(c => c.category === catName);
+            if (isUsed) {
+                alert(`Cannot delete category "${catName}" because it is currently assigned to one or more components.`);
+                return;
+            }
+            if(confirm(`Delete category "${catName}"?`)) {
+                componentCategories = componentCategories.filter(c => c !== catName);
                 saveAllData();
                 renderCategoryModalList();
             }
@@ -1127,7 +1232,7 @@
                 row.className = "flex justify-between items-center p-2 border rounded-xl custom-card";
                 row.innerHTML = `
                     <span class="font-medium">${sup}</span>
-                    <button onclick="deleteSupplier(${index})" class="text-red-500 hover:text-red-700 px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
+                    <button onclick="deleteSupplier('${sup}')" class="text-red-500 hover:text-red-700 px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
                 `;
                 listContainer.appendChild(row);
             });
@@ -1146,13 +1251,113 @@
             }
         }
 
-        function deleteSupplier(index) {
-            const supToDelete = componentSuppliers[index];
-            if(confirm(`Delete supplier "${supToDelete}"?`)) {
-                componentSuppliers.splice(index, 1);
+        function deleteSupplier(supName) {
+            const isUsed = componentsList.some(c => c.supplier === supName);
+            if (isUsed) {
+                alert(`Cannot delete supplier "${supName}" because it is currently assigned to active components.`);
+                return;
+            }
+            if(confirm(`Delete supplier "${supName}"?`)) {
+                componentSuppliers = componentSuppliers.filter(s => s !== supName);
                 saveAllData();
                 renderSupplierModalList();
             }
+        }
+
+        // ================= AUDIT TRAIL HISTORY MODAL =================
+        function openHistoryModal(id) {
+            const comp = componentsList.find(c => c.id === id);
+            if (!comp) return;
+
+            document.getElementById('history-modal-title').innerText = `Audit Trail: ${comp.name} (${comp.sku})`;
+            const logContainer = document.getElementById('history-log-list');
+            logContainer.innerHTML = '';
+
+            if (!comp.history || comp.history.length === 0) {
+                logContainer.innerHTML = '<div class="text-center opacity-60 py-4">No movement history recorded yet.</div>';
+            } else {
+                comp.history.slice().reverse().forEach(log => {
+                    const item = document.createElement('div');
+                    item.className = "p-2.5 rounded-xl border custom-card text-[11px] space-y-0.5";
+                    item.innerHTML = `
+                        <div class="flex justify-between font-bold">
+                            <span>${log.type}</span>
+                            <span class="opacity-60 text-[10px]">${log.date}</span>
+                        </div>
+                        <p class="opacity-80">${log.note}</p>
+                    `;
+                    logContainer.appendChild(item);
+                });
+            }
+            document.getElementById('history-modal').classList.remove('hidden');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal').classList.add('hidden');
+        }
+
+        // ================= PRODUCT RECIPE & AUTO-DEDUCTION DEMO =================
+        function openProductRecipeModal() {
+            document.getElementById('recipe-modal').classList.remove('hidden');
+        }
+
+        function closeProductRecipeModal() {
+            document.getElementById('recipe-modal').classList.add('hidden');
+            renderComponents();
+        }
+
+        function executeRecipeAssembly() {
+            const product = document.getElementById('recipe-product-select').value;
+            const buildQty = parseInt(document.getElementById('recipe-build-qty').value) || 1;
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            if (product === 'Handmade Gothic Necklace') {
+                // Requires: Necklace Chain (COMP-004), Gothic Bat Charms (COMP-002), Jump Rings (COMP-006), Bubble Mailers (COMP-001)
+                const requirements = [
+                    { sku: 'COMP-004', count: 1 },
+                    { sku: 'COMP-002', count: 1 },
+                    { sku: 'COMP-006', count: 2 },
+                    { sku: 'COMP-001', count: 1 }
+                ];
+
+                for (let req of requirements) {
+                    const comp = componentsList.find(c => c.sku === req.sku);
+                    if (comp) {
+                        const totalNeeded = req.count * buildQty;
+                        comp.qty = Math.max(0, comp.qty - totalNeeded);
+                        if (!comp.history) comp.history = [];
+                        comp.history.push({
+                            date: todayStr,
+                            type: 'Production Assembly',
+                            note: `Deducted ${totalNeeded} units for ${buildQty}x ${product}`
+                        });
+                    }
+                }
+            } else {
+                // Vintage Resin Ring
+                const requirements = [
+                    { sku: 'COMP-009', count: 1 },
+                    { sku: 'COMP-005', count: 1 }
+                ];
+
+                for (let req of requirements) {
+                    const comp = componentsList.find(c => c.sku === req.sku);
+                    if (comp) {
+                        const totalNeeded = req.count * buildQty;
+                        comp.qty = Math.max(0, comp.qty - totalNeeded);
+                        if (!comp.history) comp.history = [];
+                        comp.history.push({
+                            date: todayStr,
+                            type: 'Production Assembly',
+                            note: `Deducted ${totalNeeded} units for ${buildQty}x ${product}`
+                        });
+                    }
+                }
+            }
+
+            saveAllData();
+            alert(`Successfully assembled ${buildQty}x ${product}! Component inventories have been automatically deducted.`);
+            closeProductRecipeModal();
         }
 
         // ================= COMPONENTS & INVENTORY LOGIC =================
@@ -1180,8 +1385,17 @@
         }
 
         function updateSupplierDropdowns() {
+            const filterSup = document.getElementById('comp-filter-sup');
             const formSup = document.getElementById('comp-supplier');
+
+            let currentFilterVal = filterSup.value;
             let currentSupVal = formSup.value;
+
+            filterSup.innerHTML = '<option value="">All Suppliers</option>';
+            componentSuppliers.forEach(sup => {
+                filterSup.innerHTML += `<option value="${sup}">${sup}</option>`;
+            });
+            filterSup.value = currentFilterVal;
 
             formSup.innerHTML = '';
             componentSuppliers.forEach(sup => {
@@ -1204,7 +1418,9 @@
                 if(comp) {
                     document.getElementById('comp-edit-id').value = comp.id;
                     document.getElementById('comp-name').value = comp.name;
+                    document.getElementById('comp-sku').value = comp.sku;
                     document.getElementById('comp-qty').value = comp.qty;
+                    document.getElementById('comp-threshold').value = comp.threshold || 10;
                     document.getElementById('comp-cost').value = comp.cost;
                     document.getElementById('comp-category').value = comp.category;
                     document.getElementById('comp-supplier').value = comp.supplier || componentSuppliers[0];
@@ -1214,6 +1430,8 @@
                 title.innerText = 'Add Component';
                 document.getElementById('component-form').reset();
                 document.getElementById('comp-edit-id').value = '';
+                document.getElementById('comp-sku').value = generateNextSku();
+                document.getElementById('comp-threshold').value = 10;
             }
             modal.classList.remove('hidden');
         }
@@ -1226,24 +1444,44 @@
             e.preventDefault();
             const id = document.getElementById('comp-edit-id').value;
             const name = document.getElementById('comp-name').value.trim();
+            const manualSku = document.getElementById('comp-sku').value.trim();
             const qty = parseInt(document.getElementById('comp-qty').value) || 0;
+            const threshold = parseInt(document.getElementById('comp-threshold').value) || 10;
             const cost = parseFloat(document.getElementById('comp-cost').value) || 0;
             const category = document.getElementById('comp-category').value;
             const supplier = document.getElementById('comp-supplier').value;
             const notes = document.getElementById('comp-notes').value.trim();
+            const todayStr = new Date().toISOString().split('T')[0];
 
             if(id) {
                 const comp = componentsList.find(c => c.id == id);
                 if(comp) {
                     comp.name = name;
+                    comp.sku = manualSku !== "" ? manualSku : comp.sku;
                     comp.qty = qty;
+                    comp.threshold = threshold;
                     comp.cost = cost;
                     comp.category = category;
                     comp.supplier = supplier;
                     comp.notes = notes;
+                    if(!comp.history) comp.history = [];
+                    comp.history.push({ date: todayStr, type: 'Updated', note: `Component details updated. Qty: ${qty}` });
                 }
             } else {
-                componentsList.push({ id: Date.now(), name, qty, cost, category, supplier, notes });
+                const finalSku = manualSku !== "" ? manualSku : generateNextSku();
+                componentsList.push({
+                    id: Date.now(),
+                    sku: finalSku,
+                    name,
+                    qty,
+                    threshold,
+                    cost,
+                    category,
+                    supplier,
+                    notes,
+                    archived: false,
+                    history: [{ date: todayStr, type: 'Created', note: `Created component with initial quantity: ${qty}` }]
+                });
             }
 
             saveAllData();
@@ -1251,8 +1489,20 @@
             renderComponents();
         }
 
+        function toggleArchiveComponent(id) {
+            const comp = componentsList.find(c => c.id === id);
+            if(comp) {
+                comp.archived = !comp.archived;
+                const todayStr = new Date().toISOString().split('T')[0];
+                if(!comp.history) comp.history = [];
+                comp.history.push({ date: todayStr, type: comp.archived ? 'Archived' : 'Unarchived', note: comp.archived ? 'Moved to archive' : 'Restored to active inventory' });
+                saveAllData();
+                renderComponents();
+            }
+        }
+
         function deleteComponent(id) {
-            if(confirm("Are you sure you want to delete this component?")) {
+            if(confirm("Are you sure you want to permanently delete this component? Its SKU will be released.")) {
                 componentsList = componentsList.filter(c => c.id !== id);
                 saveAllData();
                 renderComponents();
@@ -1263,7 +1513,7 @@
             const checkedBoxes = document.querySelectorAll('.comp-checkbox:checked');
             if(checkedBoxes.length === 0) return;
 
-            if(confirm(`Are you sure you want to delete ${checkedBoxes.length} selected components?`)) {
+            if(confirm(`Are you sure you want to permanently delete ${checkedBoxes.length} selected components?`)) {
                 const idsToDelete = Array.from(checkedBoxes).map(cb => parseInt(cb.dataset.id));
                 componentsList = componentsList.filter(c => !idsToDelete.includes(c.id));
                 saveAllData();
@@ -1271,29 +1521,51 @@
             }
         }
 
+        function toggleArchivedView() {
+            showArchivedView = !showArchivedView;
+            const btnText = document.getElementById('archive-btn-text');
+            if(showArchivedView) {
+                btnText.innerText = "View Active";
+            } else {
+                btnText.innerText = "View Archived";
+            }
+            currentComponentPage = 1;
+            renderComponents();
+        }
+
         function renderComponents() {
             updateCategoryDropdowns();
             updateSupplierDropdowns();
 
-            // Calculate Inventory Summary Stats
-            const totalComps = componentsList.length;
-            const totalUnits = componentsList.reduce((sum, c) => sum + c.qty, 0);
-            const lowStockCount = componentsList.filter(c => c.qty === 0).length;
+            // Calculate Inventory Summary Stats (Active only)
+            const activeComps = componentsList.filter(c => !c.archived);
+            const totalComps = activeComps.length;
+            const totalUnits = activeComps.reduce((sum, c) => sum + c.qty, 0);
+            const totalValue = activeComps.reduce((sum, c) => sum + (c.qty * c.cost), 0);
+            const lowStockCount = activeComps.filter(c => getStockStatus(c.qty, c.threshold || 10) !== 'In Stock').length;
 
             document.getElementById('stat-total-comps').innerText = totalComps;
             document.getElementById('stat-total-units').innerText = totalUnits.toLocaleString();
+            document.getElementById('stat-total-val').innerText = `$${totalValue.toFixed(2)}`;
             document.getElementById('stat-low-stock').innerText = lowStockCount;
 
             const container = document.getElementById('components-list');
             const paginationContainer = document.getElementById('components-pagination');
             const searchVal = document.getElementById('comp-search').value.toLowerCase();
             const catFilter = document.getElementById('comp-filter-cat').value;
+            const supFilter = document.getElementById('comp-filter-sup').value;
+            const statusFilter = document.getElementById('comp-filter-status').value;
             const sortVal = document.getElementById('comp-sort').value;
+            const perPageVal = document.getElementById('comp-per-page').value;
 
             let filtered = componentsList.filter(c => {
-                const matchesSearch = c.name.toLowerCase().includes(searchVal) || (c.supplier && c.supplier.toLowerCase().includes(searchVal));
+                const matchesArchive = showArchivedView ? c.archived : !c.archived;
+                const matchesSearch = c.name.toLowerCase().includes(searchVal) || c.sku.toLowerCase().includes(searchVal) || (c.supplier && c.supplier.toLowerCase().includes(searchVal));
                 const matchesCat = catFilter === "" || c.category === catFilter;
-                return matchesSearch && matchesCat;
+                const matchesSup = supFilter === "" || c.supplier === supFilter;
+                const status = getStockStatus(c.qty, c.threshold || 10);
+                const matchesStatus = statusFilter === "" || status === statusFilter;
+                return matchesArchive && matchesSearch && matchesCat && matchesSup && matchesStatus;
             });
 
             filtered.sort((a, b) => {
@@ -1304,19 +1576,22 @@
                 if(sortVal === 'qty_high') return b.qty - a.qty;
                 if(sortVal === 'qty_low') return a.qty - b.qty;
                 if(sortVal === 'stock_out') {
-                    if(a.qty === 0 && b.qty > 0) return -1;
-                    if(a.qty > 0 && b.qty === 0) return 1;
+                    const statusA = getStockStatus(a.qty, a.threshold || 10);
+                    const statusB = getStockStatus(b.qty, b.threshold || 10);
+                    if(statusA === 'Out of Stock' && statusB !== 'Out of Stock') return -1;
+                    if(statusA !== 'Out of Stock' && statusB === 'Out of Stock') return 1;
                     return a.name.localeCompare(b.name);
                 }
                 return 0;
             });
 
-            const totalPages = Math.ceil(filtered.length / componentsPerPage) || 1;
+            const itemsPerPage = perPageVal === 'all' ? filtered.length : parseInt(perPageVal) || 8;
+            const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
             if (currentComponentPage > totalPages) currentComponentPage = totalPages;
             if (currentComponentPage < 1) currentComponentPage = 1;
 
-            const startIndex = (currentComponentPage - 1) * componentsPerPage;
-            const paginatedItems = filtered.slice(startIndex, startIndex + componentsPerPage);
+            const startIndex = (currentComponentPage - 1) * itemsPerPage;
+            const paginatedItems = perPageVal === 'all' ? filtered : filtered.slice(startIndex, startIndex + itemsPerPage);
 
             container.innerHTML = '';
             if(paginatedItems.length === 0) {
@@ -1327,6 +1602,11 @@
             }
 
             paginatedItems.forEach(c => {
+                const status = getStockStatus(c.qty, c.threshold || 10);
+                let badgeColor = 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50';
+                if (status === 'Low Stock') badgeColor = 'bg-amber-50 text-amber-600 dark:bg-amber-950/50';
+                if (status === 'Out of Stock') badgeColor = 'bg-red-50 text-red-600 dark:bg-red-950/50';
+
                 const card = document.createElement('div');
                 card.className = "custom-card p-3 rounded-2xl border shadow-sm space-y-2";
                 card.innerHTML = `
@@ -1334,27 +1614,35 @@
                         <div class="flex items-start space-x-2.5 min-w-0">
                             <input type="checkbox" data-id="${c.id}" onchange="checkBatchSelection()" class="comp-checkbox w-3.5 h-3.5 rounded text-brand accent-brand cursor-pointer mt-0.5 shrink-0">
                             <div class="min-w-0">
-                                <h4 class="font-bold text-xs truncate">${c.name}</h4>
+                                <div class="flex items-center space-x-2">
+                                    <h4 class="font-bold text-xs truncate">${c.name}</h4>
+                                    <span class="text-[10px] font-mono opacity-60 bg-neutral-200/50 dark:bg-neutral-800 px-1.5 py-0.5 rounded">${c.sku}</span>
+                                </div>
                                 <p class="text-[11px] opacity-60">${c.category} · ${c.supplier || 'N/A'}</p>
                             </div>
                         </div>
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeColor}">${status}</span>
                     </div>
 
                     <div class="flex items-center justify-between pt-1 border-t border-neutral-100 dark:border-neutral-800 text-xs">
                         <div class="flex space-x-4">
                             <div>
-                                <span class="text-[10px] opacity-60 block">Cost per unit</span>
+                                <span class="text-[10px] opacity-60 block">Cost / Unit</span>
                                 <span class="font-bold">$${c.cost.toFixed(2)}</span>
                             </div>
                             <div>
                                 <span class="text-[10px] opacity-60 block">Quantity</span>
-                                <span class="font-bold ${c.qty === 0 ? 'text-red-500' : ''}">${c.qty} units</span>
+                                <span class="font-bold ${status === 'Out of Stock' ? 'text-red-500' : ''}">${c.qty} units</span>
                             </div>
                         </div>
                         
-                        <div class="flex items-center space-x-3 text-xs font-semibold">
+                        <div class="flex items-center space-x-2 text-xs font-semibold">
+                            <button onclick="openHistoryModal(${c.id})" class="text-neutral-500 hover:underline">History</button>
+                            <span>·</span>
                             <button onclick="openComponentModal(${c.id})" class="text-brand hover:underline">Edit</button>
-                            <span class="opacity-30">·</span>
+                            <span>·</span>
+                            <button onclick="toggleArchiveComponent(${c.id})" class="text-amber-600 hover:underline">${c.archived ? 'Restore' : 'Archive'}</button>
+                            <span>·</span>
                             <button onclick="deleteComponent(${c.id})" class="text-red-500 hover:underline">Delete</button>
                         </div>
                     </div>
