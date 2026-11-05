@@ -2712,6 +2712,708 @@ const _moneyOverviewV3=V.money;
 V.money=function(){const html=_moneyOverviewV3();const estimate=money(Math.max(0,summary(periodRange(state.prefs.period)).profit)*num(state.settings.taxRate)/100);const history=(state.taxes||[]).slice().reverse().slice(0,5).map(t=>`<div class="kv"><span>${esc(fmtDate(t.date))}</span><b>${money(t.amount)}</b></div>`).join('')||'<p class="hint">No tax records saved yet.</p>';const card=`<div class="card sm"><div class="row between"><div><b>Tax planning estimate</b><div class="hint">Based on recorded net profit and your set-aside rate (${num(state.settings.taxRate)}%). Not a tax return or tax advice.</div></div><b class="num">${estimate}</b></div><button class="link" data-act="tax-record">Record a tax payment / estimate</button>${history}</div>`;return html.replace('<div class="page stack-sm fade">','<div class="page stack-sm fade">'+card);};
 ACT['tax-record']=async()=>{const amount=await askText('Record tax amount','Amount paid or set aside','');if(amount===null)return;const n=num(amount);if(n<0)return toast('Enter a positive amount');state.taxes=state.taxes||[];state.taxes.push({id:uid('tax'),date:today(),amount:n});save();render();toast('Tax record saved');};
 
+/* =====================================================================
+   15.6. BUSINESS WORKFLOWS (v4 fixes)
+   ===================================================================== */
+const MARKETPLACE_PRESETS_V4 = [
+  ['eBay', 13.25, 0.40],
+  ['Mercari', 10, 0],
+  ['Depop', 3.3, 0.45],
+  ['Vinted', 0, 0],
+  ['Etsy', 9.5, 0.25],
+  ['Shopify', 2.9, 0.30],
+  ['Facebook Marketplace', 0, 0],
+  ['Instagram', 0, 0],
+  ['Online Shop', 2.9, 0.30],
+  ['In person', 0, 0],
+  ['Marketplace', 0, 0]
+];
+function ensureMarketplaceChannels(channels) {
+  if (!Array.isArray(channels)) channels = [];
+  const names = new Set(channels.map(c => String(c && c.name || '').trim().toLowerCase()));
+  MARKETPLACE_PRESETS_V4.forEach((x, i) => {
+    if (!names.has(x[0].toLowerCase())) {
+      channels.push({ id: 'preset-' + i, name: x[0], pct: x[1], fixed: x[2] });
+      names.add(x[0].toLowerCase());
+    }
+  });
+  return channels;
+}
+const _defaultsBeforeV4 = DEFAULTS;
+DEFAULTS = function() {
+  const d = _defaultsBeforeV4();
+  d._stockAccountingVersion = 4;   d.settings.channels = ensureMarketplaceChannels(d.settings.channels);
+  return d;
+};
+const _normalizeBeforeV4 = normalize;
+normalize = function(src) {
+  const wasTracked = new Map((src && Array.isArray(src.products) ? src.products : []).map(p => [p.id, p._recipeBuiltUnits != null]));
+  const out = _normalizeBeforeV4(src);
+  if (!src || src._stockAccountingVersion !== 4) {
+    out.products.forEach(p => { if (!p._materialsReturned) p._recipeBuiltUnits = 0; });
+  }
+  out._stockAccountingVersion = 4;
+  out.settings.channels = ensureMarketplaceChannels(out.settings.channels);
+  return out;
+};
+state.settings.channels = ensureMarketplaceChannels(state.settings.channels); state._stockAccountingVersion = 4;
+
+const _finishSetupBeforeV4 = finishSetup;
+finishSetup = function() {
+  _finishSetupBeforeV4();
+  state.settings.channels = ensureMarketplaceChannels(state.settings.channels); state._stockAccountingVersion = 4;
+  save(); flush(); enterApp();
+};
+const _genSampleBeforeV4 = genSample;
+genSample = function() {
+  _genSampleBeforeV4();
+  state.settings.channels = ensureMarketplaceChannels(state.settings.channels); state._stockAccountingVersion = 4;
+  save(); flush();
+};
+
+/* Product quantity entered at creation is finished stock made from its recipe. */
+function recipeMap(recipe) {
+  const map = new Map();
+  (recipe || []).forEach(r => map.set(r.supplyId, (map.get(r.supplyId) || 0) + num(r.qty)));
+  return map;
+}
+function recipeSignature(recipe) {
+  return Array.from(recipeMap(recipe).entries()).sort((a,b) => a[0].localeCompare(b[0])).map(x => x[0] + ':' + x[1]).join('|');
+}
+function productMaterialPlan(old, qty, recipe) {
+  const changes = new Map(), nextRecipe = recipe || [];
+  const add = (map, factor) => map.forEach((q,id) => changes.set(id, (changes.get(id) || 0) + q * factor));
+  if (!old) {
+    const built = nextRecipe.length ? qty : 0;
+    if (built) add(recipeMap(nextRecipe), -built);
+    return { changes, built, returned: false };
+  }
+  const oldRecipe = old.recipe || [];
+  const oldBuilt = Math.min(Math.max(0, num(old._recipeBuiltUnits)), Math.max(0, num(old.qty)));
+  const added = Math.max(0, qty - num(old.qty));
+  if (old.archived && old._materialsReturned) {
+    return { changes, built: nextRecipe.length ? Math.min(qty, oldBuilt + added) : 0, returned: true };
+  }
+  const same = recipeSignature(oldRecipe) === recipeSignature(nextRecipe);
+  if (same && nextRecipe.length) {
+    const built = Math.min(qty, oldBuilt + added);
+    if (added) add(recipeMap(nextRecipe), -added);
+    return { changes, built, returned: false };
+  }
+  if (oldRecipe.length && oldBuilt) add(recipeMap(oldRecipe), oldBuilt);
+  let baseBuilt = 0;
+  if (!oldRecipe.length && nextRecipe.length) baseBuilt = Math.min(Math.max(0, num(old.qty)), qty);
+  const built = nextRecipe.length ? Math.min(qty, (oldRecipe.length ? oldBuilt : baseBuilt) + added) : 0;
+  if (built) add(recipeMap(nextRecipe), -built);
+  return { changes, built, returned: false };
+}
+function applyProductMaterialPlan(plan) {
+  for (const [id, delta] of plan.changes) {
+    const s = find('supplies', id);
+    if (!s && delta < 0) return 'A recipe supply no longer exists. Update the product recipe first.';
+    if (!s) continue;
+    if (delta < 0 && (s.archived || num(s.qty) + delta < -1e-9)) {
+      return 'Not enough ' + s.name + ' for this product quantity or recipe change.';
+    }
+  }
+  for (const [id, delta] of plan.changes) {
+    const s = find('supplies', id);
+    if (s) s.qty = r2(Math.max(0, num(s.qty) + delta));
+  }
+  return '';
+}
+const _productFormBeforeV4 = FORMS.product;
+FORMS.product = function(f, fd, id) {
+  const name = tidy(fd.get('name'));
+  if (!name) return toast('Please enter a name');
+  const qty = Math.max(0, Math.round(num(fd.get('qty'))));
+  const recipe = readRecipe(f);
+  const old = id ? find('products', id) : null;
+  const plan = productMaterialPlan(old, qty, recipe);
+  const error = applyProductMaterialPlan(plan);
+  if (error) return toast(error);
+  _productFormBeforeV4(f, fd, id);
+  const p = id ? find('products', id) : state.products[state.products.length - 1];
+  if (p) {
+    p._recipeBuiltUnits = plan.built;
+    if (plan.returned) p._materialsReturned = true;
+    else delete p._materialsReturned;
+    p.brand = tidy(fd.get('brand'));
+    p.material = tidy(fd.get('material'));
+    p.color = tidy(fd.get('color'));
+    p.size = tidy(fd.get('size'));
+    p.condition = tidy(fd.get('condition'));
+    p.weight = tidy(fd.get('weight'));
+    save();
+  }
+};
+const _openProductBeforeV4 = OPEN.product;
+OPEN.product = function(id) {
+  _openProductBeforeV4(id);
+  const f = $('form[data-form=product]');
+  if (!f) return;
+  const p = id ? find('products', id) : null;
+  const body = $('.sheet-body', f);
+  body.insertAdjacentHTML('beforeend',
+    '<p class="eyebrow" style="margin:8px 0">Product details</p>' +
+    '<div class="grid2">' + fText('Brand / maker', 'brand', p && p.brand || '', 'maxlength="60"') + fText('Material', 'material', p && p.material || '', 'maxlength="80"') + '</div>' +
+    '<div class="grid2">' + fText('Color', 'color', p && p.color || '', 'maxlength="40"') + fText('Size / dimensions', 'size', p && p.size || '', 'maxlength="60"') + '</div>' +
+    '<div class="grid2">' + fSel('Condition', 'condition', [['','Not set'], 'New', 'Like new', 'Good', 'Fair', 'Refurbished'], p && p.condition || '') + fText('Weight / package weight', 'weight', p && p.weight || '', 'maxlength="40" placeholder="e.g. 8 oz"') + '</div>'
+  );
+};
+const _supplyFormBeforeV4 = FORMS.supply;
+FORMS.supply = function(f, fd, id) {
+  _supplyFormBeforeV4(f, fd, id);
+  const s = id ? find('supplies', id) : state.supplies[state.supplies.length - 1];
+  if (!s) return;
+  s.brand = tidy(fd.get('brand'));
+  s.packageSize = tidy(fd.get('packageSize'));
+  s.specs = tidy(fd.get('specs'));
+  s.reorderAt = fd.get('reorderAt') === '' ? '' : Math.max(0, num(fd.get('reorderAt')));
+  s.leadTimeDays = fd.get('leadTimeDays') === '' ? '' : Math.max(0, Math.round(num(fd.get('leadTimeDays'))));
+  s.storage = tidy(fd.get('storage'));
+  save();
+};
+const _openSupplyBeforeV4 = OPEN.supply;
+OPEN.supply = function(id) {
+  _openSupplyBeforeV4(id);
+  const f = $('form[data-form=supply]');
+  if (!f) return;
+  const s = id ? find('supplies', id) : null;
+  $('.sheet-body', f).insertAdjacentHTML('beforeend',
+    '<p class="eyebrow" style="margin:8px 0">Supply details</p>' +
+    '<div class="grid2">' + fText('Brand / manufacturer', 'brand', s && s.brand || '', 'maxlength="60"') + fText('Package size', 'packageSize', s && s.packageSize || '', 'maxlength="60" placeholder="e.g. 100-count box"') + '</div>' +
+    '<div class="grid2">' + fText('Specifications', 'specs', s && s.specs || '', 'maxlength="100"') + fNum('Reorder when at', 'reorderAt', s && s.reorderAt != null ? s.reorderAt : '', 'Optional', 'min="0"') + '</div>' +
+    '<div class="grid2">' + fNum('Supplier lead time (days)', 'leadTimeDays', s && s.leadTimeDays != null ? s.leadTimeDays : '', 'Optional', 'min="0" step="1"') + fText('Storage location details', 'storage', s && s.storage || '', 'maxlength="80"') + '</div>'
+  );
+};
+
+function activeListingsForProduct(id) {
+  return state.listings.filter(l => l.productId === id && !l.archived && l.status === 'Active');
+}
+function archiveBlockReason(type, ids, flag) {
+  if (flag && type === 'supply' && ids.some(id => activeProductsForSupply(id).length)) {
+    return 'Cannot archive: this supply is used by an active product. Archive or update those products first.';
+  }
+  if (flag && type === 'product' && ids.some(id => activeListingsForProduct(id).length)) {
+    return 'Cannot archive: this product has an active listing. Pause, sell, or archive the listing first.';
+  }
+  if (!flag && type === 'product') {
+    const needs = new Map();
+    ids.forEach(id => {
+      const p = find('products', id);
+      if (!p || !p._materialsReturned) return;
+      recipeMap(p.recipe).forEach((q,sid) => needs.set(sid, (needs.get(sid) || 0) + q * Math.max(0, num(p._recipeBuiltUnits))));
+    });
+    for (const [sid, qty] of needs) {
+      const s = find('supplies', sid);
+      if (!s || s.archived || num(s.qty) + 1e-9 < qty) {
+        return 'Cannot restore product: unarchive and restock ' + (s ? s.name : 'a linked supply') + ' first.';
+      }
+    }
+  }
+  return '';
+}
+archiveRecords = function(type, ids, flag) {
+  const reason = archiveBlockReason(type, ids, flag);
+  if (reason) return { changed: [], reason };
+  ids.forEach(id => {
+    const r = find(COLL[type], id);
+    if (!r) return;
+    if (type === 'product') {
+      if (flag) returnProductMaterials(r);
+      else if (!reclaimProductMaterials(r)) return;
+    }
+    if (flag) r.archived = true;
+    else delete r.archived;
+  });
+  logAct((flag ? 'Archived ' : 'Restored ') + ids.length + ' ' + plural(type, ids.length), 'archive');
+  return { changed: ids, reason: '' };
+};
+const _confirmDeleteV4 = confirmDelete;
+confirmDelete = async function(type, ids) {
+  if (type === 'supply' && ids.some(id => activeProductsForSupply(id).length)) {
+    toast('This supply is used in an active product. Remove the recipe dependency first.');
+    return false;
+  }
+  if (type === 'product' && ids.some(id => activeListingsForProduct(id).length)) {
+    toast('This product has an active listing. Pause, sell, or archive the listing first.');
+    return false;
+  }
+  return _confirmDeleteV4(type, ids);
+};
+const _deleteRecordsV4 = deleteRecords;
+deleteRecords = function(type, ids) {
+  if (type === 'supply' && ids.some(id => activeProductsForSupply(id).length)) return false;
+  if (type === 'product' && ids.some(id => activeListingsForProduct(id).length)) return false;
+  return _deleteRecordsV4(type, ids);
+};
+ACT.archive = el => {
+  const type = el.dataset.type, id = el.dataset.id, r = find(COLL[type], id);
+  if (!r) return;
+  const flag = !r.archived, reason = archiveBlockReason(type, [id], flag);
+  if (reason) return toast(reason);
+  closeSheet();
+  undoable(flag ? 'Archived' : 'Restored', () => archiveRecords(type, [id], flag));
+};
+ACT['bulk-archive'] = () => {
+  const type = curType(), ids = [...ui.sel], flag = !ui.arch;
+  if (!ids.length) return;
+  const reason = archiveBlockReason(type, ids, flag);
+  if (reason) return toast(reason);
+  undoable((flag ? 'Archived ' : 'Restored ') + ids.length + ' ' + plural(type, ids.length), () => {
+    archiveRecords(type, ids, flag); ui.sel.clear(); ui.selMode = false;
+  });
+};
+
+/* Discounts: entering an end date always takes precedence over the no-end option. */
+const _openListingBeforeV4 = OPEN.listing;
+OPEN.listing = function(id) {
+  _openListingBeforeV4(id);
+  const f = $('form[data-form=listing]');
+  if (!f) return;
+  $('.discount-row', f).forEach(row => {
+    const end = $('[name=discountEnd]', row), noEnd = $('[name=discountNoEnd]', row);
+    if (end && noEnd && end.value) noEnd.checked = false;
+  });
+};
+const _listingFormBeforeV4 = FORMS.listing;
+FORMS.listing = function(f, fd, id) {
+  $('.discount-row', f).forEach(row => {
+    const end = $('[name=discountEnd]', row), noEnd = $('[name=discountNoEnd]', row);
+    if (end && noEnd && end.value) noEnd.checked = false;
+  });
+  return _listingFormBeforeV4(f, fd, id);
+};
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.name === 'discountEnd') {
+    const row = t.closest('.discount-row'), check = row && $('[name=discountNoEnd]', row);
+    if (check && t.value) check.checked = false;
+  }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.name === 'discountNoEnd' && t.checked) {
+    const row = t.closest('.discount-row'), end = row && $('[name=discountEnd]', row);
+    if (end) end.value = '';
+  }
+  if (t.name === 'orderKind') {
+    const f = t.closest('form'), block = f && $('[data-bulk-discount]', f);
+    if (block) block.hidden = t.value !== 'bulk';
+    if (f) formLive(f, t);
+  }
+});
+
+/* Listing bulk edits must update the current discount list used for displayed prices. */
+const _bulkFormBeforeV4 = FORMS.bulk;
+FORMS.bulk = function(f, fd, type) {
+  if (type !== 'listing') return _bulkFormBeforeV4(f, fd, type);
+  const raw = fd.get('dpct'), start = tidy(fd.get('dstart')), end = tidy(fd.get('dend'));
+  if (raw !== '' && raw != null && start && end && end < start) return toast('A discount end date is before its start date');
+  const savedUndoable = undoable;
+  undoable = function(msg, fn) {
+    return savedUndoable(msg, function() {
+      fn();
+      const ids = [...ui.sel], hasDiscount = raw !== '' && raw != null;
+      ids.forEach(id => {
+        const l = find('listings', id);
+        if (!l) return;
+        if (fd.get('channel')) { l.channel = fd.get('channel'); l.channels = [fd.get('channel')]; }
+        if (hasDiscount) {
+          const p = Math.max(0, Math.min(100, num(raw)));
+          l.discounts = p > 0 ? [{ pct: p, start, end, noEnd: !end }] : [];
+          l.discount = l.discounts[0] || { pct: '', start: '', end: '' };
+        }
+      });
+    });
+  };
+  try { return _bulkFormBeforeV4(f, fd, type); }
+  finally { undoable = savedUndoable; }
+};
+
+/* Bulk / wholesale orders now apply an optional discount to the order subtotal. */
+const _openOrderBeforeV4 = OPEN.order;
+OPEN.order = function(id, pre) {
+  _openOrderBeforeV4(id, pre);
+  const f = $('form[data-form=order]');
+  if (!f) return;
+  const old = id ? find('orders', id) : null;
+  const kind = $('[name=orderKind]', f);
+  if (kind && !kind.value && old && old.orderKind) kind.value = old.orderKind;
+  if (kind) {
+    kind.closest('label').insertAdjacentHTML('afterend',
+      '<div data-bulk-discount ' + ((kind.value || 'standard') === 'bulk' ? '' : 'hidden') + '>' +
+      fNum('Wholesale discount (%)', 'bulkDiscountPct', old && old.bulkDiscountPct || '', 'e.g. 10', 'min="0" max="100"') +
+      '<p class="hint" style="margin-top:-8px">This percentage is applied to the item subtotal. Enter quantities on each line above; the regular discount field can add a separate fixed discount.</p></div>'
+    );
+  }
+  const pv = $('#pv', f);
+  if (pv) pv.insertAdjacentHTML('beforebegin',
+    '<div class="grid2">' + fNum('Tax collected', 'tax', old && old.tax || '', '0.00', 'min="0"') + fDate('Payment due', 'dueDate', old && old.dueDate || '', false) + '</div>'
+  );
+  formLive(f);
+};
+const _readOrderBeforeV4 = readOrder;
+readOrder = function(f, existing) {
+  const o = _readOrderBeforeV4(f, existing);
+  o.orderKind = $('[name=orderKind]', f) && $('[name=orderKind]', f).value || existing && existing.orderKind || 'standard';
+  o.bulkDiscountPct = o.orderKind === 'bulk' ? Math.max(0, Math.min(100, num($('[name=bulkDiscountPct]', f) && $('[name=bulkDiscountPct]', f).value))) : 0;
+  o.tax = Math.max(0, num($('[name=tax]', f) && $('[name=tax]', f).value));
+  o.dueDate = $('[name=dueDate]', f) && $('[name=dueDate]', f).value || '';
+  o.fees = o.feesManual ? o.fees : autoFees(o);
+  return o;
+};
+const _formLiveBeforeV4 = formLive;
+formLive = function(f, target) {
+  _formLiveBeforeV4(f, target);
+  if (!f || f.dataset.form !== 'order') return;
+  const kind = $('[name=orderKind]', f), block = $('[data-bulk-discount]', f);
+  if (block) block.hidden = !kind || kind.value !== 'bulk';
+  const old = f.dataset.id ? find('orders', f.dataset.id) : null;
+  const c = oc(readOrder(f, old)), total = $('#pv-total', f);
+  if (total) total.textContent = money(c.total);
+  const pv = $('#pv', f);
+  if (pv && c.tax) pv.insertAdjacentHTML('afterbegin', '<div class="kv"><span>Tax collected</span><b class="num">' + money(c.tax) + '</b></div>');
+};
+
+oc = function(o) {
+  const items = o.items || [];
+  const sub = sum(items, l => l.qty * l.price);
+  const bulkDisc = o.orderKind === 'bulk' ? sub * Math.max(0, Math.min(100, num(o.bulkDiscountPct))) / 100 : 0;
+  const disc = Math.min(sub, Math.max(0, num(o.discount)) + bulkDisc);
+  const gross = sub - disc + num(o.shipCharged);
+  const tax = Math.max(0, num(o.tax));
+  const total = gross + tax;
+  const units = sum(items, l => Math.max(0, l.qty - (l.returned || 0)));
+  const cogs = sum(items, l => Math.max(0, l.qty - (l.returned || 0)) * l.cost);
+  const refund = num(o.refund);
+  const refundRevenue = Math.min(Math.max(0, gross), Math.max(0, refund));
+  const fees = num(o.fees), post = num(o.postage);
+  const net = gross - refundRevenue;
+  const payout = total - fees - refund;
+  const profit = net - fees - post - cogs;
+  return { sub, disc, gross, tax, total, units, cogs, refund, refundRevenue, fees, post, net, payout, profit, margin: net > 0 ? profit / net * 100 : null };
+};
+autoFees = function(o) { return feeFor(o.channel, oc(o).gross + oc(o).tax); };
+const _putOrderBeforeV4 = putOrder;
+putOrder = function(o) {
+  if (o && ['Refunded to Customer', 'Disputed / Chargeback'].includes(o.status)) {
+    const total = oc(Object.assign({}, o, { refund: 0 })).total;
+    o = Object.assign({}, o, { refund: Math.max(num(o.refund), total) });
+  }
+  return _putOrderBeforeV4(o);
+};
+summary = function(r) {
+  const os = live().filter(o => inR(o.date, r));
+  let gross = 0, refunds = 0, fees = 0, post = 0, cogs = 0, units = 0, disc = 0;
+  os.forEach(o => {
+    const c = oc(o);
+    gross += c.gross; refunds += c.refundRevenue; fees += c.fees; post += c.post; cogs += c.cogs; units += c.units; disc += c.disc;
+  });
+  const exps = state.expenses.filter(e => inR(e.date, r));
+  const expenses = sum(exps, e => num(e.amount));
+  const deductible = sum(exps.filter(e => e.deductible !== false), e => num(e.amount));
+  const income = sum(state.income.filter(e => inR(e.date, r)), e => num(e.amount));
+  const miles = sum(state.mileage.filter(e => inR(e.date, r)), e => num(e.miles));
+  const net = gross - refunds, gp = net - fees - post - cogs, profit = gp - expenses + income;
+  return { orders: os.length, gross, refunds, net, fees, post, cogs, units, disc, gp, expenses, deductible, income, miles, profit, margin: net > 0 ? profit / net * 100 : null, aov: os.length ? sum(os, o => oc(o).total) / os.length : 0 };
+};
+
+/* Accurate invoice payment wording, sales-tax line and optional due date. */
+OPEN.invoice = function(id) {
+  const o = find('orders', id);
+  if (!o) return;
+  const c = oc(o), b = state.settings.business, cust = state.customers.find(x => lc(x.name) === lc(o.customer));
+  const nl = s => esc(s).replace(/\n/g, '<br>');
+  let paymentStatus = '';
+  if (['Cancelled', 'Order Cancelled'].includes(o.status)) paymentStatus = '<b>Cancelled.</b>';
+  else if (o.status === 'Payment Processing') paymentStatus = '<b style="color:#b45309">Payment processing.</b>';
+  else if (o.status === 'Disputed / Chargeback') paymentStatus = '<b style="color:#b91c1c">Payment disputed.</b>';
+  else if (o.status === 'Refunded to Customer' || o.status === 'Refunded to Seller') paymentStatus = '<b style="color:#b91c1c">Refunded.</b>';
+  else if (o.status === 'Partially Refunded' || c.refund > 0) paymentStatus = '<b style="color:#b45309">Partially refunded.</b>';
+  else if (o.payment) paymentStatus = '<b style="color:#047857">Payment recorded via ' + esc(o.payment) + '.</b>';
+  else paymentStatus = '<b style="color:#737373">Payment status not recorded.</b>';
+  const amountDue = Math.max(0, c.total - c.refund);
+  openSheet('Invoice', '<div class="sheet-body"><div class="invoice" id="invoice">' +
+    '<div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><h2>' + esc(state.settings.name || 'Invoice') + '</h2><div style="color:#525252">' +
+    (b.address ? nl(b.address) + '<br>' : '') + [b.email, b.phone].filter(Boolean).map(esc).join(' · ') + (b.taxId ? '<br>ID: ' + esc(b.taxId) : '') +
+    '</div></div><div style="text-align:right"><div style="font-size:10px;letter-spacing:.08em;color:#737373;font-weight:700">INVOICE</div><div style="font-weight:800;font-size:16px">' + orderNo(o) + '</div><div style="color:#525252">' + fmtDateLong(o.date) + '</div>' +
+    (o.dueDate ? '<div style="color:#525252">Due ' + fmtDateLong(o.dueDate) + '</div>' : '') + '</div></div>' +
+    ((o.customer || cust) ? '<div style="margin-top:16px"><div style="font-size:10px;letter-spacing:.08em;color:#737373;font-weight:700">BILL TO</div><b>' + esc(o.customer) + '</b>' + (cust && cust.address ? '<br>' + nl(cust.address) : '') + (cust && cust.email ? '<br>' + esc(cust.email) : '') + '</div>' : '') +
+    '<table><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Amount</th></tr></thead><tbody>' +
+    o.items.map(l => '<tr><td>' + esc(l.name) + '</td><td class="r">' + l.qty + '</td><td class="r">' + money(l.price) + '</td><td class="r">' + money(l.qty * l.price) + '</td></tr>').join('') +
+    '</tbody></table><table style="width:55%;margin-left:auto"><tbody><tr class="tot"><td>Subtotal</td><td class="r">' + money(c.sub) + '</td></tr>' +
+    (c.disc ? '<tr class="tot"><td>Discount</td><td class="r">− ' + money(c.disc) + '</td></tr>' : '') +
+    (num(o.shipCharged) ? '<tr class="tot"><td>Shipping</td><td class="r">' + money(num(o.shipCharged)) + '</td></tr>' : '') +
+    (c.tax ? '<tr class="tot"><td>Tax</td><td class="r">' + money(c.tax) + '</td></tr>' : '') +
+    (c.refund ? '<tr class="tot"><td>Refunded</td><td class="r">− ' + money(c.refund) + '</td></tr>' : '') +
+    '<tr class="grand"><td>Total due</td><td class="r">' + money(amountDue) + '</td></tr></tbody></table>' +
+    '<div style="color:#525252">' + paymentStatus + ' ' + (b.note ? esc(b.note) : '') + '</div></div></div>' +
+    '<div class="sheet-foot noprint"><button class="btn btn-line" data-act="open-order" data-id="' + o.id + '">Back</button><button class="btn btn-primary" data-act="print">' + ic('printer') + ' Print / save PDF</button></div>'
+  );
+};
+const _openRefundBeforeV4 = OPEN.refund;
+OPEN.refund = function(id) {
+  _openRefundBeforeV4(id);
+  const o = find('orders', id), hint = $('.sheet-body .hint', $('#modal'));
+  if (o && hint) hint.innerHTML = 'Order total was ' + money(oc(o).total) + '. Enter the <b>total</b> you have refunded, and how many units came back and can be sold again.';
+};
+
+/* Apply status-only refunds to revenue totals immediately. */
+const _alertBackBeforeV4 = ACT['alerts-back'];
+ACT['alerts-back'] = () => closeSheet();
+ACT['tax-record'] = async () => {
+  const amount = await askText('Record tax amount', 'Amount paid or set aside', '');
+  if (amount === null) return;
+  const n = num(amount);
+  if (!(n > 0)) return toast('Enter an amount greater than zero');
+  state.taxes = state.taxes || [];
+  state.taxes.push({ id: uid('tax'), date: today(), amount: n });
+  save(); render(); toast('Tax record saved');
+};
+
+/* The alert mailbox is reachable from every app header. */
+renderHeader = function() {
+  const v = ui.sub || ui.tab, hasAtt = attention().filter(x => !(state.dismissedAlerts || []).includes(x.key || x.text)).length > 0;
+  const bell = '<button class="icon-btn bell" data-act="bell" aria-label="Alerts">' + ic('bell') + (hasAtt ? '<span class="dot"></span>' : '') + '</button>';
+  const left = ui.sub ? '<button class="icon-btn" data-act="back" aria-label="Back">' + ic('arrow-left') + '</button>' : '';
+  if (v === 'home') {
+    return '<div class="hdr"><h1 class="trunc">Welcome back, ' + esc(state.settings.name || 'there') + '!</h1><div class="row" style="gap:8px">' +
+      periodSelect() + '<button class="icon-btn" data-act="gsearch" aria-label="Search everything">' + ic('search') + '</button>' + bell + '</div></div>';
+  }
+  const add = addType();
+  let right = '';
+  if (v === 'money') right += periodSelect();
+  if (add) right += '<button class="btn btn-primary btn-sm" data-act="add" data-type="' + add[0] + '">' + ic('plus') + ' ' + add[1] + '</button>';
+  else if (v === 'activity') right += '<button class="link" data-act="clear-log">Clear</button>';
+  return '<div class="hdr"><div class="row" style="gap:10px;min-width:0">' + left + '<h1 class="trunc">' + esc(TITLES[v] || v) + '</h1></div><div class="row" style="gap:8px">' + right + bell + '</div></div>';
+};
+
+/* Copy-as-text and paste-to-restore backup alongside the downloadable file. */
+const _settingsBeforeV4 = V.settings;
+V.settings = function() {
+  const html = _settingsBeforeV4();
+  return html.replace('Restore from backup</button>', 'Restore from backup</button><button class="btn btn-line block" data-act="backup-text">Copy or paste backup as text</button>');
+};
+async function copyTextV4(value) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  } catch (e) {}
+  try {
+    const area = document.createElement('textarea');
+    area.value = value; area.style.position = 'fixed'; area.style.opacity = '0';
+    document.body.appendChild(area); area.select();
+    const ok = document.execCommand('copy'); area.remove();
+    return !!ok;
+  } catch (e) { return false; }
+}
+ACT['backup-text'] = () => {
+  const raw = JSON.stringify({ app: 'GRIMMS Business Tracker', schemaVersion: 4, exportedAt: new Date().toISOString(), data: state }, null, 2);
+  openSheet('Copy or restore a text backup', '<div class="sheet-body stack-sm"><p class="hint">Copy this text somewhere safe, or paste a saved backup here to restore it on this device.</p><textarea class="textarea" id="backup-text-area" style="min-height:240px;max-height:46vh;font-family:monospace;font-size:11px">' + esc(raw) + '</textarea><div class="grid2"><button class="btn btn-soft" data-act="backup-copy">Copy backup text</button><button class="btn btn-line" data-act="backup-restore-text">Restore pasted text</button></div></div><div class="sheet-foot"><button class="btn btn-line" data-act="close-sheet">Close</button></div>');
+};
+ACT['backup-copy'] = async () => {
+  const area = $('#backup-text-area');
+  if (area && await copyTextV4(area.value)) toast('Backup copied. Save the text somewhere outside this browser.');
+  else toast('Could not copy automatically. Select the text and copy it.');
+};
+ACT['backup-restore-text'] = async () => {
+  const area = $('#backup-text-area');
+  if (!area || !area.value.trim()) return toast('Paste a backup first');
+  try {
+    const raw = JSON.parse(area.value), data = raw && raw.data && typeof raw.data === 'object' ? raw.data : raw;
+    if (!data || typeof data !== 'object' || Array.isArray(data) || !(Array.isArray(data.orders) || data.settings)) throw new Error('invalid');
+    const fresh = normalize(data);
+    if (state.setup && (state.orders.length || state.products.length || state.expenses.length) &&
+        !await confirmBox('Restore this backup?', 'Current browser data will be replaced by the pasted backup.', 'Restore backup', true)) return;
+    state = fresh; state.setup = true; closeSheet(); save(); flush(); enterApp(); toast('Backup restored successfully');
+  } catch (e) { toast('Backup could not be read. No current data was changed.'); }
+};
+
+/* A product detail change is visible while scrolling the listing cards. */
+const _listingCardBeforeV4 = listingCard;
+listingCard = function(l) {
+  const html = _listingCardBeforeV4(l);
+  if (!l.pendingProductSync) return html;
+  const notice = '<div class="notice" style="margin-top:8px;padding:9px;font-size:11px"><span><b>Product changed.</b> Match this listing or keep its wording.</span><button type="button" class="btn btn-soft btn-sm" data-act="listing-sync-card" data-id="' + l.id + '">Match</button><button type="button" class="btn btn-line btn-sm" data-act="listing-sync-dismiss-card" data-id="' + l.id + '">Keep</button></div>';
+  return html.replace('</button><div class="row wrap"', '</button>' + notice + '<div class="row wrap"');
+};
+ACT['listing-sync-card'] = el => {
+  const l = find('listings', el.dataset.id), p = l && find('products', l.productId);
+  if (!l || !p) return;
+  l.title = p.name; l.description = p.description || ''; delete l.pendingProductSync;
+  save(); render(); toast('Listing updated to match product');
+};
+ACT['listing-sync-dismiss-card'] = el => {
+  const l = find('listings', el.dataset.id);
+  if (!l) return;
+  delete l.pendingProductSync; save(); render(); toast('Listing wording kept');
+};
+
+/* Clipboard fallback also works when this file is opened from local storage. */
+ACT['copy-listing-title'] = async el => {
+  const l = find('listings', el.dataset.id);
+  if (l) toast(await copyTextV4(l.title) ? 'Listing title copied' : 'Clipboard unavailable in this browser');
+};
+ACT['copy-listing-description'] = async el => {
+  const l = find('listings', el.dataset.id);
+  if (l) toast(await copyTextV4(l.description || '') ? 'Listing description copied' : 'Clipboard unavailable in this browser');
+};
+
+/* Tax history appears only on Money > Overview, never over Expenses or Income. */
+const _moneyViewBeforeV4 = _moneyOverviewV3;
+V.money = function() {
+  const html = _moneyViewBeforeV4();
+  if (ui.seg.money !== 'overview') return html;
+  const history = (state.taxes || []).slice().sort((a,b) => String(b.date).localeCompare(String(a.date))).slice(0,5)
+    .map(t => '<div class="kv"><span>' + esc(fmtDate(t.date)) + '</span><b class="num">' + money(t.amount) + '</b></div>').join('') ||
+    '<p class="hint">No tax payments or set-asides recorded yet.</p>';
+  const taxCard = '<div class="card sm"><div class="row between"><div><b>Tax payments &amp; set-aside log</b><div class="hint">Record payments or amounts you have set aside. Your estimate above uses the rate in Settings.</div></div><button class="btn btn-soft btn-sm" data-act="tax-record">Record</button></div>' + history + '</div>';
+  return html.replace('<div class="page stack-sm fade">', '<div class="page stack-sm fade">' + taxCard);
+};
+
+/* Initialize the current state with marketplace presets after loading the saved data. */
+
+/* Tax planning supports named rate components as well as the simple legacy rate. */
+const _defaultsTaxV4 = DEFAULTS;
+DEFAULTS = function() {
+  const d = _defaultsTaxV4();
+  d.settings.taxComponents = [];
+  return d;
+};
+const _normalizeTaxV4 = normalize;
+normalize = function(src) {
+  const out = _normalizeTaxV4(src);
+  out.settings.taxComponents = Array.isArray(out.settings.taxComponents) ? out.settings.taxComponents : [];
+  return out;
+};
+state.settings.taxComponents = Array.isArray(state.settings.taxComponents) ? state.settings.taxComponents : [];
+document.addEventListener('change', e => {
+  if (e.target && e.target.dataset && e.target.dataset.set === 'taxRate') {
+    state.settings.taxComponents = [];
+    save();
+  }
+});
+ACT['tax-rates'] = () => {
+  const parts = state.settings.taxComponents.length
+    ? state.settings.taxComponents
+    : [{ name: 'Estimated set-aside', rate: num(state.settings.taxRate) }];
+  const rows = parts.map(x => '<div class="rec-row tax-rate-row"><input class="input sm" name="taxName" value="' + esc(x.name || '') + '" placeholder="Component name"><input class="input sm" type="number" name="taxRatePart" min="0" max="100" step="any" value="' + esc(x.rate) + '" placeholder="%"><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove rate">' + ic('x') + '</button></div>').join('');
+  openSheet('Tax estimate rates', '<div class="sheet-body stack-sm"><p class="hint">Add named components for a combined planning rate. Each percentage is applied to positive net profit; this is only an estimate, not a tax calculation or filing.</p><div id="tax-rate-rows">' + rows + '</div><button class="link" data-act="tax-rate-add">' + ic('plus') + ' Add rate component</button><p class="hint">The combined rate updates the simple Tax set-aside % in Settings.</p></div><div class="sheet-foot"><button class="btn btn-line" data-act="close-sheet">Cancel</button><button class="btn btn-primary" data-act="tax-rate-save">Save rates</button></div>');
+};
+ACT['tax-rate-add'] = () => {
+  $('#tax-rate-rows').insertAdjacentHTML('beforeend', '<div class="rec-row tax-rate-row"><input class="input sm" name="taxName" placeholder="Component name"><input class="input sm" type="number" name="taxRatePart" min="0" max="100" step="any" placeholder="%"><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove rate">' + ic('x') + '</button></div>');
+};
+ACT['tax-rate-save'] = () => {
+  const rows = $$( '.tax-rate-row', $('#modal'));
+  const parts = rows.map(row => ({ name: tidy($('[name=taxName]', row).value), rate: Math.max(0, Math.min(100, num($('[name=taxRatePart]', row).value))) })).filter(x => x.name && x.rate > 0);
+  const total = sum(parts, x => x.rate);
+  if (total > 100) return toast('Combined tax estimate rates cannot exceed 100%');
+  state.settings.taxComponents = parts;
+  state.settings.taxRate = r2(total);
+  closeSheet(); save(); render(); toast('Tax estimate rates saved');
+};
+const _moneyViewWithTaxRatesV4 = V.money;
+V.money = function() {
+  const html = _moneyViewWithTaxRatesV4();
+  if (ui.seg.money !== 'overview') return html;
+  return html.replace('Record</button>', 'Record</button><button class="btn btn-line btn-sm" data-act="tax-rates">Rates</button>');
+};
+
+/* Minor workflow consistency fixes. */
+const _duplicateRecordV4 = dupRecord;
+dupRecord = function(type, id) {
+  const copied = _duplicateRecordV4(type, id);
+  if (type === 'product' && copied) {
+    const p = find('products', copied);
+    if (p) { p._recipeBuiltUnits = 0; delete p._materialsReturned; }
+  }
+  return copied;
+};
+const _invoiceV4 = OPEN.invoice;
+OPEN.invoice = function(id) {
+  _invoiceV4(id);
+  const invoice = $('#invoice');
+  const o = find('orders', id);
+  if (invoice && o && o.status === 'Refunded to Seller') invoice.innerHTML = invoice.innerHTML.replace('Refunded.', 'Seller reimbursed.');
+};
+
+const _settingsFeeNoteV4 = V.settings;
+V.settings = function() {
+  return _settingsFeeNoteV4().replace(
+    'Fees are worked out automatically on every sale.',
+    'Marketplace fee presets are editable US estimates. eBay rates vary by category; optional ads and listing charges may be extra. Fees are worked out automatically on every sale.'
+  );
+};
+
+/* Invoice totals preserve the order total and show refunds as separate lines. */
+const _invoiceTableV4 = OPEN.invoice;
+OPEN.invoice = function(id) {
+  _invoiceTableV4(id);
+  const invoice = $('#invoice');
+  const o = find('orders', id);
+  if (invoice && o) {
+    const c = oc(o);
+    invoice.innerHTML = invoice.innerHTML
+      .replace('<td>Total due</td><td class="r">' + money(Math.max(0, c.total - c.refund)) + '</td>', '<td>Total</td><td class="r">' + money(c.total) + '</td>' +
+        (c.refund ? '<tr class="tot"><td>Refunded</td><td class="r">− ' + money(c.refund) + '</td></tr><tr class="grand"><td>Balance due</td><td class="r">' + money(Math.max(0, c.total - c.refund)) + '</td></tr>' : ''));
+    if (o.status === 'Refunded to Seller') invoice.innerHTML = invoice.innerHTML.replace('Refunded.', 'Seller reimbursed.');
+    if (['Cancelled', 'Order Cancelled'].includes(o.status)) {
+      invoice.innerHTML = invoice.innerHTML.replace('<td>Total</td><td class="r">' + money(c.total) + '</td>', '<td>Total</td><td class="r">' + money(c.total) + '</td><tr class="tot"><td>Cancelled balance</td><td class="r">' + money(0) + '</td></tr>');
+    }
+  }
+};
+
+/* Final invoice rows distinguish the order total from any remaining balance. */
+const _invoiceBeforeV5 = OPEN.invoice;
+OPEN.invoice = function(id) {
+  _invoiceBeforeV5(id);
+  const invoice = $('#invoice'), o = find('orders', id);
+  if (!invoice || !o) return;
+  const c = oc(o), tables = invoice.querySelectorAll('table'), tbody = tables[1] && tables[1].querySelector('tbody');
+  if (!tbody || !tbody.rows.length) return;
+  const rows = Array.from(tbody.rows);
+  const refundRows = rows.filter(r => r.cells[0] && r.cells[0].textContent.trim() === 'Refunded');
+  refundRows.slice(1).forEach(r => r.remove());
+  const totalRow = Array.from(tbody.rows).find(r => r.cells[0] && (r.cells[0].textContent.trim() === 'Total due' || r.cells[0].textContent.trim() === 'Total'));
+  if (!totalRow) return;
+  const cancelled = ['Cancelled', 'Order Cancelled'].includes(o.status);
+  if (cancelled) {
+    totalRow.cells[0].textContent = 'Total';
+    totalRow.cells[1].textContent = money(c.total);
+    const balance = document.createElement('tr');
+    balance.className = 'tot';
+    balance.innerHTML = '<td>Balance due</td><td class="r">' + money(0) + '</td>';
+    tbody.appendChild(balance);
+  } else if (c.refund > 0) {
+    totalRow.cells[0].textContent = 'Balance due';
+    totalRow.cells[1].textContent = money(Math.max(0, c.total - c.refund));
+    const total = document.createElement('tr');
+    total.className = 'grand';
+    total.innerHTML = '<td>Total</td><td class="r">' + money(c.total) + '</td>';
+    const refundRow = Array.from(tbody.rows).find(r => r.cells[0] && r.cells[0].textContent.trim() === 'Refunded');
+    tbody.insertBefore(total, refundRow || totalRow);
+  } else {
+    totalRow.cells[0].textContent = 'Total';
+    totalRow.cells[1].textContent = money(c.total);
+  }
+};
+
+const _invoiceBeforeV6 = OPEN.invoice;
+OPEN.invoice = function(id) {
+  _invoiceBeforeV6(id);
+  const invoice = $('#invoice'), tables = invoice && invoice.querySelectorAll('table');
+  const tbody = tables && tables[1] && tables[1].querySelector('tbody');
+  if (!tbody) return;
+  const balances = Array.from(tbody.rows).filter(r => r.cells[0] && ['Balance due', 'Cancelled balance'].includes(r.cells[0].textContent.trim()));
+  balances.slice(0, -1).forEach(r => r.remove());
+  const last = balances[balances.length - 1];
+  if (last && last.cells[0].textContent.trim() === 'Cancelled balance') last.cells[0].textContent = 'Balance due';
+};
+
 window.GBT = { get state() { return state; }, oc, summary, periodRange, prevRange, goalInfo, feeFor, putOrder, removeOrder, processRecurring, buckets, repeatDate, unitCost, canMake, genSample, enterApp, render, ui, ACT, OPEN, FORMS, attention, listingPrice, deleteRecords, archiveRecords, parseCsv, csvProducts, exportCsv, curType, autoFees, dupRecord };
 $$('[data-ic]').forEach(el => { el.outerHTML = ic(el.dataset.ic); });
 load();
