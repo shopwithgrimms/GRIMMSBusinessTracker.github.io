@@ -539,6 +539,7 @@ html[data-motion=off] *{animation:none!important;transition:none!important}
       <button class="btn btn-primary block" style="padding:16px" data-act="start-setup">Get Started <i data-ic="arrow-right"></i></button>
       <button class="btn btn-soft block" data-act="demo">Explore with sample data</button>
       <button class="btn block sub" style="font-size:12px;padding:8px" data-act="import-pick">Restore from a backup file</button>
+      <button class="btn block sub" style="font-size:12px;padding:8px" data-act="paste-restore">Restore by pasting copied text</button>
     </div>
   </section>
 
@@ -2221,6 +2222,9 @@ function dataBody() {
       ${fsSupported() ? (fsHandle ? (status.filePerm !== 'granted' ? `<button class="btn btn-soft block" data-act="file-reconnect">${ic('hard-drive')} Reconnect linked file</button>` : '') + `<button class="btn btn-line block" data-act="file-unlink">${ic('x')} Stop auto-saving to the file</button>` : `<button class="btn btn-soft block" data-act="file-link">${ic('hard-drive')} Auto-save to a file on this computer</button><p class="hint" style="margin:-2px 0 4px">Pick a file once (for example in Documents or Google Drive) and it updates itself after every change.</p>`) : `<p class="hint" style="margin:0">Auto-saving to a file is available in Chrome and Edge on a computer. On phones, use the download or share button above.</p>`}
       <button class="btn btn-line block" data-act="snapshots">${ic('history')} Get back an earlier version</button>
       <button class="btn btn-line block" data-act="import-pick">${ic('upload')} Restore from backup file</button>
+      <button class="btn btn-soft block" data-act="copy-backup">${ic('copy')} Copy ALL my data as text</button>
+      <button class="btn btn-soft block" data-act="paste-restore">${ic('upload')} Restore by pasting text</button>
+      <p class="hint" style="margin:-2px 0 4px">Moving to another phone or computer? Copy here, then open the app there and choose "Restore by pasting text".</p>
       <p class="eyebrow" style="margin-top:6px">Export spreadsheets (CSV)</p>
       <div class="grid2">${[['orders', 'Sales'], ['expenses', 'Expenses'], ['products', 'Products'], ['supplies', 'Supplies'], ['listings', 'Listings'], ['snaps', 'Analytics'], ['customers', 'Customers'], ['mileage', 'Mileage'], ['income', 'Income']].map(x => `<button class="btn btn-line btn-sm" data-act="export-csv" data-k="${x[0]}">${x[1]}</button>`).join('')}</div>
       <button class="btn btn-line btn-sm block" data-act="csv-import">${ic('upload')} Import products from CSV</button>
@@ -3649,6 +3653,28 @@ const ACT = {
   'export-csv': el => exportCsv(el.dataset.k),
   'export-report': () => exportReport(),
   'import-pick': () => $('#file-import').click(),
+  'copy-backup': async () => {
+    const text = JSON.stringify(state); let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { }
+    if (!ok) { try { const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length); ok = document.execCommand('copy'); ta.remove(); } catch (e) { ok = false; } }
+    if (ok) { state.backup.last = Date.now(); save(); render(); toast('All your data is copied. Paste it into "Restore by pasting text" on your other device'); }
+    else { openSheet('Copy your data', `<div class="sheet-body"><p class="hint" style="margin:0 0 10px">Your browser blocked automatic copying. Tap inside the box, select all, and copy.</p><textarea class="textarea" id="copy-box" readonly style="min-height:220px;font-size:12px;font-family:monospace"></textarea></div><div class="sheet-foot"><button class="btn btn-primary" data-act="close-sheet">Done</button></div>`, { noFocus: true }); const b = $('#copy-box'); b.value = text; b.focus(); b.select(); }
+  },
+  'paste-restore': () => {
+    openSheet('Restore by pasting text', `<div class="sheet-body"><p class="hint" style="margin:0 0 10px">On your other device, choose <b>Copy ALL my data as text</b> (Settings › Your data). Then paste it here.</p><textarea class="textarea" id="paste-box" placeholder="Paste your copied data here" style="min-height:220px;font-size:12px;font-family:monospace" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea></div><div class="sheet-foot"><button class="btn btn-line" data-act="close-sheet">Cancel</button><button class="btn btn-primary" data-act="paste-restore-go">Restore</button></div>`, { noFocus: true });
+  },
+  'paste-restore-go': async () => {
+    const raw = ($('#paste-box') || {}).value || '';
+    if (!raw.trim()) return toast('Paste your copied data into the box first');
+    let t = raw.replace(/^\uFEFF/, '').trim();
+    const a = t.indexOf('{'), z = t.lastIndexOf('}');
+    if (a < 0 || z <= a) return toast('That does not look like backup data. Copy it again in full');
+    t = t.slice(a, z + 1);
+    let data;
+    try { data = JSON.parse(t); }
+    catch (e) { try { data = JSON.parse(t.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'")); } catch (e2) { return toast('The pasted text looks cut off or changed. Copy it again in full and retry'); } }
+    if (await importData(data)) closeSheet();
+  },
   demo: async () => {
     if ((state.orders.length || state.products.length) && !await confirmBox('Replace your data?', 'Sample data will replace everything currently saved. A safety copy of your current data is kept for 14 days (Settings › Your data › Get back an earlier version).', 'Load sample data', true)) return;
     await snapshotNow('Before loading sample data'); genSample(); enterApp(); toast('Sample data loaded');
@@ -3674,16 +3700,20 @@ const ACT = {
   'su-del': el => el.closest('.row').remove(),
 };
 
-async function importFile(file) {
-  if (!file) return;
+async function importData(data) {
   try {
-    const data = JSON.parse(await file.text());
     if (!data || typeof data !== 'object' || Array.isArray(data) || !(Array.isArray(data.orders) || data.settings)) throw new Error('bad');
     const fresh = normalize(data);
-    if (state.setup && (state.orders.length || state.products.length || state.expenses.length || state.listings.length) && !await confirmBox('Replace your data?', 'Your current data on this device will be replaced by the backup. A safety copy of it is kept first.', 'Restore backup', true)) return;
-    await snapshotNow('Before restoring a backup file');
+    if (state.setup && (state.orders.length || state.products.length || state.expenses.length || state.listings.length) && !await confirmBox('Replace your data?', 'Your current data on this device will be replaced by the backup. A safety copy of it is kept first.', 'Restore backup', true)) return false;
+    await snapshotNow('Before restoring a backup');
     state = fresh; state.setup = true; save(); flush(); enterApp(); toast('Backup restored');
-  } catch (e) { toast('That file is not a valid backup'); }
+    return true;
+  } catch (e) { toast('That is not a valid backup'); return false; }
+}
+async function importFile(file) {
+  if (!file) return;
+  try { await importData(JSON.parse(await file.text())); }
+  catch (e) { toast('That file is not a valid backup'); }
   finally { $('#file-import').value = ''; }
 }
 
