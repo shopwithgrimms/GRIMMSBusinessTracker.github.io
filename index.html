@@ -3956,5 +3956,173 @@ if (state.setup) enterApp(); else applyTheme('blush', FONTS[0][0]);
 
 })();
 </script>
+   <!-- ===== GRIMMS WIDGETS ADD-ON =====
+Paste this whole block into your index.html, right BEFORE the closing </body> tag (after the big </script>).
+No keys, no accounts, nothing paid. -->
+<style>
+#gw-dock{position:absolute;left:8px;right:8px;bottom:76px;z-index:7;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.25);overflow:hidden}
+#gw-dock .gw-bar{display:flex;align-items:center;gap:8px;width:100%;padding:9px 14px;font-weight:700;font-size:12px}
+#gw-body{height:0;overflow:hidden}
+#gw-dock.open #gw-body{height:auto;padding:0 8px 8px}
+.gw-tabs{display:flex;gap:6px;margin-bottom:8px;overflow-x:auto}
+.gw-pane{height:0;overflow:hidden}.gw-pane.on{height:auto}
+.gw-pane iframe{width:100%;border:0;border-radius:12px;display:block}
+.gw-big{font-size:30px;font-weight:800;letter-spacing:-.02em}
+</style>
+<script>
+(() => {
+'use strict';
+const G = window.GBT; if (!G) return;
+const K = 'gbt-widgets:v1', $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let W; try { W = JSON.parse(localStorage.getItem(K)); } catch (e) { }
+if (!Array.isArray(W)) W = [{ id: 'w1', type: 'stats', d: {} }, { id: 'w2', type: 'quote', d: {} }];
+const save = () => { try { localStorage.setItem(K, JSON.stringify(W)); } catch (e) { } };
+const uid = () => 'w' + Math.random().toString(36).slice(2, 9);
+const money = n => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: G.state.settings.currency }).format(n); } catch (e) { return (+n).toFixed(2); } };
+const TM = {}, pad = n => String(n).padStart(2, '0');
+
+/* ---------- music / video: these live in a player dock so they keep playing when you change pages ---------- */
+const MEDIA = {
+  spotify: { n: 'Spotify', i: '🎧', desc: 'Playlist, album or podcast', ph: 'Paste a Spotify playlist / album / track link', h: 232,
+    src: u => { const m = /open\.spotify\.com\/(?:intl-[a-z-]+\/)?(playlist|album|track|artist|episode|show)\/([A-Za-z0-9]+)/.exec(u) || /spotify:(playlist|album|track|artist|episode|show):([A-Za-z0-9]+)/.exec(u); return m ? `https://open.spotify.com/embed/${m[1]}/${m[2]}` : ''; } },
+  youtube: { n: 'YouTube', i: '▶️', desc: 'Video or playlist', ph: 'Paste a YouTube video or playlist link', h: 215,
+    src: u => { const l = /[?&]list=([\w-]+)/.exec(u), v = /(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/.exec(u); return v ? `https://www.youtube-nocookie.com/embed/${v[1]}` + (l ? `?list=${l[1]}` : '') : l ? `https://www.youtube-nocookie.com/embed/videoseries?list=${l[1]}` : ''; } },
+  soundcloud: { n: 'SoundCloud', i: '☁️', desc: 'Track or playlist', ph: 'Paste a SoundCloud link', h: 300,
+    src: u => /^https:\/\/(on\.)?soundcloud\.com\//.test(u) ? `https://w.soundcloud.com/player/?url=${encodeURIComponent(u)}&color=%23d97793` : '' },
+};
+let dockKey = '', activeTab = null;
+function dock() {
+  const ms = W.filter(w => MEDIA[w.type] && MEDIA[w.type].src(w.d.url || '')), key = ms.map(w => w.id + w.d.url).join('|');
+  let d = $('#gw-dock');
+  if (!ms.length) { if (d) d.remove(); dockKey = ''; return; }
+  if (!d) { d = document.createElement('div'); d.id = 'gw-dock'; $('#frame').appendChild(d); }
+  if (key === dockKey) return; dockKey = key;
+  if (!ms.some(w => w.id === activeTab)) activeTab = ms[0].id;
+  d.innerHTML = `<button class="gw-bar" data-gw="toggle"><span>🎵</span><span style="flex:1;text-align:left">Player</span><span class="gw-arrow">▲</span></button>
+    <div id="gw-body">${ms.length > 1 ? `<div class="gw-tabs">${ms.map(w => `<button class="chip ${w.id === activeTab ? 'on' : ''}" data-gw="tab" data-id="${w.id}">${MEDIA[w.type].i} ${MEDIA[w.type].n}</button>`).join('')}</div>` : ''}
+    ${ms.map(w => `<div class="gw-pane ${w.id === activeTab ? 'on' : ''}" data-pid="${w.id}"><iframe src="${esc(MEDIA[w.type].src(w.d.url))}" height="${MEDIA[w.type].h}" loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" title="${MEDIA[w.type].n}"></iframe></div>`).join('')}</div>`;
+}
+const mediaWidget = t => ({ n: MEDIA[t].n, i: MEDIA[t].i, desc: MEDIA[t].desc,
+  html: w => `<div class="row"><input class="input sm" value="${esc(w.d.url || '')}" placeholder="${esc(MEDIA[t].ph)}" maxlength="300"><button class="btn btn-soft btn-sm" data-s>Set</button></div>
+    <p class="hint">${MEDIA[t].src(w.d.url || '') ? 'Playing in the player bar above the menu. It keeps going while you switch pages.' : 'Paste a link, then tap Set.'}</p>${MEDIA[t].src(w.d.url || '') ? `<button class="link" data-gw="open-dock">Show player</button>` : ''}`,
+  bind: (el, w) => { const go = () => { w.d.url = $('input', el).value.trim(); if (w.d.url && !MEDIA[t].src(w.d.url)) toast('That link doesn’t look right'); save(); dockKey = ''; dock(); redo(w); }; $('[data-s]', el).onclick = go; $('input', el).onkeydown = e => { if (e.key === 'Enter') go(); }; } });
+const toast = m => { const t = $('#toast'); if (!t) return; t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2500); };
+
+/* ---------- other widgets ---------- */
+const QUOTES = ['Small steps every day add up to big results.', 'Done is better than perfect.', 'A sale is just a conversation that went well.', 'Track it, learn from it, improve it.', 'Pack every order like you’d want to receive it.', 'Consistency beats intensity.', 'Your future self will thank you for today’s paperwork.', 'Great service gets you the second sale.', 'Rest is part of the work.', 'Price for the value you give, not the fear you feel.', 'Progress over perfection.', 'Every big shop started with one order.'];
+const ZONES = [['', 'My device'], ['America/New_York', 'New York'], ['America/Chicago', 'Chicago'], ['America/Denver', 'Denver'], ['America/Los_Angeles', 'Los Angeles'], ['Europe/London', 'London'], ['Europe/Paris', 'Paris'], ['Asia/Dubai', 'Dubai'], ['Asia/Kolkata', 'India'], ['Asia/Tokyo', 'Tokyo'], ['Australia/Sydney', 'Sydney']];
+const wc = c => c === 0 ? '☀️' : c < 3 ? '⛅' : c < 4 ? '☁️' : c < 50 ? '🌫️' : c < 60 ? '🌦️' : c < 70 ? '🌧️' : c < 80 ? '❄️' : c < 90 ? '🌧️' : '⛈️';
+const MOONS = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘'], MN = ['New moon', 'Waxing crescent', 'First quarter', 'Waxing gibbous', 'Full moon', 'Waning gibbous', 'Last quarter', 'Waning crescent'];
+async function wx(el, w) {
+  const out = $('.wx', el); if (!w.d.city) { out.textContent = 'Type a city above.'; return; }
+  try {
+    let g = w.d.geo;
+    if (!g || g.q !== w.d.city) { const r = await (await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name=' + encodeURIComponent(w.d.city))).json(); if (!r.results) throw 0; const x = r.results[0]; g = w.d.geo = { q: w.d.city, lat: x.latitude, lon: x.longitude, name: x.name + (x.country ? ', ' + x.country : '') }; save(); }
+    const j = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${g.lat}&longitude=${g.lon}&current=temperature_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&temperature_unit=${w.d.u === 'c' ? 'celsius' : 'fahrenheit'}&timezone=auto&forecast_days=1`)).json();
+    const u = w.d.u === 'c' ? '°C' : '°F';
+    out.innerHTML = `<div class="row"><span class="gw-big">${wc(j.current.weather_code)} ${Math.round(j.current.temperature_2m)}${u}</span><div class="grow xs sub">${esc(g.name)}<br>High ${Math.round(j.daily.temperature_2m_max[0])}° · Low ${Math.round(j.daily.temperature_2m_min[0])}° · Wind ${Math.round(j.current.wind_speed_10m)}</div></div>`;
+  } catch (e) { out.textContent = 'Couldn’t load the weather. Check the city name or your connection.'; }
+}
+const CAT = {
+  stats: { n: 'Today at a glance', i: '📊', desc: 'Sales, profit and open orders',
+    html: () => { const t = G.summary(G.periodRange('today')), m = G.summary(G.periodRange('month')), o = G.state.orders.filter(x => !x.archived && !['Fulfilled', 'Cancelled', 'Payment Failed'].includes(x.status)).length; return `<div class="grid3"><div class="tile"><b>${money(t.net)}</b><span>Sales today</span></div><div class="tile"><b>${money(m.profit)}</b><span>Profit this month</span></div><div class="tile"><b>${o}</b><span>Open orders</span></div></div>`; } },
+  spotify: mediaWidget('spotify'), youtube: mediaWidget('youtube'), soundcloud: mediaWidget('soundcloud'),
+  weather: { n: 'Weather', i: '🌤️', desc: 'Current weather for any city (Open-Meteo)',
+    html: w => `<div class="row"><input class="input sm" value="${esc(w.d.city || '')}" placeholder="City, e.g. Portland" maxlength="60"><button class="btn btn-soft btn-sm" data-s>Go</button><button class="btn btn-line btn-sm" data-u>${w.d.u === 'c' ? '°C' : '°F'}</button></div><div class="wx sm-t" style="margin-top:10px">Loading…</div>`,
+    bind: (el, w) => { const go = () => { w.d.city = $('input', el).value.trim(); save(); wx(el, w); }; $('[data-s]', el).onclick = go; $('input', el).onkeydown = e => { if (e.key === 'Enter') go(); }; $('[data-u]', el).onclick = () => { w.d.u = w.d.u === 'c' ? 'f' : 'c'; save(); redo(w); }; wx(el, w); } },
+  clock: { n: 'Clock', i: '🕒', desc: 'Time and date, any time zone',
+    html: w => `<div class="clock" data-tick="clock:${w.id}"></div><p class="xs sub" style="text-align:center" data-date></p><select class="select sm" style="margin-top:8px">${ZONES.map(z => `<option value="${z[0]}" ${z[0] === (w.d.tz || '') ? 'selected' : ''}>${z[1]}</option>`).join('')}</select>`,
+    bind: (el, w) => { $('select', el).onchange = e => { w.d.tz = e.target.value; save(); tick(); }; } },
+  timer: { n: 'Focus timer', i: '⏱️', desc: 'Pomodoro-style countdown',
+    html: w => `<div class="clock" data-tick="timer:${w.id}"></div><div class="grid3" style="margin:10px 0"><button class="btn btn-line btn-sm" data-m="25">25 min</button><button class="btn btn-line btn-sm" data-m="5">5 min</button><button class="btn btn-line btn-sm" data-m="15">15 min</button></div><div class="grid2"><button class="btn btn-primary btn-sm" data-go>Start / pause</button><button class="btn btn-line btn-sm" data-rs>Reset</button></div>`,
+    bind: (el, w) => { const t = TM[w.id] = TM[w.id] || { left: 1500, end: 0, run: false, base: 1500 };
+      $$('[data-m]', el).forEach(b => b.onclick = () => { t.base = t.left = +b.dataset.m * 60; t.run = false; tick(); });
+      $('[data-go]', el).onclick = () => { if (t.run) { t.left = Math.max(0, Math.round((t.end - Date.now()) / 1000)); t.run = false; } else if (t.left > 0) { t.end = Date.now() + t.left * 1000; t.run = true; } tick(); };
+      $('[data-rs]', el).onclick = () => { t.left = t.base; t.run = false; tick(); }; } },
+  todo: { n: 'Checklist', i: '✅', desc: 'Quick to-do list',
+    html: w => `${(w.d.items || []).map((x, i) => `<div class="row sm-t b" style="padding:4px 0"><input type="checkbox" class="chk" data-i="${i}" ${x.x ? 'checked' : ''}><span class="grow" style="${x.x ? 'text-decoration:line-through;opacity:.5' : ''}">${esc(x.t)}</span><button class="link" data-del="${i}">✕</button></div>`).join('')}<div class="row" style="margin-top:6px"><input class="input sm" placeholder="Add an item…" maxlength="80"><button class="btn btn-soft btn-sm" data-add>Add</button></div>`,
+    bind: (el, w) => { const L = w.d.items = w.d.items || [], add = () => { const v = $('input.input', el).value.trim(); if (v) { L.push({ t: v, x: false }); save(); redo(w); } };
+      $('[data-add]', el).onclick = add; $('input.input', el).onkeydown = e => { if (e.key === 'Enter') add(); };
+      el.onchange = e => { if (e.target.dataset.i != null) { L[+e.target.dataset.i].x = e.target.checked; save(); redo(w); } };
+      el.onclick = e => { const d = e.target.dataset.del; if (d != null) { L.splice(+d, 1); save(); redo(w); } }; $('[data-add]', el).onclick = add; } },
+  note: { n: 'Notepad', i: '📝', desc: 'Scribble anything',
+    html: w => `<textarea class="textarea" maxlength="2000" placeholder="Write here…">${esc(w.d.text || '')}</textarea>`,
+    bind: (el, w) => { $('textarea', el).oninput = e => { w.d.text = e.target.value; save(); }; } },
+  countdown: { n: 'Countdown', i: '📅', desc: 'Days until an event or deadline',
+    html: w => { const d = w.d.date ? Math.round((new Date(w.d.date + 'T00:00') - new Date(new Date().toDateString())) / 864e5) : null; return `<div class="gw-big" style="text-align:center">${d == null ? '–' : d < 0 ? Math.abs(d) + ' days ago' : d === 0 ? 'Today!' : d + ' days'}</div><p class="sm-t b" style="text-align:center">${esc(w.d.label || 'Pick a date')}</p><div class="grid2" style="margin-top:8px"><input class="input sm" data-l value="${esc(w.d.label || '')}" placeholder="What for?" maxlength="40"><input class="input sm" type="date" data-d value="${esc(w.d.date || '')}"></div>`; },
+    bind: (el, w) => { $('[data-l]', el).onchange = e => { w.d.label = e.target.value.trim(); save(); redo(w); }; $('[data-d]', el).onchange = e => { w.d.date = e.target.value; save(); redo(w); }; } },
+  calc: { n: 'Calculator', i: '🧮', desc: 'Type a sum, e.g. 12.5*3+4',
+    html: () => `<input class="input" placeholder="12.5*3+4" inputmode="text" maxlength="60"><p class="gw-big" style="margin-top:8px" data-r>=</p>`,
+    bind: el => { $('input', el).oninput = e => { const v = e.target.value.replace(/,/g, '.'); let r = ''; if (v && /^[0-9+\-*/.() %]+$/.test(v)) { try { const x = Function('"use strict";return(' + v.replace(/(\d+(?:\.\d+)?)%/g, '($1/100)') + ')')(); r = Number.isFinite(x) ? '= ' + Math.round(x * 1e6) / 1e6 : ''; } catch (_) { } } $('[data-r]', el).textContent = r || '='; }; } },
+  price: { n: 'Price finder', i: '🏷️', desc: 'Price needed to hit your margin after fees',
+    html: w => `<div class="grid3"><label class="xs sub b">Cost<input class="input sm" type="number" step="any" data-k="c" value="${esc(w.d.c ?? '')}"></label><label class="xs sub b">Fees %<input class="input sm" type="number" step="any" data-k="f" value="${esc(w.d.f ?? '')}"></label><label class="xs sub b">Margin %<input class="input sm" type="number" step="any" data-k="m" value="${esc(w.d.m ?? '')}"></label></div><p class="sm-t b" style="margin-top:10px" data-r></p>`,
+    bind: (el, w) => { const calc = () => { const c = +w.d.c || 0, f = +w.d.f || 0, m = +w.d.m || 0, den = 1 - (f + m) / 100; $('[data-r]', el).textContent = c > 0 && den > 0 ? `Sell at ${money(c / den)} to keep ${m}% after ${f}% fees` : 'Enter cost, fees and the margin you want.'; }; $$('[data-k]', el).forEach(i => i.oninput = () => { w.d[i.dataset.k] = i.value; save(); calc(); }); calc(); } },
+  links: { n: 'Shortcuts', i: '🔗', desc: 'Buttons to your favourite sites',
+    html: w => `<div class="opts">${(w.d.items || []).map((x, i) => `<span class="row" style="gap:2px"><a class="chip on" style="text-decoration:none" href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">${esc(x.t)}</a><button class="link" data-del="${i}">✕</button></span>`).join('')}</div><div class="grid2" style="margin-top:8px"><input class="input sm" data-t placeholder="Name" maxlength="20"><input class="input sm" data-u placeholder="https://…" maxlength="200"></div><button class="btn btn-soft btn-sm block" style="margin-top:8px" data-add>Add shortcut</button>`,
+    bind: (el, w) => { const L = w.d.items = w.d.items || [];
+      $('[data-add]', el).onclick = () => { let u = $('[data-u]', el).value.trim(), t = $('[data-t]', el).value.trim(); if (!u) return; if (!/^https?:\/\//i.test(u)) u = 'https://' + u; try { new URL(u); } catch (e) { return toast('That link doesn’t look right'); } L.push({ t: t || new URL(u).hostname, u }); save(); redo(w); };
+      el.onclick = e => { const d = e.target.dataset.del; if (d != null) { L.splice(+d, 1); save(); redo(w); } }; $('[data-add]', el).onclick = $('[data-add]', el).onclick; } },
+  quote: { n: 'Daily boost', i: '💬', desc: 'A short motivating line each day',
+    html: () => `<p class="sm-t b" style="font-style:italic">“${QUOTES[Math.floor(Date.now() / 864e5) % QUOTES.length]}”</p>` },
+  moon: { n: 'Moon phase', i: '🌙', desc: 'Tonight’s moon',
+    html: () => { const p = (((Date.now() / 864e5 - 10957.76) % 29.530588) + 29.530588) % 29.530588, k = Math.round(p / 29.530588 * 8) % 8; return `<div class="row"><span class="gw-big">${MOONS[k]}</span><span class="sm-t b">${MN[k]}</span></div>`; } },
+};
+
+/* ---------- ticking things (clock, timer) ---------- */
+function tick() {
+  $$('[data-tick]').forEach(el => {
+    const [k, id] = el.dataset.tick.split(':'), w = W.find(x => x.id === id);
+    if (k === 'clock' && w) { const o = { timeZone: w.d.tz || undefined }; try { el.textContent = new Date().toLocaleTimeString([], { ...o, hour: 'numeric', minute: '2-digit', second: '2-digit' }); const d = $('[data-date]', el.parentNode); if (d) d.textContent = new Date().toLocaleDateString([], { ...o, weekday: 'long', month: 'long', day: 'numeric' }); } catch (e) { } }
+    if (k === 'timer') { const t = TM[id] = TM[id] || { left: 1500, end: 0, run: false, base: 1500 }; let s = t.run ? Math.max(0, Math.round((t.end - Date.now()) / 1000)) : t.left; if (t.run && s === 0) { t.run = false; t.left = 0; try { navigator.vibrate && navigator.vibrate(300); } catch (e) { } toast('⏱️ Time’s up!'); } el.textContent = s === 0 ? 'Done 🎉' : `${pad(Math.floor(s / 60))}:${pad(s % 60)}`; }
+  });
+  const d = $('#gw-dock'); if (d) d.hidden = !$('#screen-app.on');
+}
+setInterval(tick, 1000);
+
+/* ---------- painting ---------- */
+const cardHtml = w => { const c = CAT[w.type]; return c ? `<div class="card sm" data-wid="${w.id}"><h4 class="eyebrow" style="margin-bottom:8px">${c.i} ${esc(c.n)}</h4><div class="gw-b">${c.html(w)}</div></div>` : ''; };
+function redo(w) { const el = $(`[data-wid="${w.id}"] .gw-b`); if (el) { el.innerHTML = CAT[w.type].html(w); el.onclick = el.onchange = null; CAT[w.type].bind && CAT[w.type].bind(el, w); tick(); } }
+function paint(b) {
+  b.innerHTML = `<div class="row between"><h3 style="font-size:14px;font-weight:800">Widgets</h3><button class="link" data-gw="manage">Add / edit widgets</button></div>` + (W.length ? W.map(cardHtml).join('') : `<div class="card sm" style="text-align:center"><p class="sm-t sub">No widgets yet.</p><button class="btn btn-primary btn-sm" style="margin-top:8px" data-gw="manage">Choose widgets</button></div>`);
+  W.forEach(w => { const el = $(`[data-wid="${w.id}"] .gw-b`, b); if (el && CAT[w.type] && CAT[w.type].bind) CAT[w.type].bind(el, w); }); tick();
+}
+function refresh() { save(); dock(); const b = $('#gw-box'); if (b) paint(b); }
+function inject() {
+  const hf = $('.home-flex');
+  if (hf && !$('#gw-box', hf)) { const b = document.createElement('div'); b.id = 'gw-box'; b.dataset.w = 'widgets'; b.className = 'stack-sm'; hf.appendChild(b); paint(b); }
+  if ($('[data-act=acc][data-k=data]') && !$('#gw-set')) { const p = $$('.page > p.hint').pop(), d = document.createElement('div'); d.id = 'gw-set'; d.className = 'card acc'; d.innerHTML = `<button class="acc-h" data-gw="manage"><b>🧩 Dashboard widgets</b><span class="sub xs">Add, remove, reorder</span></button>`; if (p) p.parentNode.insertBefore(d, p); }
+  dock(); tick();
+}
+
+/* ---------- widget manager ---------- */
+function manage() {
+  let m = $('#gw-modal'); if (!m) { m = document.createElement('div'); m.id = 'gw-modal'; m.className = 'modal-root'; $('#frame').appendChild(m); }
+  m.innerHTML = `<div class="sheet"><div class="sheet-head"><h3>Widgets</h3><button class="icon-btn" data-gw="close" aria-label="Close">✕</button></div><div class="sheet-body">
+    <p class="eyebrow" style="margin-bottom:6px">On your dashboard</p>
+    ${W.length ? W.map((w, i) => `<div class="row" style="padding:5px 0"><span class="grow sm-t b trunc">${CAT[w.type].i} ${esc(CAT[w.type].n)}</span><button class="icon-btn" data-gw="up" data-id="${w.id}" ${i ? '' : 'disabled'} aria-label="Move up">↑</button><button class="icon-btn" data-gw="down" data-id="${w.id}" ${i < W.length - 1 ? '' : 'disabled'} aria-label="Move down">↓</button><button class="icon-btn" data-gw="del" data-id="${w.id}" aria-label="Remove">✕</button></div>`).join('') : '<p class="sm-t sub">Nothing yet. Tap some below.</p>'}
+    <p class="eyebrow" style="margin:16px 0 8px">Tap to add (you can add several)</p>
+    <div class="opts">${Object.entries(CAT).map(([k, c]) => `<button class="chip" data-gw="add" data-t="${k}" title="${esc(c.desc)}">${c.i} ${esc(c.n)}</button>`).join('')}</div>
+    <p class="hint">Your widgets are saved on this device only.</p></div><div class="sheet-foot"><button class="btn btn-primary" data-gw="close">Done</button></div></div>`;
+  m.classList.add('on');
+}
+document.addEventListener('click', e => {
+  const m = $('#gw-modal'); if (e.target === m) return m.classList.remove('on');
+  const b = e.target.closest('[data-gw]'); if (!b) return; const a = b.dataset.gw, id = b.dataset.id, i = W.findIndex(w => w.id === id);
+  if (a === 'manage') manage();
+  else if (a === 'close') m.classList.remove('on');
+  else if (a === 'add') { W.push({ id: uid(), type: b.dataset.t, d: {} }); refresh(); manage(); }
+  else if (a === 'del') { W.splice(i, 1); dockKey = ''; refresh(); manage(); }
+  else if (a === 'up' && i > 0) { [W[i - 1], W[i]] = [W[i], W[i - 1]]; refresh(); manage(); }
+  else if (a === 'down' && i < W.length - 1) { [W[i + 1], W[i]] = [W[i], W[i + 1]]; refresh(); manage(); }
+  else if (a === 'toggle') $('#gw-dock').classList.toggle('open');
+  else if (a === 'open-dock') $('#gw-dock').classList.add('open');
+  else if (a === 'tab') { activeTab = id; $$('#gw-dock .gw-pane').forEach(p => p.classList.toggle('on', p.dataset.pid === id)); $$('#gw-dock [data-gw=tab]').forEach(t => t.classList.toggle('on', t.dataset.id === id)); }
+});
+new MutationObserver(inject).observe($('#scroll'), { childList: true });
+inject();
+})();
+</script>
+
 </body>
 </html>
