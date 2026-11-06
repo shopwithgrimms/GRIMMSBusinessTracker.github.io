@@ -519,6 +519,13 @@ html[data-tt=bounce] .hdr h1{display:inline-block;animation:btnfloat 2.2s ease-i
 html[data-motion=off] .fx{display:none}
 html[data-motion=off] .tapfx{display:none}
 html[data-motion=off] *{animation:none!important;transition:none!important}
+
+.ai-page{display:flex;flex-direction:column;min-height:100%;padding-bottom:0}.aimsgs{flex:1;display:flex;flex-direction:column;gap:10px;padding-bottom:12px}
+.aib{max-width:88%;padding:10px 13px;border-radius:16px;font-size:14px;line-height:1.45;word-break:break-word}.aib.ai{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px;width:88%}.aib.me{align-self:flex-end;background:var(--p);color:var(--on-p);border-bottom-right-radius:4px}
+.aikv{margin-top:10px;padding-top:6px;border-top:1px solid var(--line)}.aibar{height:8px;border-radius:6px;background:var(--p-soft);overflow:hidden;margin-top:4px}.aibar i{display:block;height:100%;background:var(--p);border-radius:6px}
+.aidots i{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:50%;background:var(--sub);animation:aid 1s infinite}.aidots i:nth-child(2){animation-delay:.15s}.aidots i:nth-child(3){animation-delay:.3s}@keyframes aid{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+.aipanel{position:sticky;bottom:0;background:var(--bg);padding:10px 0 12px;border-top:1px solid var(--line);margin-top:4px}.aicats{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px}.aicat{flex:none;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:12.5px;font-weight:700}.aicat.on{background:var(--p);color:var(--on-p);border-color:var(--p)}
+.aichips{display:flex;flex-wrap:wrap;gap:6px;max-height:190px;overflow-y:auto}.aichip{padding:8px 12px;border-radius:14px;border:1px solid var(--p);background:var(--p-soft);color:var(--text);font-size:13px;font-weight:600;text-align:left}.aichip.alt{border-color:var(--line);background:var(--card)}.aichip:disabled{opacity:.45}
 </style>
 </head>
 <body>
@@ -919,7 +926,7 @@ const DEFAULTS = () => ({
   counters: { order: 0, listing: 0 },
   backup: { last: 0, fileName: '' },
   dismissed: {},
-  products: [], supplies: [], orders: [], expenses: [], income: [], suppliers: [], customers: [], listings: [], mileage: [], taxPayments: [], accounts: [], transfers: [],
+  products: [], supplies: [], orders: [], expenses: [], income: [], suppliers: [], customers: [], listings: [], mileage: [], taxPayments: [], accounts: [], transfers: [], meetings: [],
   tasks: [], events: [], shifts: [], activeShift: null, notes: [], goals: [], activity: [],
 });
 let state = DEFAULTS();
@@ -972,7 +979,7 @@ function normalize(src) {
   out.counters = { ...d.counters, ...(src.counters || {}) };
   out.backup = { ...d.backup, ...(src.backup || {}) };
   if (!out.dismissed || typeof out.dismissed !== 'object' || Array.isArray(out.dismissed)) out.dismissed = {};
-  ['products', 'supplies', 'orders', 'expenses', 'income', 'suppliers', 'customers', 'listings', 'mileage', 'taxPayments', 'accounts', 'transfers', 'tasks', 'events', 'shifts', 'notes', 'goals', 'activity'].forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
+  ['products', 'supplies', 'orders', 'expenses', 'income', 'suppliers', 'customers', 'listings', 'mileage', 'taxPayments', 'accounts', 'transfers', 'meetings', 'tasks', 'events', 'shifts', 'notes', 'goals', 'activity'].forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
   ['channels', 'expenseCats', 'stockCats', 'paymentMethods', 'carriers', 'homeHide', 'metrics'].forEach(k => { if (!Array.isArray(out.settings[k])) out.settings[k] = d.settings[k]; });
   if (!out.settings.budgets || typeof out.settings.budgets !== 'object' || Array.isArray(out.settings.budgets)) out.settings.budgets = {};
   if (!THEMES[out.settings.theme]) out.settings.theme = 'blush';
@@ -1709,7 +1716,7 @@ function chartHover(el, ev, leave) {
 /* =====================================================================
    11. HEADER + NAV
    ===================================================================== */
-const TITLES = { sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More', plan: 'Plan', goals: 'Goals', suppliers: 'Suppliers', customers: 'Customers', notes: 'Notes', mileage: 'Mileage', activity: 'Activity', settings: 'Settings', taxes: 'Taxes', inbox: 'Inbox' };
+const TITLES = { sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More', plan: 'Plan', goals: 'Goals', suppliers: 'Suppliers', customers: 'Customers', notes: 'Notes', mileage: 'Mileage', activity: 'Activity', settings: 'Settings', taxes: 'Taxes', assistant: 'Business Assistant', inbox: 'Inbox' };
 function addType() {
   const v = ui.sub || ui.tab, s = ui.seg;
   if (v === 'sales') return ['order', 'Sale'];
@@ -2053,6 +2060,140 @@ V.money = () => {
       <div id="list" class="stack-sm" style="margin-top:4px">${s === 'expenses' ? expenseList() : incomeList()}</div>`}</div>`;
 };
 
+/* =====================================================================
+   BUSINESS ASSISTANT: a prompt-only chat that reads everything you track
+   ===================================================================== */
+const AI_CATS = [['report', 'Reports'], ['money', 'Money'], ['sales', 'Sales'], ['listings', 'Listings'], ['stock', 'Inventory'], ['plan', 'Plan'], ['meet', 'Meetings'], ['more', 'More']];
+const AI_PER = ['today', 'week', 'month', 'last_month', 'quarter', 'year', 'all'];
+const MTG = { 'Weekly review': [['full', 'week'], ['goals'], ['todo']], 'Monthly money review': [['full', 'month'], ['exp', 'month'], ['tax', 'month'], ['acct']], 'Planning session': [['week'], ['focus'], ['grow']], 'Inventory check': [['low'], ['arch'], ['margin']] };
+const aiL = p => periodLabel(p).toLowerCase();
+const aiN = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+const aiProd = os => { const m = new Map(); os.forEach(o => o.items.forEach(l => { const k = l.productId || 'c:' + l.name, u = Math.max(0, l.qty - (l.returned || 0)), e = m.get(k) || { name: l.name, units: 0, rev: 0, cost: 0 }; e.units += u; e.rev += u * l.price; e.cost += u * l.cost; m.set(k, e); })); return [...m.values()].filter(x => x.units > 0).sort((a, b) => b.rev - a.rev); };
+const aiChan = os => [...groupBy(os, o => o.channel || 'Other').entries()].map(([k, a]) => ({ k, n: a.length, net: sum(a, o => oc(o).net), profit: sum(a, o => oc(o).profit), fees: sum(a, o => oc(o).fees) })).sort((a, b) => b.net - a.net);
+const aiExp = r => [...groupBy(state.expenses.filter(e => inR(e.date, r) && !e.stockBuy), e => e.cat || 'Other').entries()].map(([k, a]) => ({ k, v: sum(a, e => num(e.amount)) })).sort((a, b) => b.v - a.v);
+const aiPrev = p => { if (p === 'all') return null; const [a, b] = periodRange(p), n = daysBetween(a, b) + 1; return [addDays(a, -n), addDays(a, -1)]; };
+const aiChg = (a, b) => b ? ((a - b) / Math.abs(b) * 100) : null;
+const aiArrow = c => c == null ? 'n/a' : (c >= 0 ? 'up ' : 'down ') + pct(Math.abs(c));
+const aiBars = (a, f) => { const mx = Math.max(1e-9, ...a.map(x => Math.abs(f(x)))); return a.map(x => ({ l: x.l, v: Math.round(Math.abs(f(x)) / mx * 100), n: x.n })); };
+const aiNone = p => ({ t: `There is nothing recorded for ${aiL(p)} yet. Add a sale or an expense and ask me again.` });
+const aiRows = s => [['Sales (before discounts)', money(s.gross + s.disc)], ['Net sales', money(s.net)], ['Fees', '− ' + money(s.fees)], ['Postage', '− ' + money(s.post)], ['Cash you received (before cost of goods)', money(s.made)], ['Cost of goods', '− ' + money(s.cogs)], ['Gross profit', money(s.gp)], ['Expenses', '− ' + money(s.expenses)], ['Other income', '+ ' + money(s.income)], ['Net profit', money(s.profit)]];
+const aiTasks = a => ({ l: 'Add these to my tasks', d: { k: 'addtasks', a: JSON.stringify(a) } });
+
+const AIP = [
+  { id: 'full', cat: 'report', per: 1, q: 'Give me a full business report', run: (r, p) => { const s = summary(r), os = live().filter(o => inR(o.date, r)); if (!os.length && !s.expenses && !s.income) return aiNone(p);
+    const tp = aiProd(os)[0], tc = aiChan(os)[0], te = aiExp(r)[0];
+    let t = `Here is your full report for ${aiL(p)}.\n\nYou took ${aiN(s.orders, 'order')} and sold ${aiN(s.units, 'item')}. After fees, postage and refunds you actually received ${money(s.made)}. After the cost of what you made or bought, that leaves ${money(s.gp)}. After expenses and other income, your net profit is ${money(s.profit)}${s.margin != null ? ` (${pct(s.margin)} margin)` : ''}.`;
+    if (tp) t += `\n\nBest seller: ${tp.name} (${aiN(tp.units, 'sold')}, ${money(tp.rev)}).`; if (tc) t += ` Top platform: ${tc.k} with ${money(tc.net)} net sales.`; if (te) t += ` Biggest expense: ${te.k} at ${money(te.v)}.`;
+    return { t, rows: aiRows(s).concat([['Orders', s.orders], ['Items sold', s.units], ['Average order', money(s.aov)]]), chart: { type: 'bar', title: 'Profit over time', pts: chartSeries(p, 'profit') }, next: ['pnl', 'exp', 'best'] }; } },
+  { id: 'how', cat: 'report', per: 1, q: 'How am I doing compared to before?', run: (r, p) => { const s = summary(r), pr = aiPrev(p); if (!pr) return { t: `For ${aiL(p)} you have net sales of ${money(s.net)} and a net profit of ${money(s.profit)}. Pick a shorter period and I can compare it with the one before.` };
+    const q = summary(pr), cr = aiChg(s.net, q.net), cp = aiChg(s.profit, q.profit), co = aiChg(s.orders, q.orders);
+    const verdict = s.profit > q.profit ? 'You are ahead of the previous period. Nice work.' : s.profit < q.profit ? 'Profit is behind the previous period. Check expenses and fees to see what changed.' : 'About the same as the previous period.';
+    return { t: `Compared with the period just before (${fmtDate(pr[0])} to ${fmtDate(pr[1])}): net sales are ${aiArrow(cr)}, profit is ${aiArrow(cp)} and orders are ${aiArrow(co)}.\n\n${verdict}`, rows: [['Net sales now / before', `${money(s.net)} / ${money(q.net)}`], ['Net profit now / before', `${money(s.profit)} / ${money(q.profit)}`], ['Orders now / before', `${s.orders} / ${q.orders}`], ['Expenses now / before', `${money(s.expenses)} / ${money(q.expenses)}`]], next: ['full', 'exp'] }; } },
+  { id: 'pnl', cat: 'report', per: 1, q: 'Show my profit and loss', run: (r, p) => { const s = summary(r); if (!s.orders && !s.expenses && !s.income) return aiNone(p); return { t: `Profit and loss for ${aiL(p)}. Cash received and profit are different numbers: cash is what reached you, profit also takes off the cost of your stock.`, rows: aiRows(s), next: ['cash', 'exp'] }; } },
+  { id: 'cash', cat: 'money', per: 1, q: 'Cash received vs profit', run: (r, p) => { const s = summary(r); if (!s.orders) return aiNone(p); return { t: `For ${aiL(p)} you received ${money(s.made)} in cash from sales. That is before the ${money(s.cogs)} cost of goods, which you already spent making or buying stock. Your gross profit after that is ${money(s.gp)}, and after expenses and other income your net profit is ${money(s.profit)}.${s.adj ? `\n\nThis includes ${money(Math.abs(s.adj))} of adjustments from final amounts you typed in.` : ''}`, rows: [['Cash you received', money(s.made)], ['Cost of goods', money(s.cogs)], ['Gross profit', money(s.gp)], ['Net profit', money(s.profit)]], next: ['pnl', 'acct'] }; } },
+  { id: 'exp', cat: 'money', per: 1, q: 'Where is my money going?', run: (r, p) => { const s = summary(r), e = aiExp(r), tot = s.expenses + s.fees + s.post + s.cogs; if (!tot) return aiNone(p);
+    const rows = [{ l: 'Cost of goods', n: money(s.cogs), v: s.cogs }, { l: 'Platform fees', n: money(s.fees), v: s.fees }, { l: 'Postage', n: money(s.post), v: s.post }].concat(e.map(x => ({ l: x.k, n: money(x.v), v: x.v }))).filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 10);
+    return { t: `In ${aiL(p)} ${money(tot)} went out in total (cost of goods, fees, postage and expenses). Your biggest cost is ${rows[0].l} at ${rows[0].n}.${s.expenses ? ` Expenses alone were ${money(s.expenses)}.` : ''}`, bars: aiBars(rows, x => x.v), next: ['full', 'tax'] }; } },
+  { id: 'acct', cat: 'money', q: 'What is in each of my accounts?', run: () => { if (!state.accounts.length) return { t: 'You have not set up any accounts yet. Go to Money, then Accounts, and add PayPal, Chime, cash or savings. Then pick an account on each sale and expense and I can track where your money sits.' };
+    const bs = state.accounts.map(a => [a, acctBal(a)]), tot = sum(bs, x => x[1].bal);
+    return { t: `Across ${aiN(bs.length, 'account')} you have ${money(tot)}.`, rows: bs.map(([a, b]) => [a.name, money(b.bal)]).concat([['Total', money(tot)]]), chart: { type: 'line', title: 'Total balance, last 30 days', pts: balSeries(30) }, next: ['flow', 'cash'] }; } },
+  { id: 'flow', cat: 'money', per: 1, q: 'How much came in and went out?', run: (r, p) => { if (!state.accounts.length) return { t: 'Set up accounts under Money first and I can show what came in and went out of each one.' };
+    const rg = state.accounts.map(a => [a, acctBal(a, r)]); return { t: `Money in and out of your accounts in ${aiL(p)}:`, rows: rg.map(([a, b]) => [a.name, `+${money(b.inn + b.tin)} / −${money(b.out + b.tout)}`]), next: ['acct'] }; } },
+  { id: 'tax', cat: 'money', per: 1, q: 'What should I set aside for taxes?', run: (r, p) => { const t = taxInfo(r); if (!(t.rate > 0)) return { t: 'You have not set a tax percentage yet. Open More, then Taxes, set your rate and I can work out what to set aside.' };
+    return { t: `For ${aiL(p)}: your estimated taxable profit is ${money(t.taxable)}, so about ${money(t.aside)} should be set aside at ${pct(t.rate)}. You have logged ${money(t.paid)} in payments, so ${money(t.left)} is still to set aside. Sales tax still owed: ${money(t.salesOwed)}.\n\nThis is a planning estimate, not tax advice.`, rows: [['Taxable profit', money(t.taxable)], ['Set aside', money(t.aside)], ['Already paid', money(t.paid)], ['Still to set aside', money(t.left)], ['Sales tax owed', money(t.salesOwed)]], next: ['exp'] }; } },
+  { id: 'best', cat: 'sales', per: 1, q: 'What are my best sellers?', run: (r, p) => { const l = aiProd(live().filter(o => inR(o.date, r))).slice(0, 8); if (!l.length) return aiNone(p);
+    return { t: `Your best seller in ${aiL(p)} is ${l[0].name} with ${money(l[0].rev)} from ${aiN(l[0].units, 'sale')}.`, bars: aiBars(l.map(x => ({ l: x.name, n: `${money(x.rev)} · ${x.units} sold`, v: x.rev })), x => x.v), next: ['margin', 'trend'] }; } },
+  { id: 'chan', cat: 'sales', per: 1, q: 'How are my platforms doing?', run: (r, p) => { const l = aiChan(live().filter(o => inR(o.date, r))); if (!l.length) return aiNone(p);
+    return { t: `${l[0].k} leads in ${aiL(p)} with ${money(l[0].net)} net sales. Fees cost you ${money(sum(l, x => x.fees))} across all platforms.`, rows: l.map(x => [x.k, `${money(x.net)} · ${aiN(x.n, 'order')} · profit ${money(x.profit)}`]), next: ['best', 'cust'] }; } },
+  { id: 'cust', cat: 'sales', per: 1, q: 'Who are my best customers?', run: (r, p) => { const m = new Map(); live().filter(o => inR(o.date, r)).forEach(o => { const n = (o.customer || '').trim(); if (!n) return; const e = m.get(lc(n)) || { name: n, n: 0, net: 0 }; e.n++; e.net += oc(o).net; m.set(lc(n), e); });
+    const l = [...m.values()].sort((a, b) => b.net - a.net).slice(0, 6); if (!l.length) return { t: `No named customers on your sales in ${aiL(p)}. Add a customer name to a sale and I can rank them.` };
+    return { t: `${l[0].name} is your top customer in ${aiL(p)} with ${money(l[0].net)} across ${aiN(l[0].n, 'order')}.`, rows: l.map(x => [x.name, `${money(x.net)} · ${aiN(x.n, 'order')}`]), next: ['chan'] }; } },
+  { id: 'trend', cat: 'sales', per: 1, q: 'Show my sales trend', run: (r, p) => { const s = summary(r); if (!s.orders) return aiNone(p); return { t: `Here is your revenue over ${aiL(p)}. You took ${aiN(s.orders, 'order')}, averaging ${money(s.aov)} each.`, chart: { type: 'line', title: 'Net sales over time', pts: chartSeries(p, 'revenue') }, next: ['best', 'how'] }; } },
+  { id: 'todo', cat: 'sales', q: 'Which orders need action?', run: () => { const l = state.orders.filter(o => !o.archived && !closedOrder(o) && !NOT_SALE.includes(o.status)).sort((a, b) => a.date.localeCompare(b.date)); if (!l.length) return { t: 'All caught up. Every order is fulfilled or resolved.' };
+    return { t: `You have ${aiN(l.length, 'open order')}. The oldest is ${orderNo(l[0])} from ${fmtDate(l[0].date)}.`, rows: l.slice(0, 10).map(o => [`${orderNo(o)} · ${o.customer || 'No name'}`, `${o.status} · ${fmtDate(o.date)}`]), next: ['week'] }; } },
+  { id: 'views', cat: 'listings', q: 'How are my listings performing?', run: () => { const ls = state.listings.filter(l => !l.archived && (l.snaps || []).length); if (!ls.length) return { t: 'No analytics snapshots yet. Open a listing, tap Analytics and record views, favorites or offers whenever you check a platform. Then I can rank your listings.' };
+    const k = state.settings.metrics.find(m => /view/i.test(m)) || state.settings.metrics[0], tot = {}; ls.forEach(l => { Object.entries(latestByPlatform(l)).forEach(([c, o]) => { tot[c] = (tot[c] || 0) + (o.m[k] || 0); }); });
+    const top = ls.map(l => ({ l: l.title, v: listingTotals(l)[k] || 0 })).sort((a, b) => b.v - a.v).slice(0, 6);
+    return { t: `Based on your latest snapshots, "${k}" is highest on ${top[0].l} (${top[0].v}).`, rows: Object.entries(tot).map(([c, v]) => [c + ' · ' + k, v]), bars: aiBars(top.map(x => ({ l: x.l, n: String(x.v), v: x.v })), x => x.v), next: ['renew'] }; } },
+  { id: 'renew', cat: 'listings', q: 'Which listings need renewing?', run: () => { const l = state.listings.filter(renewDue); if (!l.length) return { t: 'No listings are due for renewal right now.' }; return { t: `${aiN(l.length, 'listing')} due for renewal. Renew them to keep them fresh in search.`, rows: l.slice(0, 10).map(x => [x.title, 'due ' + fmtDate(x.relistDate)]), next: ['disc'] }; } },
+  { id: 'disc', cat: 'listings', q: 'What discounts are running?', run: () => { const l = state.listings.filter(x => !x.archived && (x.discounts || []).some(d => discActive(d))); if (!l.length) return { t: 'No discounts are running at the moment.' }; return { t: `${aiN(l.length, 'listing')} ${l.length === 1 ? 'has' : 'have'} a discount running.`, rows: l.slice(0, 10).map(x => [x.title, discText(x.discounts.find(d => discActive(d)))]) }; } },
+  { id: 'low', cat: 'stock', q: 'What is low or out of stock?', run: () => { const l = state.products.filter(active).concat(state.supplies.filter(active)).filter(x => stockState(x) !== 'ok'); if (!l.length) return { t: 'Everything is well stocked.' };
+    return { t: `${aiN(l.length, 'item')} ${l.length === 1 ? 'is' : 'are'} low or out. Restock the ones you sell most first.`, rows: l.slice(0, 12).map(x => [x.name, stockQty(x) <= 0 ? 'out of stock' : stockQty(x) + ' left']), next: ['arch', 'margin'] }; } },
+  { id: 'margin', cat: 'stock', q: 'Which products have the best margins?', run: () => { const l = state.products.filter(x => active(x) && num(x.price) > 0).map(x => ({ n: x.name, m: (num(x.price) - unitCost(x)) / num(x.price) * 100, g: num(x.price) - unitCost(x) })).sort((a, b) => b.m - a.m); if (!l.length) return { t: 'Add products with a price and cost and I can work out margins.' };
+    const w = l[l.length - 1]; return { t: `${l[0].n} has your best margin at ${pct(l[0].m)}. ${w.n} is lowest at ${pct(w.m)}${w.m < 30 ? ', so it may be worth raising its price or lowering its cost' : ''}.`, bars: aiBars(l.slice(0, 8).map(x => ({ l: x.n, n: `${pct(x.m)} · ${money(x.g)} each`, v: Math.max(0, x.m) })), x => x.v), next: ['best'] }; } },
+  { id: 'value', cat: 'stock', q: 'How much is my inventory worth?', run: () => { const ps = state.products.filter(active), ss = state.supplies.filter(active), pc = sum(ps, x => num(x.qty) * unitCost(x)), pr = sum(ps, x => num(x.qty) * num(x.price)), sc = sum(ss, x => stockQty(x) * num(x.cost));
+    return { t: `Your finished products cost ${money(pc)} to make and would bring in ${money(pr)} if they all sold. Unused supplies are worth ${money(sc)} at cost.`, rows: [['Products at cost', money(pc)], ['Products at selling price', money(pr)], ['Possible profit if all sold', money(pr - pc)], ['Supplies at cost', money(sc)]] }; } },
+  { id: 'arch', cat: 'stock', q: 'What can I archive?', run: () => { const fp = state.products.filter(x => active(x) && productFinished(x) && !archiveBlock('product', x)), fl = state.listings.filter(x => !x.archived && listingReleased(x) && !archiveBlock('listing', x)), n = fp.length + fl.length; if (!n) return { t: 'Nothing is ready to archive. Sold-out items still tied to a live listing or open order stay put.' };
+    return { t: `${aiN(n, 'item')} can be archived: ${aiN(fp.length, 'product')} and ${aiN(fl.length, 'listing')} that sold out. Go to Inventory and tap "Archive all sold". You can bring them back anytime.`, rows: fp.map(x => [x.name, 'product']).concat(fl.map(x => [x.title, 'listing'])).slice(0, 12) }; } },
+  { id: 'goals', cat: 'plan', q: 'How are my goals going?', run: () => { if (!state.goals.length) return { t: 'You have not set any goals yet. Open More, then Goals, and add a revenue, profit or order target.' };
+    const gi = state.goals.map(g => [g, goalInfo(g)]); return { t: `You have ${aiN(gi.length, 'goal')}. ${gi.filter(x => x[1].value >= x[1].target).length} reached so far.`, bars: gi.map(([g, i]) => ({ l: g.title || g.metric, v: Math.min(100, Math.round(i.ratio * 100)), n: `${i.f(i.value)} of ${i.f(i.target)} · ${i.status}` })), next: ['week', 'grow'] }; } },
+  { id: 'week', cat: 'plan', q: 'Plan my week', run: () => { const t = today(), e = addDays(t, 6), tk = state.tasks.filter(x => !x.done && x.due && x.due <= e).sort((a, b) => a.due.localeCompare(b.due)), ev = state.events.filter(x => x.date >= t && x.date <= e).sort((a, b) => a.date.localeCompare(b.date)), ren = state.listings.filter(renewDue), open = state.orders.filter(o => !o.archived && !closedOrder(o) && !NOT_SALE.includes(o.status)), low = state.products.filter(active).filter(x => stockState(x) !== 'ok');
+    const steps = []; if (open.length) steps.push(`Ship or follow up on ${aiN(open.length, 'open order')}`); if (ren.length) steps.push(`Renew ${aiN(ren.length, 'listing')}`); if (low.length) steps.push(`Restock ${aiN(low.length, 'low item')}`); tk.slice(0, 5).forEach(x => steps.push(x.title));
+    return { t: steps.length || ev.length ? `Here is a plan for the next 7 days. Start with orders, then renewals, then restocking, and keep your scheduled tasks and events on the calendar.` : 'Your week looks clear. A good use of the time: record any snapshots for your listings and review your goals.', rows: steps.map((x, i) => [`${i + 1}.`, x]).concat(ev.map(x => [fmtDate(x.date) + (x.time ? ' ' + timeLabel(x.time) : ''), x.title])), opts: steps.length ? [aiTasks(steps.slice(0, 6))] : null, next: ['focus', 'goals'] }; } },
+  { id: 'focus', cat: 'plan', q: 'What should I focus on today?', run: () => { const t = today(), l = []; const od = state.tasks.filter(x => !x.done && x.due && x.due <= t); if (od.length) l.push(`Finish ${aiN(od.length, 'task')} due or overdue`); const open = state.orders.filter(o => !o.archived && !closedOrder(o) && !NOT_SALE.includes(o.status)); if (open.length) l.push(`Move ${aiN(open.length, 'open order')} forward`); const oos = state.listings.filter(listingOOS); if (oos.length) l.push(`Pause ${aiN(oos.length, 'live listing')} for sold-out items`); const ren = state.listings.filter(renewDue); if (ren.length) l.push(`Renew ${aiN(ren.length, 'listing')}`);
+    if (!l.length) l.push('Add or improve a listing, since nothing urgent is waiting.'); return { t: `Your top priorities today, in order:\n\n${l.slice(0, 3).map((x, i) => `${i + 1}. ${x}`).join('\n')}`, opts: [aiTasks(l.slice(0, 3))], next: ['week'] }; } },
+  { id: 'grow', cat: 'plan', q: 'Give me ideas to grow', run: () => { const r = periodRange('last30'), s = summary(r), os = live().filter(o => inR(o.date, r)), tp = aiProd(os)[0], ideas = [];
+    if (tp) ideas.push(`${tp.name} is selling best. List it on another platform or make more of it.`); const w = state.products.filter(x => active(x) && num(x.price) > 0 && (num(x.price) - unitCost(x)) / num(x.price) < .3); if (w.length) ideas.push(`${aiN(w.length, 'product')} ${w.length === 1 ? 'has' : 'have'} a margin under 30%, like ${w[0].name}. Test a small price rise.`);
+    if (s.fees > s.net * .12) ideas.push(`Fees are ${pct(s.fees / s.net * 100)} of sales. Compare which platform keeps more for you.`); const nl = state.products.filter(x => active(x) && !state.listings.some(l => !l.archived && listingProducts(l).includes(x.id))); if (nl.length) ideas.push(`${aiN(nl.length, 'product')} ${nl.length === 1 ? 'is' : 'are'} not listed anywhere, like ${nl[0].name}.`);
+    const rep = new Map(); os.forEach(o => { const n = lc(o.customer || ''); if (n) rep.set(n, (rep.get(n) || 0) + 1); }); if ([...rep.values()].some(v => v > 1)) ideas.push('You have repeat buyers. Send them a thank-you or a small discount.'); if (!ideas.length) ideas.push('Record more sales and listing snapshots and I can spot patterns for you.');
+    return { t: `Based on your last 30 days:\n\n${ideas.map(x => '• ' + x).join('\n')}`, opts: [aiTasks(ideas.slice(0, 4))], next: ['best', 'margin'] }; } },
+  { id: 'check', cat: 'plan', q: 'Give me a month-end checklist', run: () => { const un = live().filter(o => !state.accounts.some(a => a.id === o.acct)).length, items = ['Record every sale and expense from this month', state.accounts.length && un ? `Assign ${aiN(un, 'sale')} to an account` : 'Check your account balances match your real accounts', 'Log snapshots for your listings', 'Pay or set aside taxes', 'Review goals and set next month\'s targets', 'Download a backup'];
+    return { t: 'Here is a month-end routine:', rows: items.map((x, i) => [`${i + 1}.`, x]), opts: [aiTasks(items)], next: ['tax', 'goals'] }; } },
+  { id: 'health', cat: 'more', q: 'Run a data health check', run: () => { const f = [], us = live().filter(o => state.accounts.length && !state.accounts.some(a => a.id === o.acct)).length, nc = state.products.filter(x => active(x) && !num(x.cost) && !(x.recipe || []).length).length, np = state.listings.filter(x => !x.archived && !num(x.price)).length, ng = state.listings.filter(x => !x.archived && x.status === 'Active' && !(x.snaps || []).length).length;
+    if (us) f.push(`${aiN(us, 'sale')} not in an account`); if (nc) f.push(`${aiN(nc, 'product')} with no cost, so profit looks too high`); if (np) f.push(`${aiN(np, 'listing')} with no price`); if (ng) f.push(`${aiN(ng, 'live listing')} with no analytics snapshot`); const b = state.backup.last ? Math.floor((Date.now() - state.backup.last) / 864e5) : null; if (b == null || b > 14) f.push(b == null ? 'You have never backed up' : `Last backup was ${b} days ago`);
+    return { t: f.length ? `I found ${aiN(f.length, 'thing')} to tidy up:` : 'Everything looks tidy. Your numbers should be reliable.', rows: f.map(x => ['•', x]) }; } },
+  { id: 'backup', cat: 'more', q: 'Is my data backed up?', run: () => { const b = state.backup.last ? Math.floor((Date.now() - state.backup.last) / 864e5) : null; return { t: b == null ? 'You have not backed up yet. Open Settings, then Your data, and tap "Copy ALL my data as text" or download a file. Keep it somewhere safe.' : `Your last backup was ${b === 0 ? 'today' : aiN(b, 'day') + ' ago'}. ${b > 14 ? 'That is a while. Make a fresh one in Settings, then Your data.' : 'That is recent. Nice.'}` }; } },
+  { id: 'biz', cat: 'more', q: 'Tell me about my business', run: () => { const s = state.settings; return { t: `${s.name || 'Your business'} is tracked here with everything below.`, rows: [['Sales recorded', state.orders.length], ['Products', state.products.filter(active).length], ['Supplies', state.supplies.filter(active).length], ['Listings', state.listings.filter(active).length], ['Customers', state.customers.filter(active).length], ['Accounts', state.accounts.length], ['Goals', state.goals.length], ['Platforms', s.channels.map(c => c.name).join(', ') || 'none']] }; } },
+  { id: 'help', cat: 'more', q: 'What can you do?', run: () => ({ t: 'I can read everything you track: reports for any time period, profit and cash, expenses, accounts, taxes, best sellers, platforms, customers, listing views, inventory, goals and planning. I can plan your week, turn plans into tasks, run a data health check and book meetings with you. Pick a topic below and tap a question.' }) },
+  { id: 'sched', cat: 'meet', q: 'Schedule a meeting with you', run: () => ({ t: 'Happy to. What kind of meeting would you like?', opts: Object.keys(MTG).map(k => ({ l: k, d: { k: 'mtype', a: k } })) }) },
+  { id: 'mine', cat: 'meet', q: 'Show my meetings', run: () => { const l = state.meetings.filter(m => m.date >= addDays(today(), -1)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)); if (!l.length) return { t: 'You have no meetings booked. Ask me to schedule one.', next: ['sched'] };
+    return { t: `You have ${aiN(l.length, 'meeting')} booked. Start one when the time comes, and I will walk you through the agenda.`, rows: l.map(m => [m.type, fmtDate(m.date) + (m.time ? ' · ' + timeLabel(m.time) : '')]), opts: l.flatMap(m => [{ l: 'Start: ' + m.type + ' (' + fmtDate(m.date) + ')', d: { k: 'mstart', a: m.type } }, { l: 'Cancel ' + fmtDate(m.date), d: { k: 'mcancel', a: m.id } }]) }; } },
+];
+
+const aiChat = () => ui.chat || (ui.chat = []);
+const aiBottom = () => { if (ui.sub !== 'assistant') return; const s = $('#scroll'); if (s) s.scrollTop = s.scrollHeight; };
+function aiSay(rep, cb) {
+  const c = aiChat(), m = { id: uid('m'), role: 'ai', typing: true, rep }; c.push(m); ui.aiBusy = true; const on = () => ui.sub === 'assistant'; if (on()) { render(); aiBottom(); }
+  setTimeout(() => { m.typing = false; m.t = rep.t; m.shown = 0; if (on()) { render(); aiBottom(); }
+    const tick = setInterval(() => { m.shown = Math.min(m.t.length, m.shown + 3); const el = document.getElementById('aiT' + m.id); if (el) el.textContent = m.t.slice(0, m.shown);
+      if (m.shown >= m.t.length) { clearInterval(tick); m.done = true; ui.aiBusy = false; if (on()) { render(); aiBottom(); } if (cb) setTimeout(cb, 500); } else aiBottom(); }, 20); }, 650 + Math.random() * 450);
+}
+function aiMe(t) { aiChat().push({ id: uid('m'), role: 'me', t }); }
+function aiAsk(pr, p, me) {
+  if (me) aiMe(me);
+  if (pr.per && !p) return aiSay({ t: 'Which time period should I look at?', opts: AI_PER.map(k => ({ l: periodLabel(k), d: { k: 'ask', id: pr.id, p: k } })) });
+  let rep; try { rep = pr.run(periodRange(p || 'month'), p || 'month'); } catch (e) { rep = { t: 'Sorry, I hit a problem working that out. Your data is safe. Try another question.' }; }
+  aiSay(rep);
+}
+function aiChain(fs, i = 0) { if (i < fs.length) aiSay(fs[i](), () => aiChain(fs, i + 1)); }
+function aiAgenda(type) {
+  aiMe('Start my ' + type);
+  const steps = MTG[type].map(([id, p]) => () => { const pr = AIP.find(x => x.id === id); return pr.run(periodRange(p || 'month'), p || 'month'); });
+  aiChain([() => ({ t: `Welcome to your ${type}. We will go through ${aiN(steps.length, 'topic')}. Let's begin.` })].concat(steps, [() => ({ t: 'That covers the agenda. Anything you want to turn into tasks? Ask me to plan your week and I can add them for you.', next: ['week', 'goals'] })]));
+}
+function aiBubble(m) {
+  if (m.typing) return `<div class="aib ai"><span class="aidots"><i></i><i></i><i></i></span></div>`;
+  const r = m.rep || {}, d = m.done, mk = (id) => 'ai' + id;
+  let h = `<div class="aiT" id="aiT${m.id}" style="white-space:pre-wrap">${esc(d ? m.t : m.t.slice(0, m.shown))}</div>`;
+  if (d) {
+    if (r.rows) h += `<div class="aikv">${r.rows.map(x => `<div class="kv"><span>${esc(String(x[0]))}</span><span class="num">${esc(String(x[1]))}</span></div>`).join('')}</div>`;
+    if (r.bars) h += `<div class="aikv">${r.bars.map(x => `<div style="margin:8px 0"><div class="row between xs"><b class="trunc">${esc(x.l)}</b><span class="sub">${esc(x.n || '')}</span></div><div class="aibar"><i style="width:${Math.max(3, x.v)}%"></i></div></div>`).join('')}</div>`;
+    if (r.chart) h += `<div class="aikv"><p class="eyebrow" style="margin-bottom:6px">${esc(r.chart.title)}</p>${r.chart.type === 'line' ? lineChart(mk(m.id), r.chart.pts) : barChart(mk(m.id), r.chart.pts)}</div>`;
+    if (r.opts) h += `<div class="aichips">${r.opts.map((o, i) => `<button class="aichip" ${m.used ? 'disabled' : ''} data-act="ai-opt" data-m="${m.id}" data-i="${i}">${esc(o.l)}</button>`).join('')}</div>`;
+    if (r.next && r.next.length) h += `<div class="xs sub" style="margin-top:8px">You could also ask:</div><div class="aichips">${r.next.map(id => { const p = AIP.find(x => x.id === id); return p ? `<button class="aichip alt" data-act="ai-ask" data-id="${id}">${esc(p.q)}</button>` : ''; }).join('')}</div>`;
+    h += `<div class="row" style="margin-top:8px"><button class="link" data-act="ai-copy" data-m="${m.id}">${ic('copy')} Copy</button></div>`;
+  }
+  return `<div class="aib ai">${h}</div>`;
+}
+function aiPlain(m) { const r = m.rep || {}; return [m.t].concat(r.rows ? r.rows.map(x => `${x[0]}: ${x[1]}`) : [], r.bars ? r.bars.map(x => `${x.l}: ${x.n}`) : []).join('\n'); }
+V.assistant = () => {
+  const c = aiChat(), cat = ui.aiCat || 'report', nm = state.settings.name || 'your business';
+  const greet = `<div class="aib ai"><div class="aiT" style="white-space:pre-wrap">Hi! I'm your Business Assistant for ${esc(nm)}. I can see everything you track here: sales, money, accounts, listings, inventory, goals and plans. Pick a question below and I'll dig in. I can also plan with you and book meetings.</div></div>`;
+  return `<div class="page ai-page"><div class="aimsgs">${greet}${c.map(m => m.role === 'me' ? `<div class="aib me">${esc(m.t)}</div>` : aiBubble(m)).join('')}</div>
+    <div class="aipanel"><div class="aicats">${AI_CATS.map(([k, l]) => `<button class="aicat ${k === cat ? 'on' : ''}" data-act="ai-cat" data-k="${k}">${l}</button>`).join('')}</div>
+    <div class="aichips">${AIP.filter(x => x.cat === cat).map(x => `<button class="aichip" ${ui.aiBusy ? 'disabled' : ''} data-act="ai-ask" data-id="${x.id}">${esc(x.q)}</button>`).join('')}</div>${c.length ? `<button class="link" data-act="ai-clear" style="margin-top:6px">Clear chat</button>` : ''}</div></div>`;
+};
+
 /* ---------------- TAXES ---------------- */
 function taxPayList() {
   const l = state.taxPayments.slice().sort((a, b) => b.date.localeCompare(a.date));
@@ -2097,6 +2238,7 @@ V.more = () => {
       <div class="grow"><h3 class="trunc" style="font-size:16px;font-weight:800">${esc(s.name || 'Your business')}</h3><p class="xs sub trunc">${esc(s.industry || 'Business Tracker')}</p></div></div>
     <div class="stack-sm">
       <button class="list-row" data-act="bell"><span class="ico">${ic('inbox')}</span><span class="grow"><b style="display:block;font-size:14px">Inbox</b><span class="xs sub">${na ? na + ' alert' + (na > 1 ? 's' : '') + ' waiting' : 'All caught up'}</span></span>${ic('chevron-right', 'chev')}</button>
+      ${row('star', 'Business Assistant', 'Ask about anything in your business, plan and book meetings', 'assistant')}
       ${row('list-checks', 'Plan', `Tasks, calendar and time tracking${open ? ' · ' + open + ' open' : ''}`, 'plan')}
       ${row('target', 'Goals', 'Revenue, profit and order targets', 'goals')}
       ${row('landmark', 'Taxes', 'What to set aside, sales tax and payments', 'taxes')}
@@ -3476,6 +3618,21 @@ const nextStatus = o => { const i = FLOW.indexOf(o.status); return i >= 0 ? FLOW
 const ACT = {
   tab: el => go(el.dataset.tab),
   sub: el => go('more', el.dataset.sub),
+  'ai-cat': el => { ui.aiCat = el.dataset.k; render(); aiBottom(); },
+  'ai-ask': el => { if (ui.aiBusy) return; const pr = AIP.find(x => x.id === el.dataset.id); if (pr) aiAsk(pr, '', pr.q); },
+  'ai-copy': el => { const m = aiChat().find(x => x.id === el.dataset.m); if (m) copyText(aiPlain(m), 'Response'); },
+  'ai-clear': () => { ui.chat = []; ui.aiBusy = false; render(); },
+  'ai-opt': el => {
+    if (ui.aiBusy) return; const m = aiChat().find(x => x.id === el.dataset.m); if (!m || m.used) return; const o = m.rep.opts[+el.dataset.i], d = o.d; m.used = true; aiMe(o.l);
+    if (d.k === 'ask') return aiAsk(AIP.find(x => x.id === d.id), d.p, null);
+    if (d.k === 'mtype') return aiSay({ t: 'Which day works best?', opts: [0, 1, 2, 3, 4, 5, 6].map(n => { const k = addDays(today(), n); return { l: n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : fmtDate(k), d: { k: 'mday', a: d.a, b: k } }; }) });
+    if (d.k === 'mday') return aiSay({ t: 'And what time?', opts: ['09:00', '12:00', '15:00', '18:00'].map(t => ({ l: timeLabel(t), d: { k: 'mtime', a: d.a, b: d.b, c: t } })) });
+    if (d.k === 'mtime') { const id = uid('mt'); state.meetings.push({ id, type: d.a, date: d.b, time: d.c }); state.events.push({ id: uid('e'), title: 'Meeting with assistant: ' + d.a, date: d.b, time: d.c, kind: 'Meeting', notes: 'Open Business Assistant, tap Meetings, then Show my meetings and Start.', mt: id }); save();
+      return aiSay({ t: `Booked. Your ${d.a} is on ${fmtDateLong(d.b)} at ${timeLabel(d.c)}. I added it to your calendar. When it is time, open Meetings, tap "Show my meetings" and press Start, and I will walk you through the agenda.`, next: ['mine', 'sched'] }); }
+    if (d.k === 'mcancel') { state.meetings = state.meetings.filter(x => x.id !== d.a); state.events = state.events.filter(x => x.mt !== d.a); save(); return aiSay({ t: 'Done. That meeting is cancelled and removed from your calendar.', next: ['mine'] }); }
+    if (d.k === 'mstart') return aiAgenda(d.a);
+    if (d.k === 'addtasks') { const a = JSON.parse(d.a); a.forEach(t => state.tasks.push({ id: uid('t'), done: false, title: t, due: today(), priority: 'Normal', repeat: '', notes: 'Added by Business Assistant' })); save(); return aiSay({ t: `Added ${aiN(a.length, 'task')} to your Plan, due today. You can edit the dates there.`, next: ['focus'] }); }
+  },
   back: () => { if (ui.sub === 'inbox' && ui.ret) { const r = ui.ret; ui.ret = null; ui.tab = r.tab; ui.sub = r.sub; render(); } else { ui.sub = null; ui.ret = null; resetFilters(); render(); } },
   'seg-go': el => { ui.seg[el.dataset.k] = el.dataset.v; go(el.dataset.tab); },
   seg: el => { ui.seg[el.dataset.k] = el.dataset.v; resetFilters(); render(); },
