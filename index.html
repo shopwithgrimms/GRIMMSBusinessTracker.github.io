@@ -1376,7 +1376,7 @@ function processRecurring() {
     for (let guard = 0; guard < 500; guard++) {
       const next = repeatDate(e.repeat.anchor, e.repeat.every, e.repeat.n + 1);
       if (next > t) break;
-      state.expenses.push({ id: uid('x'), date: next, desc: e.desc, amount: e.amount, cat: e.cat, vendor: e.vendor || '', deductible: e.deductible, from: e.id });
+      state.expenses.push({ id: uid('x'), date: next, desc: e.desc, amount: e.amount, cat: e.cat, vendor: e.vendor || '', deductible: e.deductible, acct: e.acct || '', from: e.id });
       e.repeat.n++; changed = true;
     }
   });
@@ -2796,7 +2796,7 @@ FORMS.expense = (f, fd, id) => {
   const desc = tidy(fd.get('desc')); if (!desc) return toast('Describe the expense');
   const rec = { desc, amount: Math.max(0, num(fd.get('amount'))), date: fd.get('date'), cat: fd.get('cat') || '', vendor: tidy(fd.get('vendor')), deductible: fd.get('deductible') === 'on', acct: fd.get('acct') || '', stockBuy: !id && fd.get('stockBuy') === 'on' ? true : !!(id && (find('expenses', id) || {}).stockBuy), notes: tidy(fd.get('notes')) };
   const sq = num(fd.get('supQty')), sn = tidy(fd.get('supName'));
-  if (!id && rec.stockBuy && sq > 0 && sn) { const sp = state.supplies.find(x => lc(x.name) === lc(sn)); if (sp) { sp.cost = (num(sp.qty) * num(sp.cost) + rec.amount) / (num(sp.qty) + sq); sp.qty = r2(num(sp.qty) + sq); } else state.supplies.push({ id: uid('su'), name: sn, sku: nextSupplySku(), unit: 'pcs', qty: sq, cost: rec.amount / sq, low: '', category: state.settings.stockCats.includes('Materials') ? 'Materials' : state.settings.stockCats[0] || '', supplierId: '', location: '', notes: '' }); }
+  if (!id && rec.stockBuy && sq > 0 && sn) { const sp = state.supplies.find(x => lc(x.name) === lc(sn)); if (sp) { sp.cost = Math.round((num(sp.qty) * num(sp.cost) + rec.amount) / (num(sp.qty) + sq) * 1e4) / 1e4; sp.qty = r2(num(sp.qty) + sq); } else state.supplies.push({ id: uid('su'), name: sn, sku: nextSupplySku(), unit: 'pcs', qty: sq, cost: Math.round(rec.amount / sq * 1e4) / 1e4, low: '', category: state.settings.stockCats.includes('Materials') ? 'Materials' : state.settings.stockCats[0] || '', supplierId: '', location: '', notes: '' }); }
   const every = fd.get('every'), old = id ? find('expenses', id) : null;
   const repeat = every ? (old && old.repeat && old.repeat.every === every && old.date === rec.date ? old.repeat : { every, anchor: rec.date, n: 0 }) : null;
   if (id) { const t = find('expenses', id); delete t.repeat; Object.assign(t, rec); if (repeat) t.repeat = repeat; }
@@ -3178,7 +3178,7 @@ function dupRecord(type, id) {
   else if (type === 'supply') { c.name += ' (copy)'; c.sku = nextSupplySku(); c.qty = 0; state.supplies.push(c); }
   else if (type === 'listing') { c.title += ' (copy)'; c.sku = nextListingSku(); c.status = 'Draft'; c.listedDate = ''; c.relistDate = ''; c.createdDate = today(); c.snaps = []; state.listings.push(c); }
   else if (type === 'order') { state.counters.order++; c.no = state.counters.order; c.date = today(); c.status = 'Order Received'; c.tracking = ''; c.refund = 0; c.reimb = 0; c.deposit = 0; c.finalProfit = ''; c.createdAt = Date.now(); c.items.forEach(l => { l.returned = 0; }); putOrder(c); }
-  else if (type === 'expense') { c.date = today(); delete c.repeat; delete c.from; state.expenses.push(c); }
+  else if (type === 'expense') { c.date = today(); delete c.repeat; delete c.from; c.stockBuy = false; state.expenses.push(c); }
   else if (type === 'task') { c.done = false; delete c.doneAt; state.tasks.push(c); }
   else return null;
   return c.id;
@@ -3576,11 +3576,14 @@ const ACT = {
   'archive-sold': async () => {
     const seg_ = ui.seg.stock, type = seg_ === 'products' ? 'product' : seg_ === 'listings' ? 'listing' : 'supply';
     const items = state[COLL[type]].filter(r => !r.archived && (type === 'listing' ? /sold/i.test(r.status || '') : stockQty(r) <= 0));
-    if (!items.length) return toast('Nothing sold out to archive. Items that still have stock are never archived');
+    const all_ = items.slice(); items.length = 0; const skipped = [];
+    all_.forEach(r => { const why = archiveBlock(type, r); why ? skipped.push(r) : items.push(r); });
+    if (!all_.length) return toast('Nothing sold out to archive. Items that still have stock are never archived');
+    if (!items.length) return alertBox('Nothing can be archived yet', `${skipped.length} sold-out ${plural(type, skipped.length)} found, but each is still in a live listing or an open order. Mark the listing Sold or finish the order first, then try again.`);
     const nm = r => type === 'listing' ? r.title : r.name, list = items.slice(0, 12).map(nm).join(', ') + (items.length > 12 ? ` and ${items.length - 12} more` : '');
-    if (!await confirmBox(`Archive ${items.length} sold ${plural(type, items.length)}?`, `${list}. Anything that still has stock is left alone. You can bring them back anytime from Archived, or when you add more inventory.`, 'Archive them')) return;
+    if (!await confirmBox(`Archive ${items.length} sold ${plural(type, items.length)}?`, `${list}. Anything that still has stock is left alone${skipped.length ? `, and ${skipped.length} sold-out ${plural(type, skipped.length)} still in a live listing or open order ${skipped.length === 1 ? 'is' : 'are'} skipped` : ''}. You can bring them back anytime from Archived, or when you add more inventory.`, 'Archive them')) return;
     const blocked = archiveRecords(type, items.map(r => r.id), true); save(); render();
-    toast(blocked.length ? `Archived ${items.length - blocked.length}. ${blocked.length} could not be archived yet` : `Archived ${items.length}`);
+    toast(`Archived ${items.length - blocked.length}`);
   },
   archive: el => {
     const type = el.dataset.type, id = el.dataset.id, r = find(COLL[type], id); if (!r) return;
