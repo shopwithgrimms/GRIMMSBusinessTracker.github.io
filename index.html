@@ -1510,6 +1510,12 @@ function openSheet(title, body, opts = {}) {
   if (f && !opts.noFocus && window.matchMedia('(min-width:640px)').matches) f.focus();
 }
 function closeSheet() { $('#modal').classList.remove('on'); $('#modal').innerHTML = ''; }
+/* closing by tapping outside / Escape: if the form has typed-in changes, ask first so nothing is lost */
+async function tryCloseSheet() {
+  const f = $('#modal form[data-form]');
+  if (f && f.dataset.dirty && !await confirmBox('Discard what you typed?', 'This form has changes that are not saved yet.', 'Discard', true)) return;
+  closeSheet();
+}
 let dlgResolve = null;
 function dialog(html, onMount) {
   const d = $('#dialog');
@@ -2454,7 +2460,7 @@ V.settings = () => {
    13. FORMS  (add / edit sheets)
    ===================================================================== */
 const fText = (l, n, v = '', a = '') => `<label class="fld"><span>${l}</span><input class="input" name="${n}" value="${esc(v)}" ${a}></label>`;
-const fNum = (l, n, v = '', ph = '', a = '') => `<label class="fld"><span>${l}</span><input class="input" type="number" step="any" inputmode="decimal" name="${n}" value="${v === '' || v == null ? '' : esc(v)}" placeholder="${esc(ph)}" ${a}></label>`;
+const fNum = (l, n, v = '', ph = '', a = '') => `<label class="fld"><span>${l}</span><input class="input" type="number" step="any" inputmode="decimal" enterkeyhint="next" name="${n}" value="${v === '' || v == null ? '' : esc(v)}" placeholder="${esc(ph)}" ${a}></label>`;
 const fDate = (l, n, v, req = true) => `<label class="fld"><span>${l}</span><input class="input" type="date" name="${n}" value="${esc(v || '')}" ${req ? 'required' : ''}></label>`;
 const fArea = (l, n, v = '', ph = '', a = '') => `<label class="fld"><span>${l}</span><textarea class="textarea" name="${n}" placeholder="${esc(ph)}" ${a}>${esc(v)}</textarea></label>`;
 const fSel = (l, n, opts, v, a = '') => `<label class="fld"><span>${l}</span><select class="select" name="${n}" ${a}>${opts.map(o => { const [val, lab] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(val)}" ${String(val) === String(v) ? 'selected' : ''}>${esc(lab)}</option>`; }).join('')}</select></label>`;
@@ -3723,7 +3729,7 @@ async function importFile(file) {
 document.addEventListener('click', e => {
   const dl = e.target.closest('[data-dlg]'); if (dl) return closeDialog(dl.dataset.dlg);
   if (e.target.id === 'dialog') return closeDialog('no');
-  if (e.target.id === 'modal') return closeSheet();
+  if (e.target.id === 'modal') return tryCloseSheet();
   if (ui.selMode) { const s = e.target.closest('[data-selid]'); if (s) { const id = s.dataset.selid; ui.sel.has(id) ? ui.sel.delete(id) : ui.sel.add(id); refreshList(); return; } }
   const el = e.target.closest('[data-act]'); if (el && ACT[el.dataset.act]) ACT[el.dataset.act](el, e);
 });
@@ -3750,7 +3756,7 @@ document.addEventListener('input', e => {
     if (box) $$('.pick', box).forEach(r => { r.style.display = !k || r.textContent.toLowerCase().includes(k) ? '' : 'none'; });
     return;
   }
-  const f = t.closest('form[data-form]'); if (f) formLive(f, t);
+  const f = t.closest('form[data-form]'); if (f) { f.dataset.dirty = '1'; formLive(f, t); }
 });
 document.addEventListener('change', async e => {
   const t = e.target, d = t.dataset;
@@ -3827,11 +3833,22 @@ document.addEventListener('change', async e => {
     t.dataset.prev = t.value; save(); return;
   }
   if (d.prev !== undefined) d.prev = t.value;
-  const f = t.closest('form[data-form]'); if (f) formLive(f, t);
+  const f = t.closest('form[data-form]'); if (f) { f.dataset.dirty = '1'; formLive(f, t); }
 });
 document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.isComposing) {
+    const t = e.target, f = t.closest && t.closest('form[data-form]');
+    if (f && t.tagName === 'INPUT' && !['submit', 'button', 'checkbox', 'radio', 'file'].includes(t.type)) {
+      /* Enter / Go on the phone keyboard used to save and close the whole form. Now it just moves to the next box. */
+      e.preventDefault();
+      const fields = [...f.querySelectorAll('input,select,textarea')].filter(x => !x.disabled && x.type !== 'hidden' && x.type !== 'checkbox' && x.type !== 'radio' && x.type !== 'file' && x.offsetParent !== null);
+      const n = fields[fields.indexOf(t) + 1];
+      if (n) n.focus(); else t.blur();
+    }
+    return;
+  }
   if (e.key !== 'Escape') return;
-  if ($('#dialog').classList.contains('on')) closeDialog('no'); else if ($('#modal').classList.contains('on')) closeSheet();
+  if ($('#dialog').classList.contains('on')) closeDialog('no'); else if ($('#modal').classList.contains('on')) tryCloseSheet();
 });
 document.addEventListener('pointermove', e => { const c = e.target.closest && e.target.closest('.chart'); if (c) chartHover(c, e); });
 document.addEventListener('pointerdown', e => { const c = e.target.closest && e.target.closest('.chart'); if (c) chartHover(c, e); else $$('.chart').forEach(x => chartHover(x, e, true)); });
