@@ -877,7 +877,7 @@ const METRICS = [['revenue', 'Revenue', 'money'], ['profit', 'Net profit', 'mone
 const UNITS = ['pcs', 'pack', 'box', 'roll', 'sheet', 'm', 'ft', 'yd', 'g', 'kg', 'oz', 'lb', 'ml', 'L'];
 const TERMS = ['Due on receipt', 'Net 7', 'Net 15', 'Net 30', 'Net 60'];
 const HOME_WIDGETS = [['pipeline', 'Order pipeline'], ['goals', 'Goals'], ['attention', 'Needs attention'], ['upcoming', 'Coming up'], ['lowstock', 'Low stock'], ['quick', 'Quick actions']];
-const COLL = { product: 'products', supply: 'supplies', expense: 'expenses', income: 'income', task: 'tasks', event: 'events', goal: 'goals', supplier: 'suppliers', note: 'notes', shift: 'shifts', order: 'orders', listing: 'listings', customer: 'customers', mileage: 'mileage', taxpay: 'taxPayments' };
+const COLL = { product: 'products', supply: 'supplies', expense: 'expenses', income: 'income', task: 'tasks', event: 'events', goal: 'goals', supplier: 'suppliers', note: 'notes', shift: 'shifts', order: 'orders', listing: 'listings', customer: 'customers', mileage: 'mileage', taxpay: 'taxPayments', account: 'accounts', transfer: 'transfers' };
 const ARCHIVABLE = new Set(['product', 'supply', 'supplier', 'note', 'order', 'listing', 'customer']);
 const DEFAULT_METRICS = ['Views', 'Favorites', 'Offers', 'Clicks', 'Likes', 'Watchers'];
 
@@ -919,7 +919,7 @@ const DEFAULTS = () => ({
   counters: { order: 0, listing: 0 },
   backup: { last: 0, fileName: '' },
   dismissed: {},
-  products: [], supplies: [], orders: [], expenses: [], income: [], suppliers: [], customers: [], listings: [], mileage: [], taxPayments: [],
+  products: [], supplies: [], orders: [], expenses: [], income: [], suppliers: [], customers: [], listings: [], mileage: [], taxPayments: [], accounts: [], transfers: [],
   tasks: [], events: [], shifts: [], activeShift: null, notes: [], goals: [], activity: [],
 });
 let state = DEFAULTS();
@@ -972,7 +972,7 @@ function normalize(src) {
   out.counters = { ...d.counters, ...(src.counters || {}) };
   out.backup = { ...d.backup, ...(src.backup || {}) };
   if (!out.dismissed || typeof out.dismissed !== 'object' || Array.isArray(out.dismissed)) out.dismissed = {};
-  ['products', 'supplies', 'orders', 'expenses', 'income', 'suppliers', 'customers', 'listings', 'mileage', 'taxPayments', 'tasks', 'events', 'shifts', 'notes', 'goals', 'activity'].forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
+  ['products', 'supplies', 'orders', 'expenses', 'income', 'suppliers', 'customers', 'listings', 'mileage', 'taxPayments', 'accounts', 'transfers', 'tasks', 'events', 'shifts', 'notes', 'goals', 'activity'].forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
   ['channels', 'expenseCats', 'stockCats', 'paymentMethods', 'carriers', 'homeHide', 'metrics'].forEach(k => { if (!Array.isArray(out.settings[k])) out.settings[k] = d.settings[k]; });
   if (!out.settings.budgets || typeof out.settings.budgets !== 'object' || Array.isArray(out.settings.budgets)) out.settings.budgets = {};
   if (!THEMES[out.settings.theme]) out.settings.theme = 'blush';
@@ -1155,12 +1155,18 @@ function oc(o) {
   const refund = num(o.refund), fees = num(o.fees), post = num(o.postage), reimb = num(o.reimb);
   const net = gross - refund;
   const payout = gross - fees - refund;
-  const calcProfit = payout - post - cogs + reimb;
-  /* "final profit" is the real number the owner types in once they know it. It replaces the estimate. */
+  /* Two numbers per order:
+       made   = money you actually ended up with (after fees, postage, refunds), BEFORE the cost of what you made/bought
+       profit = made minus cost of goods
+     The optional "final" number the owner types in replaces the estimate of what they MADE only.
+     Cost of goods is never overridden: it is always taken off afterwards so you can see both views. */
+  const calcMade = payout - post + reimb;
+  const calcProfit = calcMade - cogs;
   const hasFinal = String(o.finalProfit ?? '').trim() !== '' && Number.isFinite(parseFloat(o.finalProfit));
-  const profit = hasFinal ? parseFloat(o.finalProfit) : calcProfit;
+  const made = hasFinal ? parseFloat(o.finalProfit) : calcMade;
+  const profit = made - cogs;
   const owed = Math.max(0, r2(buyerTotal + num(o.tax) - refund - num(o.deposit)));
-  return { sub, disc, gross, shipPaid, buyerTotal, units, cogs, refund, fees, post, reimb, net, payout, profit, calcProfit, hasFinal, owed, tax: num(o.tax), margin: net > 0 ? profit / net * 100 : null };
+  return { sub, disc, gross, shipPaid, buyerTotal, units, cogs, refund, fees, post, reimb, net, payout, made, calcMade, profit, calcProfit, hasFinal, owed, tax: num(o.tax), margin: net > 0 ? profit / net * 100 : null };
 }
 const chanByName = n => state.settings.channels.find(c => c.name === n);
 function feeFor(channelName, base) {
@@ -1174,7 +1180,7 @@ function summary(r) {
   const os = live().filter(o => inR(o.date, r));
   let gross = 0, refunds = 0, fees = 0, post = 0, cogs = 0, units = 0, disc = 0, reimb = 0, salesTax = 0, adj = 0;
   os.forEach(o => { const c = oc(o); gross += c.gross; refunds += c.refund; fees += c.fees; post += c.post; cogs += c.cogs; units += c.units; disc += c.disc; reimb += c.reimb; if (c.hasFinal) adj += c.profit - c.calcProfit; const ch = chanByName(o.channel); if (!(ch && ch.tax)) salesTax += c.tax; });
-  const exps = state.expenses.filter(e => inR(e.date, r));
+  const exps = state.expenses.filter(e => inR(e.date, r) && !e.stockBuy);
   const expenses = sum(exps, e => num(e.amount));
   const deductible = sum(exps.filter(e => e.deductible !== false), e => num(e.amount));
   const income = sum(state.income.filter(e => inR(e.date, r)), e => num(e.amount));
@@ -1182,7 +1188,8 @@ function summary(r) {
   const net = gross - refunds;
   const gp = net - fees - post - cogs + reimb + adj;
   const profit = gp - expenses + income;
-  return { orders: os.length, gross, refunds, net, fees, post, cogs, units, disc, reimb, adj, gp, expenses, deductible, income, miles, profit, salesTax, margin: net > 0 ? profit / net * 100 : null, aov: os.length ? gross / os.length : 0 };
+  const made = gp + cogs, profitBefore = profit + cogs;
+  return { orders: os.length, gross, refunds, net, fees, post, cogs, units, disc, reimb, adj, gp, made, profitBefore, expenses, deductible, income, miles, profit, salesTax, margin: net > 0 ? profit / net * 100 : null, aov: os.length ? gross / os.length : 0 };
 }
 
 /* ----- chart buckets for a period ----- */
@@ -1220,7 +1227,8 @@ function chartSeries(p, kind) {
    come off again; delete the product and they are back for good.
    ===================================================================== */
 const isSupply = it => it && it.unit !== undefined;
-const allocated = sid => r2(sum(state.products.filter(active), p => sum((p.recipe || []).filter(r => r.supplyId === sid), r => num(r.qty))));
+const soldIds = () => { const x = new Set(); live().forEach(o => (o.items || []).forEach(l => { if (l.productId) x.add(l.productId); })); return x; };
+const allocated = sid => { const sold = soldIds(); return r2(sum(state.products.filter(p => active(p) || sold.has(p.id)), p => sum((p.recipe || []).filter(r => r.supplyId === sid), r => num(r.qty)))); };
 const avail = s => r2(num(s.qty) - allocated(s.id));
 const stockQty = it => isSupply(it) ? avail(it) : num(it.qty);
 const unitCost = p => num(p.cost) + sum(p.recipe || [], r => { const s = state.supplies.find(x => x.id === r.supplyId); return num(r.qty) * (s ? num(s.cost) : 0); }) / Math.max(1, num(p.batch));
@@ -1442,6 +1450,8 @@ function alerts() {
   const ls = state.listings.filter(active);
   const rd = ls.filter(renewDue), oos = ls.filter(listingOOS), old = ls.filter(l => l.status === 'Active' && listingAge(l) >= 30 && !renewDue(l));
   if (rd.length) add({ key: 'renew', cat: 'listings', icon: 'refresh', tone: 'warn', title: `${rd.length} listing${rd.length > 1 ? 's' : ''} due for renewal`, detail: plainList(rd.slice(0, 2).map(l => l.title)), sig: rd.map(l => l.id).join(), go: ['listings', 'renew'] });
+  { const fp = state.products.filter(x => active(x) && productFinished(x) && !archiveBlock('product', x)), fl = state.listings.filter(x => !x.archived && listingReleased(x) && !archiveBlock('listing', x)), n = fp.length + fl.length;
+    if (n) add({ key: 'archsold', cat: 'listings', icon: 'archive', tone: 'warn', title: `${n} sold-out item${n > 1 ? 's' : ''} can be archived`, detail: 'Open Stock and tap "Archive all sold". You can bring them back anytime.', sig: fp.concat(fl).map(x => x.id).join(), go: ['listings'] }); }
   if (oos.length) add({ key: 'oos', cat: 'listings', icon: 'alert-triangle', tone: 'bad', title: `${oos.length} live listing${oos.length > 1 ? 's' : ''} for sold-out items`, detail: 'Pause or end them so nobody buys what you do not have.', sig: oos.map(l => l.id).join(), go: ['listings', 'oos'] });
   if (old.length) add({ key: 'old', cat: 'listings', icon: 'clock', tone: 'warn', title: `${old.length} listing${old.length > 1 ? 's' : ''} live for 30+ days`, detail: 'Consider a discount, new photos or a fresh title.', sig: old.map(l => l.id).join(), go: ['listings', 'old'] });
   const sy = listingsNeedingSync(); if (sy.length) add({ key: 'sync', cat: 'listings', icon: 'copy', tone: 'warn', title: `${sy.length} listing${sy.length > 1 ? 's' : ''} have a changed product title or description`, detail: 'Update them to match, or keep your own wording.', sig: sy.map(l => l.id + (textSync(l).title || '') + (textSync(l).desc || '')).join('|'), go: ['listings', 'sync'] });
@@ -1511,9 +1521,9 @@ function openSheet(title, body, opts = {}) {
 }
 function closeSheet() { $('#modal').classList.remove('on'); $('#modal').innerHTML = ''; }
 /* closing by tapping outside / Escape: if the form has typed-in changes, ask first so nothing is lost */
-async function tryCloseSheet() {
+function tryCloseSheet(viaKey) {
   const f = $('#modal form[data-form]');
-  if (f && f.dataset.dirty && !await confirmBox('Discard what you typed?', 'This form has changes that are not saved yet.', 'Discard', true)) return;
+  if (f && (!viaKey || f.dataset.dirty)) return;   /* forms close only with X / Cancel / Save, so typing is never lost */
   closeSheet();
 }
 let dlgResolve = null;
@@ -1861,7 +1871,7 @@ V.sales = () => `<div class="page stack-sm fade">
   <div id="list" class="stack-sm" style="margin-top:4px">${salesList()}</div></div>`;
 
 /* ---------------- INVENTORY ---------------- */
-const STOCK_SORTS = [['name', 'A to Z'], ['sku', 'SKU'], ['name_d', 'Z to A'], ['need', 'Needs restock first'], ['qty_l', 'Quantity: low to high'], ['qty_h', 'Quantity: high to low'], ['price_h', 'Price / cost: high to low'], ['price_l', 'Price / cost: low to high']];
+const STOCK_SORTS = [['name', 'A to Z'], ['sku', 'SKU low to high'], ['sku_d', 'SKU high to low'], ['name_d', 'Z to A'], ['need', 'Needs restock first'], ['qty_l', 'Quantity: low to high'], ['qty_h', 'Quantity: high to low'], ['price_h', 'Price / cost: high to low'], ['price_l', 'Price / cost: low to high']];
 const supplierName = id => (state.suppliers.find(s => s.id === id) || {}).name || '';
 function stockFiltered() {
   const prod = ui.seg.stock === 'products';
@@ -1871,7 +1881,7 @@ function stockFiltered() {
   if (ui.filter === 'low') l = l.filter(x => stockState(x) === 'low'); else if (ui.filter === 'out') l = l.filter(x => stockState(x) === 'out'); else if (ui.filter === 'ok') l = l.filter(x => stockState(x) === 'ok');
   const val = x => prod ? num(x.price) : num(x.cost), so = ui.sort || 'name';
   const rank = x => ({ out: 0, low: 1, ok: 2 }[stockState(x)]);
-  l.sort((a, b) => so === 'sku' ? (skuCmp(a.sku, b.sku) || a.name.localeCompare(b.name)) : so === 'name_d' ? b.name.localeCompare(a.name) : so === 'need' ? rank(a) - rank(b) || a.name.localeCompare(b.name) : so === 'qty_l' ? stockQty(a) - stockQty(b) : so === 'qty_h' ? stockQty(b) - stockQty(a) : so === 'price_h' ? val(b) - val(a) : so === 'price_l' ? val(a) - val(b) : a.name.localeCompare(b.name));
+  l.sort((a, b) => so === 'sku_d' ? skuCmp(b.sku, a.sku) : so === 'sku' ? (skuCmp(a.sku, b.sku) || a.name.localeCompare(b.name)) : so === 'name_d' ? b.name.localeCompare(a.name) : so === 'need' ? rank(a) - rank(b) || a.name.localeCompare(b.name) : so === 'qty_l' ? stockQty(a) - stockQty(b) : so === 'qty_h' ? stockQty(b) - stockQty(a) : so === 'price_h' ? val(b) - val(a) : so === 'price_l' ? val(a) - val(b) : a.name.localeCompare(b.name));
   return l;
 }
 const stockPill = it => { const s = stockState(it); return s === 'out' ? pill('Out of stock', 'bad') : s === 'low' ? pill('Low', 'warn') : pill('In stock', 'ok'); };
@@ -1910,7 +1920,7 @@ function listingsFiltered() {
   else if (f === 'disc') l = l.filter(x => (x.discounts || []).some(d => discActive(d) || discUpcoming(d)));
   else if (f !== 'all') l = l.filter(x => x.status === f);
   const so = ui.sort || 'newest', pr = x => listingPrice(x);
-  l.sort((a, b) => so === 'sku' ? skuCmp(a.sku, b.sku) : so === 'oldest' ? (a.listedDate || '9999').localeCompare(b.listedDate || '9999') : so === 'title' ? a.title.localeCompare(b.title) : so === 'price_h' ? pr(b) - pr(a) : so === 'price_l' ? pr(a) - pr(b) : so === 'renew' ? (a.relistDate || '9999').localeCompare(b.relistDate || '9999') : (b.listedDate || b.createdDate || '').localeCompare(a.listedDate || a.createdDate || ''));
+  l.sort((a, b) => so === 'sku_d' ? skuCmp(b.sku, a.sku) : so === 'sku' ? skuCmp(a.sku, b.sku) : so === 'oldest' ? (a.listedDate || '9999').localeCompare(b.listedDate || '9999') : so === 'title' ? a.title.localeCompare(b.title) : so === 'price_h' ? pr(b) - pr(a) : so === 'price_l' ? pr(a) - pr(b) : so === 'renew' ? (a.relistDate || '9999').localeCompare(b.relistDate || '9999') : (b.listedDate || b.createdDate || '').localeCompare(a.listedDate || a.createdDate || ''));
   return l;
 }
 function syncBox(l) {
@@ -1957,11 +1967,11 @@ V.stock = () => {
     ${seg('stock', [['supplies', '1 · Supplies'], ['products', '2 · Products'], ['listings', '3 · Listings']], s)}
     ${searchBox('Search ' + s + '…')}
     ${s === 'listings'
-      ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted']].concat(nsync ? [['sync', 'Text changed · ' + nsync]] : []).concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${optSel('sort', [['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['renew', 'Renewal date'], ['sku', 'Listing SKU'], ['title', 'Title A to Z'], ['price_h', 'Price: high to low'], ['price_l', 'Price: low to high']], ui.sort || 'newest', 'Sort')}</div>
+      ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted']].concat(nsync ? [['sync', 'Text changed · ' + nsync]] : []).concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${optSel('sort', [['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['renew', 'Renewal date'], ['sku', 'Listing SKU low to high'], ['sku_d', 'Listing SKU high to low'], ['title', 'Title A to Z'], ['price_h', 'Price: high to low'], ['price_l', 'Price: low to high']], ui.sort || 'newest', 'Sort')}</div>
          <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="bulk-listings">${ic('layers')} Bulk create</button></div>`
       : chips([['all', 'All'], ['low', 'Low'], ['out', 'Out of stock'], ['ok', 'In stock']], ui.filter) + `<div class="grid2">${optSel('cat', [['', 'All categories']].concat(state.settings.stockCats.map(c => [c, c])), ui.cat, 'Category')}${optSel('sort', STOCK_SORTS, ui.sort || 'name', 'Sort')}</div>
          <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="reorder">${ic('list-checks')} Reorder list</button>${prod ? `<button class="btn btn-line btn-sm grow" data-act="csv-import">${ic('upload')} Import CSV</button>` : ''}</div>`}
-    <div id="list" class="stack-sm" style="margin-top:4px">${stockList()}</div></div>`;
+    <button class="btn btn-line btn-sm block" data-act="archive-sold">${ic('archive')} Archive all sold ${prod ? 'products' : s === 'listings' ? 'listings' : 'supplies'}</button><div id="list" class="stack-sm" style="margin-top:4px">${stockList()}</div></div>`;
 };
 
 
@@ -1974,7 +1984,7 @@ function moneyOverview() {
   const pm = new Map();
   os.forEach(o => o.items.forEach(l => { const k = l.productId || 'c:' + l.name; const u = Math.max(0, l.qty - (l.returned || 0)); const e = pm.get(k) || { name: l.name, units: 0, rev: 0, cost: 0 }; e.units += u; e.rev += u * l.price; e.cost += u * l.cost; pm.set(k, e); }));
   const tp = [...pm.values()].filter(x => x.units > 0).sort((a, b) => b.rev - a.rev).slice(0, 5);
-  const ex = [...groupBy(state.expenses.filter(e => inR(e.date, r)), e => e.cat || 'Other').entries()].map(([k, a]) => ({ k, v: sum(a, e => num(e.amount)) })).sort((a, b) => b.v - a.v).slice(0, 6);
+  const ex = [...groupBy(state.expenses.filter(e => inR(e.date, r) && !e.stockBuy), e => e.cat || 'Other').entries()].map(([k, a]) => ({ k, v: sum(a, e => num(e.amount)) })).sort((a, b) => b.v - a.v).slice(0, 6);
   const cm = new Map();
   os.forEach(o => { const n = (o.customer || '').trim(); if (!n) return; const k = lc(n); const e = cm.get(k) || { name: n, n: 0, net: 0 }; e.n++; e.net += oc(o).net; cm.set(k, e); });
   const tc = [...cm.values()].sort((a, b) => b.net - a.net).slice(0, 5);
@@ -1986,15 +1996,19 @@ function moneyOverview() {
       <span class="eyebrow">Net profit · ${esc(periodLabel(p))}</span>
       <h2 class="rev num ${s.profit < 0 ? 'bad-t' : ''}" style="margin:6px 0 8px">${money(s.profit)}</h2>
       ${s.margin != null ? pill(pct(s.margin) + ' profit margin', s.margin >= 0 ? 'ok' : 'bad') : pill('No sales in this period', 'mute')}
+      ${s.cogs ? `<p class="xs sub" style="margin-top:8px">${money(s.profitBefore)} before cost of goods · ${money(s.cogs)} cost of goods</p>` : ''}
     </div>
     ${none ? `<div class="card">${empty('pie-chart', 'Nothing to report yet', 'Record sales and expenses and your profit and loss shows up here.')}</div>` : `
     <div class="card"><h4 class="eyebrow" style="margin-bottom:8px">Profit &amp; loss</h4>
       ${kv('Sales', s.gross + s.disc)}${s.disc ? kv('Discounts', s.disc, '', '− ') : ''}${s.refunds ? kv('Refunds', s.refunds, '', '− ') : ''}
       ${kv('Net sales', s.net, 'b')}
-      ${kv('Fees', s.fees, '', '− ')}${kv('Postage', s.post, '', '− ')}${kv('Cost of goods', s.cogs, '', '− ')}${s.reimb ? kv('Claims paid back to you', s.reimb, '', '+ ') : ''}${s.adj ? kv('Adjusted to your final profits', s.adj, '', s.adj >= 0 ? '+ ' : '− ') : ''}
-      ${kv('Gross profit', s.gp, 'b sec')}
+      ${kv('Fees', s.fees, '', '− ')}${kv('Postage', s.post, '', '− ')}${s.reimb ? kv('Claims paid back to you', s.reimb, '', '+ ') : ''}${s.adj ? kv('Adjusted to the final amounts you entered', s.adj, '', s.adj >= 0 ? '+ ' : '− ') : ''}
+      ${kv('Money you made (before cost of goods)', s.made, 'b sec')}
+      ${kv('Cost of goods', s.cogs, '', '− ')}
+      ${kv('Gross profit (after cost of goods)', s.gp, 'b sec')}
       ${kv('Expenses', s.expenses, '', '− ')}${s.income ? kv('Other income', s.income, '', '+ ') : ''}
       <div class="kv total sec"><span>Net profit</span><span class="num ${s.profit < 0 ? 'bad-t' : ''}">${s.profit < 0 ? '− ' : ''}${money(Math.abs(s.profit))}</span></div>
+      ${kv('Net profit before cost of goods', s.profitBefore, 'sub')}
       <p class="hint">${s.orders} order${s.orders === 1 ? '' : 's'} · ${s.units} item${s.units === 1 ? '' : 's'} sold · average order ${money(s.aov)}. Sales tax collected from buyers is not counted as income.</p></div>
     <div class="card"><h4 class="eyebrow" style="margin-bottom:10px">Profit over time</h4>${barChart('profit', chartSeries(p, 'profit'))}</div>
     <button class="card sm item click" style="width:100%" data-act="sub" data-sub="taxes"><div class="ava">${ic('landmark')}</div><div class="grow"><h4>Taxes</h4><div class="meta">${ti.rate > 0 ? 'Set aside about ' + money(ti.left) + ' · ' + pct(ti.rate) + ' of profit' : 'Set a tax % to see what to put aside'}</div></div>${ic('chevron-right', 'chev')}</button>`}
@@ -2031,9 +2045,9 @@ function incomeList() {
 }
 V.money = () => {
   const s = ui.seg.money, add = addType();
-  return `<div class="page stack-sm fade">${seg('money', [['overview', 'Overview'], ['expenses', 'Expenses'], ['income', 'Income']], s)}
+  return `<div class="page stack-sm fade">${seg('money', [['overview', 'Overview'], ['accounts', 'Accounts'], ['expenses', 'Expenses'], ['income', 'Income']], s)}
     <div class="row between"><span class="eyebrow">Showing</span><span class="row" style="gap:8px">${periodSelect()}${add ? `<button class="btn btn-primary btn-sm" data-act="add" data-type="${add[0]}">${ic('plus')} ${add[1]}</button>` : ''}</span></div>
-    ${s === 'overview' ? moneyOverview() : `
+    ${s === 'overview' ? moneyOverview() : s === 'accounts' ? accountsView() : `
       <div class="${s === 'expenses' ? 'grid2' : ''}">${searchBox('Search…')}
       ${s === 'expenses' ? optSel('cat', [['', 'All categories']].concat(state.settings.expenseCats.map(c => [c, c])), ui.cat, 'Category') : ''}</div>
       <div id="list" class="stack-sm" style="margin-top:4px">${s === 'expenses' ? expenseList() : incomeList()}</div>`}</div>`;
@@ -2049,7 +2063,7 @@ V.taxes = () => {
   const p = state.prefs.period, r = periodRange(p), t = taxInfo(r), s = t.s;
   const kv = (l, v, cls = '', sign = '') => `<div class="kv ${cls}"><span>${l}</span><span class="num">${sign}${money(Math.abs(v))}</span></div>`;
   const dates = nextTaxDates(4);
-  const byCat = [...groupBy(state.expenses.filter(e => inR(e.date, r) && e.deductible !== false), e => e.cat || 'Other').entries()].map(([k, a]) => ({ k, v: sum(a, e => num(e.amount)) })).sort((a, b) => b.v - a.v);
+  const byCat = [...groupBy(state.expenses.filter(e => inR(e.date, r) && e.deductible !== false && !e.stockBuy), e => e.cat || 'Other').entries()].map(([k, a]) => ({ k, v: sum(a, e => num(e.amount)) })).sort((a, b) => b.v - a.v);
   return `<div class="page stack fade">
     <div class="row between"><span class="eyebrow">Showing</span>${periodSelect()}</div>
     <div class="card" style="text-align:center"><span class="eyebrow">Still to set aside · ${esc(periodLabel(p))}</span>
@@ -2621,15 +2635,16 @@ OPEN.order = (id, pre = {}) => {
     <div class="grid2">${fNum('Discount (total)', 'discount', d.discount || '', '0.00', 'min="0"')}${fNum('Buyer paid for shipping', 'shipCharged', d.shipCharged || '', '0.00', 'min="0"')}</div>
     <div class="grid2">${fNum('Your postage cost', 'postage', d.postage || '', '0.00', 'min="0"')}${fNum('Fees (blank = auto)', 'fees', d.feesManual ? d.fees : '', 'Auto', 'min="0"')}</div>
     ${fNum('Sales tax collected', 'tax', d.tax || '', '0.00', 'min="0"')}
-    ${fNum('Final profit (actual) · optional', 'finalProfit', d.finalProfit, 'Leave blank to use the estimate')}
-    <p class="hint" style="margin-top:-6px;margin-bottom:12px">Once you know what you really made, type it here. It replaces the estimate (fees, postage and costs) in every report. Leave it blank and the estimate below is used.</p>
+    ${fSel('Money went into', 'acct', acctOpts(), d.acct || '')}
+    ${fNum('Final amount you received (before cost of goods) · optional', 'finalProfit', d.finalProfit, 'Leave blank to use the estimate. Cost of goods is still taken off for your profit')}
+    <p class="hint" style="margin-top:-6px;margin-bottom:12px">Once you know what you really ended up with from this order (after fees and postage, before the cost of what you made or bought), type it here. It replaces the estimate. Your cost of goods is still counted and shown separately, so you can see your profit both with and without it.</p>
     <label class="fld"><span>Status</span><select class="select" name="status">${statusOptions(d.status)}</select></label>
     <details class="fld" ${o ? 'open' : ''}><summary class="eyebrow" style="cursor:pointer;margin-bottom:8px">Date for each step (edit any)</summary><div class="grid2">${FLOW.map((st, i) => fDate(st, 'sd_' + i, (d.stepDates || {})[st], false)).join('')}</div><p class="hint" style="margin:0 0 12px">Leave a step blank if it has not happened. Changing the status fills in today's date for that step, and you can change it here.</p></details>
     <div class="grid2">${fSel('Paid with', 'payment', [''].concat(state.settings.paymentMethods).map(x => [x, x || 'Not set']), d.payment || '')}${fSel('Carrier', 'carrier', [''].concat(state.settings.carriers).map(x => [x, x || 'Not set']), d.carrier || '')}</div>
     <div class="grid2">${fDate('Ship by', 'shipBy', d.shipBy, false)}${fText('Tracking number', 'tracking', d.tracking, 'maxlength="60"')}</div>
     ${fText('Platform order number', 'ref', d.ref, 'maxlength="60" placeholder="e.g. eBay or Etsy order #"')}
     ${fArea('Notes', 'notes', d.notes)}
-    <div class="preview" id="pv"></div>`, `<div class="row between b sm-t" style="padding:10px 4px 0;gap:8px;flex-wrap:wrap"><span>Buyer paid <span class="num" id="pv-total"></span></span><span>You get <span class="num" id="pv-payout"></span></span><span><span id="pv-plabel">Est. profit</span> <span class="num" id="pv-profit"></span></span></div>` + foot('order', id)));
+    <div class="preview" id="pv"></div>`, `<div class="row between b sm-t" style="padding:10px 4px 0;gap:8px;flex-wrap:wrap"><span>Buyer paid <span class="num" id="pv-total"></span></span><span>You get <span class="num" id="pv-payout"></span></span><span>Made <span class="num" id="pv-made"></span></span><span>After cost of goods <span class="num" id="pv-profit"></span></span></div>` + foot('order', id)));
   formLive($('form[data-form=order]'));
 };
 function autoFees(o) { const c = oc(o); return feeFor(o.channel, c.sub - c.disc + num(o.shipCharged)); }
@@ -2641,7 +2656,7 @@ function readOrder(f, existing) {
   }).filter(l => l.qty > 0 && (l.productId || l.name));
   items.forEach(l => { l.returned = Math.min(l.returned, l.qty); });
   const feeRaw = String(fd.get('fees') || '').trim(), manual = feeRaw !== '', bulk = fd.get('bulk') === 'on';
-  const o = { ...(existing || {}), date: fd.get('date'), customer: tidy(fd.get('customer')), channel: fd.get('channel') || '', items, bulk, bulkPct: bulk ? Math.max(0, Math.min(100, num(fd.get('bulkPct')))) : 0, po: tidy(fd.get('po')), terms: fd.get('terms') || '', deposit: Math.max(0, num(fd.get('deposit'))), discount: Math.max(0, num(fd.get('discount'))), shipCharged: num(fd.get('shipCharged')), tax: Math.max(0, num(fd.get('tax'))), postage: num(fd.get('postage')), feesManual: manual, finalProfit: String(fd.get('finalProfit') ?? '').trim() === '' ? '' : num(fd.get('finalProfit')), status: fd.get('status'), payment: fd.get('payment') || '', carrier: fd.get('carrier') || '', shipBy: fd.get('shipBy') || '', tracking: tidy(fd.get('tracking')), ref: tidy(fd.get('ref')), notes: tidy(fd.get('notes')), refund: existing ? existing.refund : 0, reimb: existing ? existing.reimb : 0, stepDates: (() => { const sd = {}; FLOW.forEach((st, i) => { const v = fd.get('sd_' + i); if (v) sd[st] = v; }); return sd; })() };
+  const o = { ...(existing || {}), acct: fd.get('acct') || '', date: fd.get('date'), customer: tidy(fd.get('customer')), channel: fd.get('channel') || '', items, bulk, bulkPct: bulk ? Math.max(0, Math.min(100, num(fd.get('bulkPct')))) : 0, po: tidy(fd.get('po')), terms: fd.get('terms') || '', deposit: Math.max(0, num(fd.get('deposit'))), discount: Math.max(0, num(fd.get('discount'))), shipCharged: num(fd.get('shipCharged')), tax: Math.max(0, num(fd.get('tax'))), postage: num(fd.get('postage')), feesManual: manual, finalProfit: String(fd.get('finalProfit') ?? '').trim() === '' ? '' : num(fd.get('finalProfit')), status: fd.get('status'), payment: fd.get('payment') || '', carrier: fd.get('carrier') || '', shipBy: fd.get('shipBy') || '', tracking: tidy(fd.get('tracking')), ref: tidy(fd.get('ref')), notes: tidy(fd.get('notes')), refund: existing ? existing.refund : 0, reimb: existing ? existing.reimb : 0, stepDates: (() => { const sd = {}; FLOW.forEach((st, i) => { const v = fd.get('sd_' + i); if (v) sd[st] = v; }); return sd; })() };
   o.fees = manual ? num(feeRaw) : autoFees(o);
   return o;
 }
@@ -2664,8 +2679,9 @@ OPEN.orderDetail = id => {
     <p class="sm-t sub">${fmtDateLong(o.date)}${o.customer ? ' · <b style="color:var(--text)">' + esc(o.customer) + '</b>' : ''}${o.channel ? ' · ' + esc(o.channel) : ''}${o.payment ? ' · paid by ' + esc(o.payment) : ''}${o.ref ? ' · #' + esc(o.ref) : ''}</p>
     ${STATUS_HELP[o.status] ? `<div class="notice warn">${ic('info')}<span>${esc(STATUS_HELP[o.status])}.</span></div>` : ''}
     <div class="card sm">${o.items.map(l => `<div class="kv"><span>${l.qty}× ${esc(l.name)}${l.returned ? ` <span class="warn-t xs">(${l.returned} returned)</span>` : ''}</span><span class="num">${money(l.qty * l.price)}</span></div>`).join('')}</div>
-    <div class="card sm">${kv('Items', c.sub)}${c.disc ? kv('Discount', c.disc, '', 1) : ''}${num(o.shipCharged) ? kv('Shipping buyer paid (not counted as your income)', num(o.shipCharged)) : ''}${c.tax ? kv('Sales tax collected (not income)', c.tax) : ''}${c.refund ? kv('Refunded', c.refund, '', 1) : ''}${kv('Fees' + (o.feesManual ? '' : ' (auto)'), c.fees, '', 1)}<div class="kv b"><span>You receive after fees</span><span class="num">${money(c.payout)}</span></div>${kv('Postage', c.post, '', 1)}${kv('Cost of goods', c.cogs, '', 1)}${c.reimb ? kv('Claim paid back to you', c.reimb) : ''}
-      ${c.hasFinal ? kv('Estimated profit (not used)', c.calcProfit) : ''}<div class="kv total sec"><span>${c.hasFinal ? 'Final profit (actual)' : 'Estimated profit'}</span><span class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${c.profit < 0 ? '− ' : ''}${money(Math.abs(c.profit))}</span></div>${c.margin != null ? `<p class="hint">${pct(c.margin)} margin · you receive ${money(c.payout)} before postage</p>` : ''}</div>
+    <div class="card sm">${kv('Items', c.sub)}${c.disc ? kv('Discount', c.disc, '', 1) : ''}${num(o.shipCharged) ? kv('Shipping buyer paid (not counted as your income)', num(o.shipCharged)) : ''}${c.tax ? kv('Sales tax collected (not income)', c.tax) : ''}${c.refund ? kv('Refunded', c.refund, '', 1) : ''}${kv('Fees' + (o.feesManual ? '' : ' (auto)'), c.fees, '', 1)}<div class="kv b"><span>You receive after fees</span><span class="num">${money(c.payout)}</span></div>${kv('Postage', c.post, '', 1)}${c.reimb ? kv('Claim paid back to you', c.reimb) : ''}
+      ${c.hasFinal ? kv('Estimated amount made (not used)', c.calcMade) : ''}<div class="kv b sec"><span>${c.hasFinal ? 'Money you made (actual)' : 'Money you made'} <span class="xs sub">before cost of goods</span></span><span class="num ${c.made < 0 ? 'bad-t' : 'ok-t'}">${c.made < 0 ? '− ' : ''}${money(Math.abs(c.made))}</span></div>
+      ${kv('Cost of goods', c.cogs, '', 1)}<div class="kv total sec"><span>Profit after cost of goods</span><span class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${c.profit < 0 ? '− ' : ''}${money(Math.abs(c.profit))}</span></div>${c.margin != null ? `<p class="hint">${pct(c.margin)} margin after cost of goods · cost of goods is what the materials or stock cost you. It is shown separately so you can see what you made with and without it.</p>` : ''}</div>
     <div class="card sm"><h4 class="eyebrow" style="margin-bottom:6px">Dates</h4><div class="kv"><span>Ordered</span><span class="num">${fmtDate(o.date)}</span></div>${FLOW.map(st => `<div class="kv" style="align-items:center;${o.status === st ? 'font-weight:800' : ''}"><span>${st}</span><input class="input sm" type="date" style="width:auto;flex:none" data-order-date="${o.id}" data-step="${esc(st)}" value="${esc((o.stepDates || {})[st] || '')}" aria-label="${esc(st)} date"></div>`).join('')}</div>
     ${(o.bulk || num(o.deposit) > 0) ? `<div class="card sm"><h4 class="eyebrow" style="margin-bottom:6px">Bulk order</h4>${o.po ? `<div class="kv"><span>PO</span><b>${esc(o.po)}</b></div>` : ''}${o.terms ? `<div class="kv"><span>Terms</span><b>${esc(o.terms)}</b></div>` : ''}${num(o.bulkPct) ? `<div class="kv"><span>Wholesale discount</span><b>${pct(num(o.bulkPct))}</b></div>` : ''}${num(o.deposit) ? kv('Deposit paid', num(o.deposit)) : ''}<div class="kv total"><span>Balance due</span><span class="num ${c.owed > 0 && !closedOrder(o) ? 'warn-t' : ''}">${money(closedOrder(o) ? 0 : c.owed)}</span></div></div>` : ''}
     ${next && !NOT_SALE.includes(o.status) ? `<button class="btn btn-primary block" data-act="advance" data-id="${o.id}">Mark as ${next} ${ic('arrow-right')}</button>` : ''}
@@ -2704,6 +2720,64 @@ OPEN.invoice = id => {
 };
 
 /* ---------- expense / income / tax payments ---------- */
+/* ---------------- ACCOUNTS: where your money actually sits ---------------- */
+const acctOpts = (none = 'Not tracked') => [['', none]].concat(state.accounts.map(a => [a.id, a.name]));
+const acctName = id => (state.accounts.find(a => a.id === id) || {}).name || 'Deleted account';
+function acctBal(a, r) {
+  const W = d => !r || inR(d, r);
+  /* money in = cash you received from sales (before cost of goods, since that was spent earlier) + other income; money out = expenses */
+  const inn = sum(live().filter(o => o.acct === a.id && W(o.date)), o => oc(o).made) + sum(state.income.filter(x => x.acct === a.id && W(x.date)), x => num(x.amount));
+  const out = sum(state.expenses.filter(x => x.acct === a.id && W(x.date)), x => num(x.amount));
+  const tin = sum(state.transfers.filter(t => t.to === a.id && W(t.date)), t => num(t.amount)), tout = sum(state.transfers.filter(t => t.from === a.id && W(t.date)), t => num(t.amount));
+  return { inn, out, tin, tout, bal: r2((r ? 0 : num(a.opening)) + inn - out + tin - tout) };
+}
+function balSeries(days = 30) {
+  const ids = state.accounts.map(a => a.id), ev = [];
+  live().filter(o => ids.includes(o.acct)).forEach(o => ev.push([o.date, oc(o).made]));
+  state.income.filter(x => ids.includes(x.acct)).forEach(x => ev.push([x.date, num(x.amount)]));
+  state.expenses.filter(x => ids.includes(x.acct)).forEach(x => ev.push([x.date, -num(x.amount)]));
+  const end = today(), st = addDays(end, -(days - 1)); let b = sum(state.accounts, a => num(a.opening)) + sum(ev.filter(e => e[0] < st), e => e[1]); const pts = [];
+  for (let k = st; k <= end; k = addDays(k, 1)) { b += sum(ev.filter(e => e[0] === k), e => e[1]); pts.push({ label: fmtDate(k), value: r2(b) }); }
+  return pts;
+}
+function accountsView() {
+  const pr = state.prefs.period, rg = periodRange(pr), rep_ = state.accounts.map(a => [a, acctBal(a, rg)]);
+  const bs = state.accounts.map(a => [a, acctBal(a)]), tot = sum(bs, x => x[1].bal);
+  const un = live().filter(o => !state.accounts.some(a => a.id === o.acct)).length;
+  const tr = state.transfers.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 25);
+  return `<div class="stack">
+    <div class="card" style="text-align:center"><span class="eyebrow">Total across your accounts</span><h2 class="rev num ${tot < 0 ? 'bad-t' : ''}" style="margin:6px 0 10px">${money(tot)}</h2>
+      <div class="row" style="gap:8px;justify-content:center"><button class="btn btn-soft btn-sm" data-act="add" data-type="account">${ic('plus')} Add account</button>${state.accounts.length > 1 ? `<button class="btn btn-soft btn-sm" data-act="add" data-type="transfer">Transfer money</button>` : ''}</div></div>
+    ${bs.length ? bs.map(([a, b]) => `<button class="card sm item click" data-act="edit" data-type="account" data-id="${a.id}"><div class="ava">${ic('landmark')}</div><div class="grow"><h4 class="trunc">${esc(a.name)}</h4><div class="meta">${esc(a.kind || 'Account')} · ${money(b.inn + b.tin)} in · ${money(b.out + b.tout)} out</div></div><div class="num b ${b.bal < 0 ? 'bad-t' : ''}">${money(b.bal)}</div></button>`).join('') : `<div class="card">${empty('landmark', 'No accounts yet', 'Add PayPal, Chime, cash, savings and so on. Then pick where each sale, expense and income goes.')}</div>`}
+    ${bs.length ? `<div class="card"><h4 class="eyebrow" style="margin-bottom:10px">Total balance · last 30 days</h4>${lineChart('bal', balSeries(30))}</div>
+    <div class="card"><h4 class="eyebrow" style="margin-bottom:8px">Money in and out · ${esc(periodLabel(pr))}</h4>${rep_.map(([a, b]) => `<div class="kv"><span>${esc(a.name)}</span><span class="num">+${money(b.inn + b.tin)} / −${money(b.out + b.tout)}</span></div>`).join('')}</div>` : ''}
+    ${bs.length && un ? `<p class="hint">${un} sale${un > 1 ? 's are' : ' is'} not in any account yet. Open a sale and pick "Money went into".</p>` : ''}
+    ${tr.length ? `<h4 class="eyebrow" style="margin-top:6px">Transfers</h4>` + tr.map(t => `<button class="card sm item click" data-act="edit" data-type="transfer" data-id="${t.id}"><div class="grow"><h4 class="trunc">${esc(acctName(t.from))} → ${esc(acctName(t.to))}</h4><div class="meta">${fmtDate(t.date)}${t.note ? ' · ' + esc(t.note) : ''}</div></div><div class="num b">${money(t.amount)}</div></button>`).join('') : ''}
+    <p class="hint">Sales count as the cash you received (fees, postage and refunds already taken off). Expenses come out of the account you pick. Stock you bought is not an expense here, it is costed when sold.</p></div>`;
+}
+OPEN.account = id => {
+  const e = id ? find('accounts', id) : null, d = e || { name: '', kind: 'Bank', opening: '' };
+  openSheet(e ? 'Edit account' : 'New account', formWrap('account', id, `${fText('Name *', 'name', d.name, 'required maxlength="40" placeholder="e.g. PayPal business"')}${fSel('Type', 'kind', ['Bank', 'PayPal / online', 'Savings', 'Cash', 'Card', 'Other'], d.kind)}${fNum('Balance when you start tracking', 'opening', d.opening, '0.00')}<p class="hint" style="margin-top:-4px">Rename it any time. Deleting an account only unlinks it; your sales and expenses stay.</p>`, foot('account', id)));
+};
+FORMS.account = (f, fd, id) => {
+  const name = tidy(fd.get('name')); if (!name) return toast('Name the account');
+  const rec = { name, kind: fd.get('kind') || 'Other', opening: num(fd.get('opening')) };
+  if (id) Object.assign(find('accounts', id), rec); else state.accounts.push({ id: uid('a'), ...rec });
+  done('Account saved', [`Account ${name}`, 'landmark']);
+};
+OPEN.transfer = id => {
+  if (state.accounts.length < 2 && !id) return toast('Add at least two accounts to move money between them');
+  const e = id ? find('transfers', id) : null, ao = state.accounts.map(a => [a.id, a.name]), d = e || { from: ao[0][0], to: ao[1][0], amount: '', date: today(), note: '' };
+  openSheet(e ? 'Edit transfer' : 'Transfer money', formWrap('transfer', id, `<div class="grid2">${fSel('From', 'from', ao, d.from)}${fSel('To', 'to', ao, d.to)}</div><div class="grid2">${fNum('Amount *', 'amount', d.amount, '0.00', 'required min="0"')}${fDate('Date', 'date', d.date)}</div>${fText('Note', 'note', d.note, 'maxlength="80"')}`, foot('transfer', id)));
+};
+FORMS.transfer = (f, fd, id) => {
+  const rec = { from: fd.get('from'), to: fd.get('to'), amount: num(fd.get('amount')), date: fd.get('date') || today(), note: tidy(fd.get('note')) };
+  if (rec.from === rec.to) return toast('Pick two different accounts');
+  if (!(rec.amount > 0)) return toast('Enter an amount');
+  if (id) Object.assign(find('transfers', id), rec); else state.transfers.push({ id: uid('t'), ...rec });
+  done('Transfer saved', [`Moved ${money(rec.amount)} from ${acctName(rec.from)} to ${acctName(rec.to)}`, 'landmark']);
+};
+
 OPEN.expense = id => {
   const e = id ? find('expenses', id) : null;
   const d = e || { date: today(), desc: '', amount: '', cat: state.settings.expenseCats[0] || '', vendor: '', deductible: true, notes: '', repeat: null };
@@ -2712,13 +2786,17 @@ OPEN.expense = id => {
     <div class="grid2">${fNum('Amount *', 'amount', d.amount, '0.00', 'required min="0"')}${fDate('Date', 'date', d.date)}</div>
     <div class="grid2">${fCat('Category', 'cat', 'expenseCats', d.cat)}${fText('Vendor', 'vendor', d.vendor, 'maxlength="60" list="vend-list"')}<datalist id="vend-list">${[...new Set(state.expenses.map(x => x.vendor).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist></div>
     ${fSel('Repeats', 'every', [['', 'Never'], ['weekly', 'Every week'], ['monthly', 'Every month'], ['yearly', 'Every year']], d.repeat ? d.repeat.every : '')}
+    ${fSel('Paid from', 'acct', acctOpts(), d.acct || '')}
+    ${e ? '' : `${fCheck('This is stock I bought (supplies for making products)', 'stockBuy', !!d.stockBuy)}<div class="grid2">${fText('Supply name', 'supName', '', 'maxlength="60" placeholder="e.g. Bubble mailers"')}${fNum('How many', 'supQty', '', '50')}</div><p class="hint" style="margin:-4px 0 10px">Adds them to Supplies and works out the cost each (amount ÷ how many). It is not counted as an expense, so the cost is only taken off your profit when you sell products made with it. The money still leaves your account.</p>`}
     ${fCheck('Tax deductible', 'deductible', d.deductible !== false)}
     ${fArea('Notes', 'notes', d.notes, 'Receipt number, what it was for…')}
     <p class="hint" style="margin-top:-4px">Repeating expenses add themselves on each due date. Don't log stock you resell here: it is costed automatically when sold.</p>`, foot('expense', id)));
 };
 FORMS.expense = (f, fd, id) => {
   const desc = tidy(fd.get('desc')); if (!desc) return toast('Describe the expense');
-  const rec = { desc, amount: Math.max(0, num(fd.get('amount'))), date: fd.get('date'), cat: fd.get('cat') || '', vendor: tidy(fd.get('vendor')), deductible: fd.get('deductible') === 'on', notes: tidy(fd.get('notes')) };
+  const rec = { desc, amount: Math.max(0, num(fd.get('amount'))), date: fd.get('date'), cat: fd.get('cat') || '', vendor: tidy(fd.get('vendor')), deductible: fd.get('deductible') === 'on', acct: fd.get('acct') || '', stockBuy: !id && fd.get('stockBuy') === 'on' ? true : !!(id && (find('expenses', id) || {}).stockBuy), notes: tidy(fd.get('notes')) };
+  const sq = num(fd.get('supQty')), sn = tidy(fd.get('supName'));
+  if (!id && rec.stockBuy && sq > 0 && sn) { const sp = state.supplies.find(x => lc(x.name) === lc(sn)); if (sp) { sp.cost = (num(sp.qty) * num(sp.cost) + rec.amount) / (num(sp.qty) + sq); sp.qty = r2(num(sp.qty) + sq); } else state.supplies.push({ id: uid('su'), name: sn, sku: nextSupplySku(), unit: 'pcs', qty: sq, cost: rec.amount / sq, low: '', category: state.settings.stockCats.includes('Materials') ? 'Materials' : state.settings.stockCats[0] || '', supplierId: '', location: '', notes: '' }); }
   const every = fd.get('every'), old = id ? find('expenses', id) : null;
   const repeat = every ? (old && old.repeat && old.repeat.every === every && old.date === rec.date ? old.repeat : { every, anchor: rec.date, n: 0 }) : null;
   if (id) { const t = find('expenses', id); delete t.repeat; Object.assign(t, rec); if (repeat) t.repeat = repeat; }
@@ -2727,11 +2805,11 @@ FORMS.expense = (f, fd, id) => {
 };
 OPEN.income = id => {
   const e = id ? find('income', id) : null, d = e || { date: today(), desc: '', amount: '' };
-  openSheet(e ? 'Edit income' : 'New income', formWrap('income', id, `${fText('Source *', 'desc', d.desc, 'required maxlength="100" placeholder="e.g. Workshop fees"')}<div class="grid2">${fNum('Amount *', 'amount', d.amount, '0.00', 'required min="0"')}${fDate('Date', 'date', d.date)}</div><p class="hint" style="margin-top:-4px">For money that isn't a sale. Sales are recorded under Sales.</p>`, foot('income', id)));
+  openSheet(e ? 'Edit income' : 'New income', formWrap('income', id, `${fText('Source *', 'desc', d.desc, 'required maxlength="100" placeholder="e.g. Workshop fees"')}<div class="grid2">${fNum('Amount *', 'amount', d.amount, '0.00', 'required min="0"')}${fDate('Date', 'date', d.date)}</div>${fSel('Money went into', 'acct', acctOpts(), d.acct || '')}<p class="hint" style="margin-top:-4px">For money that isn't a sale. Sales are recorded under Sales.</p>`, foot('income', id)));
 };
 FORMS.income = (f, fd, id) => {
   const desc = tidy(fd.get('desc')); if (!desc) return toast('Add a source');
-  const rec = { desc, amount: Math.max(0, num(fd.get('amount'))), date: fd.get('date') };
+  const rec = { desc, amount: Math.max(0, num(fd.get('amount'))), date: fd.get('date'), acct: fd.get('acct') || '' };
   if (id) Object.assign(find('income', id), rec); else state.income.push({ id: uid('i'), ...rec });
   done('Income saved', [`Income ${desc} · ${money(rec.amount)}`, 'banknote']);
 };
@@ -2862,9 +2940,9 @@ const discRow = d => `<div class="disc-row" data-did="${esc(d.id || '')}"><div c
 const urlRows = (chans, urls) => chans.length ? `<p class="eyebrow" style="margin:0 0 6px">Link on each platform <small style="text-transform:none;letter-spacing:0;font-weight:600">optional</small></p>` + chans.map(c => `<label class="xs sub b" style="display:block;margin-bottom:8px">${esc(c)}<input class="input sm" data-url="${esc(c)}" value="${esc((urls || {})[c] || '')}" placeholder="https://" maxlength="300"></label>`).join('') : '';
 const bundleRow = id => { const p = state.products.find(x => x.id === id); return `<div class="row bundle-row" data-bid="${esc(id)}" style="margin-bottom:6px"><span class="grow sm-t b trunc">${esc(p ? pLabel(p) : 'Missing product')}</span><button type="button" class="icon-btn" data-act="bundle-del" aria-label="Remove">${ic('x')}</button></div>`; };
 function listingProductField(d) {
-  const ps = state.products.filter(x => active(x) || x.id === d.productId).sort((a, b) => a.name.localeCompare(b.name));
-  const opts = [['', 'Not linked to a product', '']].concat(ps.map(x => [x.id, `${pLabel(x)} (${x.qty} in stock)`, lc([x.name, x.title, x.sku, x.tags, x.barcode].join(' '))]));
-  return `<div class="fld"><span class="lbl">Product <small style="text-transform:none;letter-spacing:0;font-weight:600">search by name or SKU</small></span><input class="input sm" data-selfilter placeholder="Search products…" aria-label="Search products" autocomplete="off" style="margin-bottom:6px"><select class="select" name="productId" data-listprod data-opts="${esc(JSON.stringify(opts))}">${opts.map(o => `<option value="${esc(o[0])}" ${o[0] === d.productId ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select></div>
+  const ps = state.products.filter(x => active(x) || x.id === d.productId).sort((a, b) => skuCmp(a.sku, b.sku));
+  const opts = [['', 'Not linked to a product', '']].concat(ps.map(x => [x.id, `${pLabel(x)} (${x.qty} in stock)`, lc(x.sku || '')]));
+  return `<div class="fld"><span class="lbl">Product <small style="text-transform:none;letter-spacing:0;font-weight:600">search by SKU</small></span><input class="input sm" data-selfilter placeholder="Search by SKU…" aria-label="Search products by SKU" autocomplete="off" style="margin-bottom:6px"><select class="select" name="productId" data-listprod data-opts="${esc(JSON.stringify(opts))}">${opts.map(o => `<option value="${esc(o[0])}" ${o[0] === d.productId ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select></div>
     <div class="fld"><span class="lbl">More products in this listing <small style="text-transform:none;letter-spacing:0;font-weight:600">optional · bundles &amp; lots</small></span><div id="bundle-rows">${(d.bundle || []).map(bundleRow).join('')}</div><button type="button" class="link" data-act="bundle-add">${ic('plus')} Add products to this listing</button><p class="hint">For a lot or bundle sold as one listing. The first product above is the main one. Each product still has its own stock, which you reduce when you record the sale.</p></div>`;
 }
 OPEN.listing = id => {
@@ -3024,9 +3102,9 @@ function formLive0(f, target) {
       const nextTier = p ? (p.tiers || []).filter(t => num(t.minQty) > q).sort((a, b) => a.minQty - b.minQty)[0] : null;
       th.textContent = nextTier ? `Buy ${nextTier.minQty}+ and the price drops to ${money(nextTier.price)} each` : '';
     });
-    $('#pv-total', f).textContent = money(c.buyerTotal); $('#pv-payout', f).textContent = money(c.payout); $('#pv-plabel', f).textContent = c.hasFinal ? 'Final profit' : 'Est. profit'; const pp = $('#pv-profit', f); pp.textContent = money(c.profit); pp.className = 'num ' + (c.profit < 0 ? 'bad-t' : 'ok-t');
+    $('#pv-total', f).textContent = money(c.buyerTotal); $('#pv-payout', f).textContent = money(c.payout); $('#pv-made', f).textContent = money(c.made); const pp = $('#pv-profit', f); pp.textContent = money(c.profit); pp.className = 'num ' + (c.profit < 0 ? 'bad-t' : 'ok-t');
     const kv = (l, v, neg) => `<div class="kv"><span>${l}</span><b class="num">${neg ? '− ' : ''}${money(v)}</b></div>`;
-    pv.innerHTML = kv('Items', c.sub) + (c.disc ? kv('Discount', c.disc, 1) : '') + `<div class="kv b"><span>Your sales (after discount)</span><b class="num">${money(c.gross)}</b></div>` + (o.shipCharged ? kv('Shipping buyer paid (not your income)', o.shipCharged) : '') + `<div class="kv"><span>Buyer paid in total (before sales tax)</span><b class="num">${money(c.buyerTotal)}</b></div>` + kv(o.feesManual ? 'Platform fees (entered)' : 'Platform fees (auto from platform)', c.fees, 1) + `<div class="kv b"><span>You receive (est.)</span><b class="num">${money(c.payout)}</b></div>` + kv('Your postage', c.post, 1) + kv('Cost of goods', c.cogs, 1) + (c.reimb ? kv('Claim paid back to you', c.reimb) : '') + `<div class="kv"><span><b>Estimated profit</b></span><b class="num ${c.calcProfit < 0 ? 'bad-t' : ''}">${money(c.calcProfit)}${c.margin != null && !c.hasFinal ? ' · ' + pct(c.margin) : ''}</b></div>` + (c.hasFinal ? `<div class="kv"><span><b>Final profit (actual)</b></span><b class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${money(c.profit)}</b></div><p class="hint" style="margin:4px 0 0">Your final number is used in your reports instead of the estimate.</p>` : '') + (num(o.deposit) > 0 ? `<div class="kv"><span>Balance still due</span><b class="num">${money(c.owed)}</b></div>` : '');
+    pv.innerHTML = kv('Items', c.sub) + (c.disc ? kv('Discount', c.disc, 1) : '') + `<div class="kv b"><span>Your sales (after discount)</span><b class="num">${money(c.gross)}</b></div>` + (o.shipCharged ? kv('Shipping buyer paid (not your income)', o.shipCharged) : '') + `<div class="kv"><span>Buyer paid in total (before sales tax)</span><b class="num">${money(c.buyerTotal)}</b></div>` + kv(o.feesManual ? 'Platform fees (entered)' : 'Platform fees (auto from platform)', c.fees, 1) + `<div class="kv b"><span>You receive (est.)</span><b class="num">${money(c.payout)}</b></div>` + kv('Your postage', c.post, 1) + (c.reimb ? kv('Claim paid back to you', c.reimb) : '') + (c.hasFinal ? kv('Estimated amount made (not used)', c.calcMade) : '') + `<div class="kv b"><span>${c.hasFinal ? 'Money you made (actual)' : 'Money you made (est.)'} <small class="sub">before cost of goods</small></span><b class="num ${c.made < 0 ? 'bad-t' : ''}">${money(c.made)}</b></div>` + kv('Cost of goods', c.cogs, 1) + `<div class="kv"><span><b>Profit after cost of goods</b></span><b class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${money(c.profit)}${c.margin != null ? ' · ' + pct(c.margin) : ''}</b></div>` + (num(o.deposit) > 0 ? `<div class="kv"><span>Balance still due</span><b class="num">${money(c.owed)}</b></div>` : '');
   }
 }
 const price_ = r => num(r.price);
@@ -3035,7 +3113,7 @@ const price_ = r => num(r.price);
 /* =====================================================================
    10. RECORD OPERATIONS: delete, archive, duplicate, bulk edit, bulk listings, CSV, search
    ===================================================================== */
-const TYPE_NAME = { order: 'sale', product: 'product', supply: 'supply', listing: 'listing', expense: 'expense', income: 'income entry', task: 'task', event: 'event', goal: 'goal', supplier: 'supplier', note: 'note', shift: 'time entry', customer: 'customer', mileage: 'trip', taxpay: 'tax payment' };
+const TYPE_NAME = { order: 'sale', product: 'product', supply: 'supply', listing: 'listing', expense: 'expense', income: 'income entry', task: 'task', event: 'event', goal: 'goal', supplier: 'supplier', note: 'note', shift: 'time entry', customer: 'customer', mileage: 'trip', taxpay: 'tax payment', account: 'account', transfer: 'transfer' };
 const plural = (type, n) => n === 1 ? TYPE_NAME[type] : (type === 'supply' ? 'supplies' : TYPE_NAME[type] + 's');
 
 /* Deleting a product frees its supplies for good (they are only ever "counted as used" while the product exists). */
@@ -3291,7 +3369,7 @@ function exportCsv(kind) {
   const S = state, by = (a, k) => a.slice().sort((x, y) => String(x[k] || '').localeCompare(String(y[k] || '')));
   const sup = id => supplierName(id), M = S.settings.metrics;
   const T = {
-    orders: [['Order', 'Date', 'Customer', 'Platform', 'Status', 'Items', 'Sales', 'Discount', 'Shipping charged', 'Sales tax', 'Refunded', 'Fees', 'Postage', 'Cost of goods', 'Reimbursed to you', 'Profit', 'Estimated profit', 'Final profit entered', 'Bulk', 'PO', 'Deposit', 'Paid with', 'Carrier', 'Tracking', 'Archived'], by(S.orders, 'date').map(o => { const c = oc(o); return [orderNo(o), o.date, o.customer, o.channel, o.status, o.items.map(i => `${i.qty}x ${i.name}`).join('; '), r2(c.sub), r2(c.disc), r2(num(o.shipCharged)), r2(num(o.tax)), r2(c.refund), r2(c.fees), r2(c.post), r2(c.cogs), r2(c.reimb), r2(c.profit), r2(c.calcProfit), c.hasFinal ? 'yes' : '', o.bulk ? 'yes' : '', o.po || '', r2(num(o.deposit)), o.payment || '', o.carrier || '', o.tracking, o.archived ? 'yes' : '']; })],
+    orders: [['Order', 'Date', 'Customer', 'Platform', 'Status', 'Items', 'Sales', 'Discount', 'Shipping charged', 'Sales tax', 'Refunded', 'Fees', 'Postage', 'Cost of goods', 'Reimbursed to you', 'Profit after cost of goods', 'Money made before cost of goods', 'Estimated profit after cost of goods', 'Final amount entered', 'Bulk', 'PO', 'Deposit', 'Paid with', 'Carrier', 'Tracking', 'Archived'], by(S.orders, 'date').map(o => { const c = oc(o); return [orderNo(o), o.date, o.customer, o.channel, o.status, o.items.map(i => `${i.qty}x ${i.name}`).join('; '), r2(c.sub), r2(c.disc), r2(num(o.shipCharged)), r2(num(o.tax)), r2(c.refund), r2(c.fees), r2(c.post), r2(c.cogs), r2(c.reimb), r2(c.profit), r2(c.made), r2(c.calcProfit), c.hasFinal ? 'yes' : '', o.bulk ? 'yes' : '', o.po || '', r2(num(o.deposit)), o.payment || '', o.carrier || '', o.tracking, o.archived ? 'yes' : '']; })],
     expenses: [['Date', 'Description', 'Category', 'Vendor', 'Amount', 'Deductible', 'Notes'], by(S.expenses, 'date').map(e => [e.date, e.desc, e.cat, e.vendor || '', r2(num(e.amount)), e.deductible === false ? 'no' : 'yes', e.notes || ''])],
     income: [['Date', 'Source', 'Amount'], by(S.income, 'date').map(e => [e.date, e.desc, r2(num(e.amount))])],
     products: [['Name', 'Listing title', 'Description', 'SKU', 'Barcode', 'Category', 'Price', 'Cost per unit', 'In stock', 'Makes (batch)', 'Low alert', 'Location', 'Supplier', 'Tags', 'Notes', 'Archived'], S.products.map(p => [p.name, p.title || '', p.description || '', p.sku, p.barcode || '', p.category, p.price, r2(unitCost(p)), p.qty, p.batch || 1, p.low, p.location || '', sup(p.supplierId), p.tags || '', p.notes || '', p.archived ? 'yes' : ''])],
@@ -3306,7 +3384,7 @@ function exportCsv(kind) {
 }
 function exportReport() {
   const p = state.prefs.period, s = summary(periodRange(p));
-  const rows = [['Sales (before discounts)', r2(s.gross + s.disc)], ['Discounts given', r2(s.disc)], ['Refunds', r2(s.refunds)], ['Net sales', r2(s.net)], ['Fees', r2(s.fees)], ['Postage', r2(s.post)], ['Cost of goods', r2(s.cogs)], ['Gross profit', r2(s.gp)], ['Expenses', r2(s.expenses)], ['Other income', r2(s.income)], ['Adjusted to final profits entered', r2(s.adj)], ['Net profit', r2(s.profit)], ['', ''], ['Orders', s.orders], ['Items sold', s.units], ['Deductible expenses', r2(s.deductible)], ['Business distance (' + state.settings.mileUnit + ')', r2(s.miles)], ['Mileage deduction', r2(s.miles * num(state.settings.mileRate))]];
+  const rows = [['Sales (before discounts)', r2(s.gross + s.disc)], ['Discounts given', r2(s.disc)], ['Refunds', r2(s.refunds)], ['Net sales', r2(s.net)], ['Fees', r2(s.fees)], ['Postage', r2(s.post)], ['Money made (before cost of goods)', r2(s.made)], ['Cost of goods', r2(s.cogs)], ['Gross profit (after cost of goods)', r2(s.gp)], ['Expenses', r2(s.expenses)], ['Other income', r2(s.income)], ['Adjusted to final amounts entered', r2(s.adj)], ['Net profit', r2(s.profit)], ['Net profit before cost of goods', r2(s.profitBefore)], ['', ''], ['Orders', s.orders], ['Items sold', s.units], ['Deductible expenses', r2(s.deductible)], ['Business distance (' + state.settings.mileUnit + ')', r2(s.miles)], ['Mileage deduction', r2(s.miles * num(state.settings.mileRate))]];
   download(`grimms-report-${today()}.csv`, 'text/csv;charset=utf-8', csvText(['Report: ' + periodLabel(p), 'Amount'], rows)); toast('Download started');
 }
 function exportTax() {
@@ -3495,6 +3573,15 @@ const ACT = {
   'bulk-archive': () => { const type = curType(), ids = [...ui.sel]; if (ids.length) doArchive(type, ids, !ui.arch); },
   'bulk-delete': () => { const ids = [...ui.sel]; if (ids.length) confirmDelete(curType(), ids); },
   delete: el => confirmDelete(el.dataset.type, [el.dataset.id]),
+  'archive-sold': async () => {
+    const seg_ = ui.seg.stock, type = seg_ === 'products' ? 'product' : seg_ === 'listings' ? 'listing' : 'supply';
+    const items = state[COLL[type]].filter(r => !r.archived && (type === 'listing' ? /sold/i.test(r.status || '') : stockQty(r) <= 0));
+    if (!items.length) return toast('Nothing sold out to archive. Items that still have stock are never archived');
+    const nm = r => type === 'listing' ? r.title : r.name, list = items.slice(0, 12).map(nm).join(', ') + (items.length > 12 ? ` and ${items.length - 12} more` : '');
+    if (!await confirmBox(`Archive ${items.length} sold ${plural(type, items.length)}?`, `${list}. Anything that still has stock is left alone. You can bring them back anytime from Archived, or when you add more inventory.`, 'Archive them')) return;
+    const blocked = archiveRecords(type, items.map(r => r.id), true); save(); render();
+    toast(blocked.length ? `Archived ${items.length - blocked.length}. ${blocked.length} could not be archived yet` : `Archived ${items.length}`);
+  },
   archive: el => {
     const type = el.dataset.type, id = el.dataset.id, r = find(COLL[type], id); if (!r) return;
     const flag = !r.archived, why = archiveBlock(type, r);
@@ -3848,7 +3935,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (e.key !== 'Escape') return;
-  if ($('#dialog').classList.contains('on')) closeDialog('no'); else if ($('#modal').classList.contains('on')) tryCloseSheet();
+  if ($('#dialog').classList.contains('on')) closeDialog('no'); else if ($('#modal').classList.contains('on')) tryCloseSheet(true);
 });
 document.addEventListener('pointermove', e => { const c = e.target.closest && e.target.closest('.chart'); if (c) chartHover(c, e); });
 document.addEventListener('pointerdown', e => { const c = e.target.closest && e.target.closest('.chart'); if (c) chartHover(c, e); else $$('.chart').forEach(x => chartHover(x, e, true)); });
