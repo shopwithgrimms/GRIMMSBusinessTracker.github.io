@@ -439,6 +439,85 @@ html[data-btn=glow] .btn-primary{box-shadow:0 0 20px -2px var(--p)}
   html[data-frame=full] body{padding:0}
   html[data-frame=full] .frame{max-width:none;height:100dvh;border:0;border-radius:0;box-shadow:none}
 }
+
+/* more backgrounds */
+html[data-bgs=checker] .scroll{background-image:conic-gradient(color-mix(in srgb,var(--p) 11%,transparent) 25%,transparent 0 50%,color-mix(in srgb,var(--p) 11%,transparent) 0 75%,transparent 0);background-size:30px 30px}
+html[data-bgs=polka] .scroll{background-image:radial-gradient(color-mix(in srgb,var(--p) 24%,transparent) 5px,transparent 6px),radial-gradient(color-mix(in srgb,var(--p) 16%,transparent) 5px,transparent 6px);background-size:40px 40px;background-position:0 0,20px 20px}
+html[data-bgs=waves] .scroll{background-image:repeating-radial-gradient(circle at 0 0,transparent 0 16px,color-mix(in srgb,var(--p) 14%,transparent) 16px 18px)}
+html[data-bgs=zigzag] .scroll{background-image:linear-gradient(135deg,color-mix(in srgb,var(--p) 12%,transparent) 25%,transparent 25%),linear-gradient(225deg,color-mix(in srgb,var(--p) 12%,transparent) 25%,transparent 25%),linear-gradient(315deg,color-mix(in srgb,var(--p) 12%,transparent) 25%,transparent 25%),linear-gradient(45deg,color-mix(in srgb,var(--p) 12%,transparent) 25%,transparent 25%);background-size:30px 30px;background-position:-15px 0,-15px 0,0 0,0 0}
+html[data-bgs=mesh] .scroll{background-image:radial-gradient(at 8% 8%,color-mix(in srgb,var(--p) 34%,transparent),transparent 45%),radial-gradient(at 92% 18%,color-mix(in srgb,var(--p) 26%,#60a5fa),transparent 45%),radial-gradient(at 20% 90%,color-mix(in srgb,var(--p) 26%,#fbbf24),transparent 48%),radial-gradient(at 90% 92%,color-mix(in srgb,var(--p) 30%,#a78bfa),transparent 45%)}
+html[data-bgs=spotlight] .scroll{background-image:radial-gradient(ellipse 90% 50% at 50% 0,color-mix(in srgb,var(--p) 34%,transparent),transparent 70%)}
+html[data-bgs=stars] .scroll{background-image:radial-gradient(1.4px 1.4px at 12px 18px,var(--p),transparent),radial-gradient(1px 1px at 60px 70px,var(--sub),transparent),radial-gradient(1.6px 1.6px at 100px 30px,var(--p),transparent),radial-gradient(1px 1px at 30px 100px,var(--sub),transparent),radial-gradient(1.2px 1.2px at 128px 112px,var(--p),transparent);background-size:140px 140px}
+html[data-bgs=bubbles] .scroll{background-image:radial-gradient(circle at 20% 30%,transparent 0 11px,color-mix(in srgb,var(--p) 26%,transparent) 12px 13px,transparent 14px),radial-gradient(circle at 70% 65%,transparent 0 20px,color-mix(in srgb,var(--p) 20%,transparent) 21px 22px,transparent 23px),radial-gradient(circle at 45% 90%,transparent 0 6px,color-mix(in srgb,var(--p) 30%,transparent) 7px 8px,transparent 9px);background-size:120px 120px}
+html[data-bgs=paper] .scroll{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .22 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+html[data-bgs=gradient] .scroll{background-image:linear-gradient(var(--ga),var(--g1),var(--g2))}
+html[data-bgs=image] .scroll{background-image:linear-gradient(color-mix(in srgb,var(--card) var(--imgdim),transparent),color-mix(in srgb,var(--card) var(--imgdim),transparent)),var(--bgimg,none);background-size:cover;background-position:center}
+/* animated backgrounds */
+html[data-bgs=a-aurora] .scroll{background-image:linear-gradient(125deg,color-mix(in srgb,var(--p) 30%,transparent),color-mix(in srgb,var(--p) 18%,#60a5fa),color-mix(in srgb,var(--p) 26%,#34d399),color-mix(in srgb,var(--p) 22%,#f472b6),color-mix(in srgb,var(--p) 30%,transparent));background-size:400% 400%;animation:bgshift 14s ease-in-out infinite}
+html[data-bgs=a-rainbow] .scroll{background-image:linear-gradient(120deg,#fecaca55,#fde68a55,#bbf7d055,#bfdbfe55,#ddd6fe55,#fbcfe855,#fecaca55);background-size:300% 300%;animation:bgshift 18s linear infinite}
+html[data-bgs=a-drift] .scroll{background-image:radial-gradient(color-mix(in srgb,var(--p) 32%,transparent) 1.6px,transparent 2px);background-size:22px 22px;animation:bgmove 6s linear infinite}
+html[data-bgs=a-stripes] .scroll{background-image:repeating-linear-gradient(45deg,color-mix(in srgb,var(--p) 11%,transparent) 0 12px,transparent 12px 24px);background-size:34px 34px;animation:bgmove 3s linear infinite}
+html[data-bgs=a-pulse] .scroll{background-image:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--p) 36%,transparent),transparent 55%);background-size:100% 100%;animation:bgpulse 6s ease-in-out infinite}
+html[data-bgs=a-waves] .scroll{background-image:repeating-radial-gradient(circle at 50% 120%,transparent 0 22px,color-mix(in srgb,var(--p) 15%,transparent) 22px 25px);background-size:100% 160%;animation:bgpulse 8s ease-in-out infinite}
+@keyframes bgshift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes bgmove{to{background-position:44px 44px}}
+@keyframes bgpulse{0%,100%{background-size:100% 100%;filter:none}50%{background-size:160% 160%}}
+/* floating particles */
+.fx{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:6}
+.fx i{position:absolute;font-style:normal;line-height:1;will-change:transform,opacity;opacity:.8}
+.fx i.fall{top:-40px;animation:fxfall linear infinite}
+.fx i.rise{bottom:-40px;animation:fxrise linear infinite}
+.fx i.twk{animation:fxtwk ease-in-out infinite}
+.fx i.dot{border-radius:50%;background:radial-gradient(circle,#fff8,var(--p) 70%);box-shadow:0 0 10px var(--p)}
+.fx i.bub{border-radius:50%;border:1.5px solid color-mix(in srgb,var(--p) 55%,#fff);background:radial-gradient(circle at 30% 30%,#fff9,transparent 60%)}
+@keyframes fxfall{0%{transform:translate3d(0,0,0) rotate(0)}50%{transform:translate3d(28px,55vh,0) rotate(140deg)}100%{transform:translate3d(-16px,112vh,0) rotate(300deg)}}
+@keyframes fxrise{0%{transform:translate3d(0,0,0) scale(.8);opacity:0}15%{opacity:.85}100%{transform:translate3d(24px,-112vh,0) scale(1.1);opacity:0}}
+@keyframes fxtwk{0%,100%{opacity:.1;transform:scale(.6)}50%{opacity:.95;transform:scale(1.15) translateY(-8px)}}
+/* page transitions */
+html[data-pg=fade] .pg-in{animation:pgfade .4s ease}
+html[data-pg=slide] .pg-in{animation:pgslide .38s cubic-bezier(.2,.8,.2,1)}
+html[data-pg=rise] .pg-in{animation:pgrise .42s cubic-bezier(.2,.8,.2,1)}
+html[data-pg=zoom] .pg-in{animation:pgzoom .38s cubic-bezier(.2,.8,.2,1)}
+html[data-pg=pop] .pg-in{animation:pgpop .5s cubic-bezier(.34,1.56,.64,1)}
+html[data-pg=cascade] .pg-in>*{animation:pgrise .5s cubic-bezier(.2,.8,.2,1) both}
+html[data-pg=cascade] .pg-in>*:nth-child(2){animation-delay:.05s}html[data-pg=cascade] .pg-in>*:nth-child(3){animation-delay:.1s}html[data-pg=cascade] .pg-in>*:nth-child(4){animation-delay:.15s}html[data-pg=cascade] .pg-in>*:nth-child(5){animation-delay:.2s}html[data-pg=cascade] .pg-in>*:nth-child(6){animation-delay:.25s}html[data-pg=cascade] .pg-in>*:nth-child(n+7){animation-delay:.3s}
+@keyframes pgfade{from{opacity:0}}
+@keyframes pgslide{from{opacity:0;transform:translateX(34px)}}
+@keyframes pgrise{from{opacity:0;transform:translateY(20px)}}
+@keyframes pgzoom{from{opacity:0;transform:scale(.94)}}
+@keyframes pgpop{from{opacity:0;transform:scale(.88)}}
+/* hover / press / button / heading effects */
+html[data-hv=lift] .card:hover{transform:translateY(-3px);box-shadow:0 14px 28px -14px rgba(0,0,0,.3)}
+html[data-hv=glow] .card:hover{box-shadow:0 0 0 1px var(--p),0 0 22px -4px var(--p)}
+html[data-hv=tilt] .card:hover{transform:rotate(-.5deg) scale(1.012)}
+html[data-hv=grow] .card:hover{transform:scale(1.025)}
+html[data-hv=border] .card:hover{border-color:var(--p)}
+html[data-pr=bounce] .btn:active,html[data-pr=bounce] .chip:active,html[data-pr=bounce] .icon-btn:active,html[data-pr=bounce] .nav button:active{transform:scale(.9)!important;transition:transform .08s!important}
+html[data-pr=squish] .btn:active,html[data-pr=squish] .chip:active,html[data-pr=squish] .nav button:active{transform:scale(1.08,.88)!important;transition:transform .08s!important}
+html[data-pr=sink] .btn:active,html[data-pr=sink] .chip:active{transform:translateY(3px)!important;box-shadow:none!important}
+html[data-pr=jelly] .btn:active,html[data-pr=jelly] .chip:active,html[data-pr=jelly] .nav button:active{animation:jelly .5s}
+@keyframes jelly{30%{transform:scale(1.2,.75)}45%{transform:scale(.8,1.2)}60%{transform:scale(1.1,.9)}80%{transform:scale(.97,1.03)}}
+html[data-bf=pulse] .btn-primary{animation:btnpulse 2.4s ease-in-out infinite}
+html[data-bf=float] .btn-primary{animation:btnfloat 3s ease-in-out infinite}
+html[data-bf=shimmer] .btn-primary{position:relative;overflow:hidden}
+html[data-bf=shimmer] .btn-primary::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent);animation:shimmer 2.8s ease-in-out infinite;pointer-events:none}
+@keyframes btnpulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--p) 55%,transparent)}50%{box-shadow:0 0 0 9px transparent}}
+@keyframes btnfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes shimmer{0%{left:-60%}55%,100%{left:130%}}
+html[data-tt=gradient] .hdr h1,html[data-tt=gradient] .home-title{background:linear-gradient(90deg,var(--p),color-mix(in srgb,var(--p) 40%,#8b5cf6));-webkit-background-clip:text;background-clip:text;color:transparent}
+html[data-tt=shine] .hdr h1,html[data-tt=shine] .home-title{background:linear-gradient(100deg,var(--text) 35%,var(--p) 50%,var(--text) 65%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:titleshine 3.5s linear infinite}
+html[data-tt=rainbow] .hdr h1,html[data-tt=rainbow] .home-title{background:linear-gradient(90deg,#ef4444,#f59e0b,#22c55e,#3b82f6,#a855f7,#ef4444);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:titleshine 5s linear infinite}
+html[data-tt=bounce] .hdr h1{display:inline-block;animation:btnfloat 2.2s ease-in-out infinite}
+@keyframes titleshine{to{background-position:-250% 0}}
+/* tap effects */
+.tapfx{position:fixed;pointer-events:none;z-index:9999;font-style:normal;transform:translate(-50%,-50%)}
+.tapfx.ring{width:14px;height:14px;border-radius:50%;border:2px solid var(--p);animation:tapring .6s ease-out forwards}
+.tapfx.emo{animation:tapemo .85s ease-out forwards;font-size:16px}
+@keyframes tapring{to{width:70px;height:70px;opacity:0}}
+@keyframes tapemo{to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.6) rotate(var(--rot));opacity:0}}
+@media (prefers-reduced-motion:reduce){.fx{display:none}html[data-bgs^=a-] .scroll{animation:none!important}}
+html[data-motion=off] .fx{display:none}
+html[data-motion=off] .tapfx{display:none}
 html[data-motion=off] *{animation:none!important;transition:none!important}
 </style>
 </head>
@@ -732,7 +811,10 @@ function applyLook() {
   s.setProperty('--gap', { compact: '10px', spacious: '22px' }[L.density] || '16px');
   s.setProperty('--gap-sm', { compact: '6px', spacious: '14px' }[L.density] || '10px');
   if (L.headFont && FONTS.some(f => f[0] === L.headFont)) s.setProperty('--hfont', L.headFont); else s.removeProperty('--hfont');
-  const ds = de.dataset; ds.round = L.round; ds.density = L.density; ds.cs = L.cardStyle; ds.bgs = L.bgStyle; ds.hdr = L.header; ds.nav = L.nav; ds.btn = L.btn; ds.bd = L.border; ds.frame = L.frame; ds.motion = L.motion === false ? 'off' : 'on';
+  const ds = de.dataset; ds.round = L.round; ds.density = L.density; ds.cs = L.cardStyle; ds.bgs = L.bgStyle; ds.hdr = L.header; ds.nav = L.nav; ds.btn = L.btn; ds.bd = L.border; ds.frame = L.frame; ds.motion = L.motion === false ? 'off' : 'on'; ds.pg = L.pageAnim; ds.hv = L.hover; ds.pr = L.press; ds.bf = L.btnFx; ds.tt = L.titleFx;
+  s.setProperty('--g1', /^#[0-9a-f]{6}$/i.test(L.g1) ? L.g1 : '#fbcfe8'); s.setProperty('--g2', /^#[0-9a-f]{6}$/i.test(L.g2) ? L.g2 : '#c4b5fd'); s.setProperty('--ga', (Number(L.gAngle) || 160) + 'deg'); s.setProperty('--imgdim', (Number(L.bgDim) || 0) + '%');
+  if (typeof L.bgImg === 'string' && L.bgImg.indexOf('data:image/') === 0) s.setProperty('--bgimg', 'url("' + L.bgImg + '")'); else s.removeProperty('--bgimg');
+  try { renderParticles(L); } catch (e) { }
   let st = $('#look-css'); if (!st) { st = document.createElement('style'); st.id = 'look-css'; document.head.appendChild(st); }
   const ord = (Array.isArray(L.homeOrder) ? L.homeOrder : []).filter(x => /^[a-z]+$/.test(x)), qh = (Array.isArray(L.quickHide) ? L.quickHide : []).filter(x => /^[a-z]+$/.test(x));
   st.textContent = ord.map((id, i) => '.home-flex>[data-w="' + id + '"]{order:' + (i + 10) + '}').join('') + qh.map(q => '.quick [data-q="' + q + '"]{display:none}').join('');
@@ -813,7 +895,7 @@ const PLATFORM_PRESETS = [
 
 const HOME_ORDER = ['pipeline', 'goals', 'attention', 'lowstock', 'upcoming', 'quick'];
 const QUICKS = [['sale', 'Sale'], ['bulk', 'Bulk order'], ['expense', 'Expense'], ['supply', 'Supply'], ['product', 'Product'], ['listing', 'Listing'], ['task', 'Task'], ['time', 'Time'], ['customer', 'Customer'], ['note', 'Note'], ['income', 'Income'], ['mileage', 'Trip']];
-const LOOK_DEFAULTS = () => ({ auto: false, darkTheme: 'midnight', accent: '', bg: '', card: '', round: 'default', density: 'default', size: '100', cardStyle: 'outline', bgStyle: 'solid', header: 'plain', nav: 'labels', btn: 'solid', border: 'thin', frame: 'phone', motion: true, headFont: '', greeting: '', emoji: '', homeChart: 'line', wholeHome: false, confetti: false, homeOrder: HOME_ORDER.slice(), quickHide: ['customer', 'note', 'income', 'mileage'] });
+const LOOK_DEFAULTS = () => ({ auto: false, darkTheme: 'midnight', accent: '', bg: '', card: '', round: 'default', density: 'default', size: '100', cardStyle: 'outline', bgStyle: 'solid', header: 'plain', nav: 'labels', btn: 'solid', border: 'thin', frame: 'phone', motion: true, headFont: '', greeting: '', emoji: '', homeChart: 'line', wholeHome: false, confetti: false, g1: '#fbcfe8', g2: '#c4b5fd', gAngle: '160', bgImg: '', bgDim: '30', particles: 'none', pCount: '16', pSpeed: '1', pEmoji: '', pageAnim: 'none', hover: 'none', press: 'none', tapFx: 'none', btnFx: 'none', titleFx: 'none', celebrate: 'confetti', sOn: false, sPack: 'soft', sVol: '60', sTap: true, sOk: true, sDel: true, sWin: true, homeOrder: HOME_ORDER.slice(), quickHide: ['customer', 'note', 'income', 'mileage'] });
 const guessWeekStart = () => {
   const l = (navigator.language || 'en-US').toLowerCase();
   return ['en-us', 'en-ca', 'es-mx', 'pt-br', 'ja', 'ko', 'zh-tw', 'he', 'en-in'].some(x => l.startsWith(x)) ? 'sun' : 'mon';
@@ -1401,6 +1483,7 @@ let toastTimer, undoFn = null;
 function toast(msg, undo) {
   const el = $('#toast'); el.innerHTML = `<span>${esc(msg)}</span>${undo ? `<button data-act="undo">Undo</button>` : ''}`;
   el.classList.add('on'); el.classList.toggle('act', !!undo); undoFn = undo || null;
+  if (!quietToast) playSound(undo ? 'del' : /saved|added|updated|applied|restored|copied|created|recorded|done|imported|marked/i.test(msg) ? 'ok' : 'toast');
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.classList.remove('on'); undoFn = null; }, undo ? 7000 : 3000);
 }
 /* Run a change; offer an Undo that restores everything exactly as it was. */
@@ -2149,6 +2232,10 @@ const LOOK_PRESETS = [
   { n: 'Sunset', theme: 'peach', font: "'Poppins', sans-serif", look: { round: 'round', cardStyle: 'glass', bgStyle: 'sunset', header: 'gradient', btn: 'gradient' } },
   { n: 'Ocean Calm', theme: 'ocean', font: "'Quicksand', sans-serif", look: { round: 'soft', cardStyle: 'shadow', bgStyle: 'tint', header: 'clear', nav: 'floating', border: 'none' } },
   { n: 'Terminal', theme: 'blackout', font: "'Space Mono', monospace", look: { accent: '#22c55e', round: 'sharp', cardStyle: 'outline', bgStyle: 'grid', btn: 'outline', headFont: "'Space Mono', monospace" } },
+  { n: 'Snow Globe', theme: 'midnight', font: "'Quicksand', sans-serif", look: { round: 'round', cardStyle: 'glass', bgStyle: 'a-aurora', header: 'clear', border: 'none', particles: 'snow', pageAnim: 'fade', titleFx: 'shine' } },
+  { n: 'Cherry Blossom', theme: 'sakura', font: "'Fredoka', sans-serif", look: { round: 'round', cardStyle: 'shadow', bgStyle: 'a-drift', header: 'soft', border: 'none', particles: 'petals', pageAnim: 'rise', press: 'bounce', tapFx: 'hearts', celebrate: 'hearts', confetti: true } },
+  { n: 'Arcade', theme: 'neon', font: "'Space Mono', monospace", look: { round: 'sharp', cardStyle: 'glow', bgStyle: 'stars', header: 'gradient', btn: 'glow', nav: 'accent', particles: 'stars', press: 'squish', tapFx: 'sparkle', btnFx: 'pulse', titleFx: 'rainbow', sOn: true, sPack: 'retro', confetti: true, celebrate: 'stars' } },
+  { n: 'Cozy Cafe', theme: 'vanilla', font: "'Lora', serif", look: { round: 'round', cardStyle: 'shadow', bgStyle: 'paper', header: 'soft', border: 'none', particles: 'coffee', pCount: '8', pageAnim: 'cascade', hover: 'lift' } },
   { n: 'Berry Smoothie', theme: 'berry', font: "'DM Sans', sans-serif", look: { round: 'soft', cardStyle: 'accent', bgStyle: 'dots', header: 'accent' } },
 ];
 const LOOK_OPTS = {
@@ -2157,7 +2244,20 @@ const LOOK_OPTS = {
   size: [['90', 'Small'], ['100', 'Normal'], ['112', 'Large'], ['125', 'Larger'], ['140', 'Huge']],
   cardStyle: [['outline', 'Outline'], ['flat', 'Flat'], ['shadow', 'Shadow'], ['glass', 'Glass'], ['glow', 'Glow'], ['accent', 'Accent edge']],
   border: [['none', 'None'], ['thin', 'Thin'], ['thick', 'Thick']],
-  bgStyle: [['solid', 'Plain'], ['tint', 'Soft tint'], ['sunset', 'Sunset fade'], ['glow', 'Aurora'], ['dots', 'Dots'], ['grid', 'Grid'], ['stripes', 'Stripes']],
+  bgStyle: [['solid', 'Plain'], ['tint', 'Soft tint'], ['sunset', 'Sunset fade'], ['glow', 'Aurora'], ['dots', 'Dots'], ['grid', 'Grid'], ['stripes', 'Stripes'], ['checker', 'Checkers'], ['polka', 'Polka'], ['waves', 'Ripples'], ['zigzag', 'Zigzag'], ['mesh', 'Color mesh'], ['spotlight', 'Spotlight'], ['stars', 'Starry'], ['bubbles', 'Bubbles'], ['paper', 'Paper grain'], ['gradient', 'My gradient'], ['image', 'My photo'], ['a-aurora', '✨ Moving aurora'], ['a-rainbow', '✨ Rainbow drift'], ['a-drift', '✨ Drifting dots'], ['a-stripes', '✨ Moving stripes'], ['a-pulse', '✨ Breathing glow'], ['a-waves', '✨ Rolling waves']],
+  particles: [['none', 'Off'], ['snow', '❄️ Snow'], ['petals', '🌸 Petals'], ['hearts', '💖 Hearts'], ['stars', '✨ Twinkles'], ['bubbles', '🫧 Bubbles'], ['leaves', '🍂 Leaves'], ['fireflies', '🟡 Fireflies'], ['confetti', '🎉 Party'], ['coffee', '☕ Cozy'], ['custom', 'My emoji']],
+  pCount: [['8', 'A few'], ['16', 'Some'], ['30', 'Lots'], ['50', 'Blizzard']],
+  pSpeed: [['1.8', 'Slow'], ['1', 'Normal'], ['.55', 'Fast']],
+  pageAnim: [['none', 'None'], ['fade', 'Fade'], ['slide', 'Slide'], ['rise', 'Rise up'], ['zoom', 'Zoom'], ['pop', 'Pop'], ['cascade', 'Cascade (cards one by one)']],
+  hover: [['none', 'None'], ['lift', 'Lift'], ['glow', 'Glow'], ['tilt', 'Tilt'], ['grow', 'Grow'], ['border', 'Accent outline']],
+  press: [['none', 'None'], ['bounce', 'Bounce'], ['squish', 'Squish'], ['sink', 'Sink'], ['jelly', 'Jelly']],
+  tapFx: [['none', 'None'], ['ring', 'Ripple'], ['sparkle', '✨ Sparkles'], ['hearts', '💖 Hearts'], ['stars', '⭐ Stars'], ['bubbles', '🫧 Bubbles'], ['emoji', 'My emoji']],
+  btnFx: [['none', 'None'], ['shimmer', 'Shimmer'], ['pulse', 'Pulse'], ['float', 'Float']],
+  titleFx: [['none', 'None'], ['gradient', 'Gradient'], ['shine', 'Shine'], ['rainbow', 'Rainbow'], ['bounce', 'Bounce']],
+  celebrate: [['confetti', '🎉 Confetti'], ['hearts', '💖 Hearts'], ['stars', '⭐ Stars'], ['coins', '🪙 Coins'], ['snow', '❄️ Snow'], ['emoji', 'My emoji']],
+  bgDim: [['0', 'Clear'], ['30', 'Light veil'], ['55', 'Veil'], ['75', 'Heavy veil']],
+  gAngle: [['160', 'Down'], ['90', 'Right'], ['45', 'Diagonal'], ['0', 'Up'], ['225', 'Other way']],
+  sPack: [['soft', '🔔 Soft'], ['bubble', '🫧 Bubble pop'], ['chime', '🎐 Chimes'], ['retro', '👾 Retro 8-bit'], ['wood', '🪵 Wood tap'], ['sparkle', '✨ Sparkle']],
   header: [['plain', 'Plain'], ['soft', 'Soft tint'], ['accent', 'Accent'], ['gradient', 'Gradient'], ['clear', 'Clear']],
   nav: [['labels', 'Labels'], ['icons', 'Icons only'], ['floating', 'Floating'], ['accent', 'Accent bar']],
   btn: [['solid', 'Solid'], ['gradient', 'Gradient'], ['soft', 'Soft'], ['outline', 'Outline'], ['glow', 'Glow']],
@@ -2171,13 +2271,74 @@ function greeting() {
   const L = state.settings.look, nm = state.settings.name || 'there', h = new Date().getHours(), tm = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
   return ((L.emoji ? L.emoji + ' ' : '') + (L.greeting || 'Welcome back, {name}!')).split('{name}').join(nm).split('{time}').join(tm);
 }
+
+/* ===== particles, tap effects, sounds ===== */
+const PARTS = {
+  snow: { e: ['❄️', '❅', '❆'], c: 'fall', sz: [10, 20] }, petals: { e: ['🌸', '🌺', '🌷'], c: 'fall', sz: [12, 20] }, hearts: { e: ['💖', '💕', '💗'], c: 'rise', sz: [12, 22] },
+  stars: { e: ['✨', '⭐', '✦'], c: 'twk', sz: [10, 20] }, leaves: { e: ['🍂', '🍁', '🍃'], c: 'fall', sz: [14, 22] }, confetti: { e: ['🎉', '🎊', '✨', '🎈'], c: 'fall', sz: [12, 20] },
+  coffee: { e: ['☕', '🧁', '🍪', '🥐'], c: 'fall', sz: [14, 22] }, bubbles: { e: [''], c: 'rise', k: 'bub', sz: [10, 34] }, fireflies: { e: [''], c: 'twk', k: 'dot', sz: [4, 8] }
+};
+function renderParticles(L) {
+  const fr = document.getElementById('frame'); if (!fr) return;
+  let fx = document.getElementById('fx'); const key = [L.particles, L.pCount, L.pSpeed, L.pEmoji].join('|');
+  if (!L.particles || L.particles === 'none' || L.motion === false) { if (fx) { fx.remove(); } return; }
+  if (fx && fx.dataset.k === key) return; if (fx) fx.remove();
+  fx = document.createElement('div'); fx.id = 'fx'; fx.className = 'fx'; fx.dataset.k = key;
+  const P = L.particles === 'custom' ? { e: [(L.pEmoji || '✨')], c: 'fall', sz: [14, 24] } : (PARTS[L.particles] || PARTS.stars), n = Math.min(60, Number(L.pCount) || 16), sp = Number(L.pSpeed) || 1;
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement('i'), z = P.sz[0] + Math.random() * (P.sz[1] - P.sz[0]);
+    el.className = P.c + (P.k ? ' ' + P.k : ''); el.style.left = (Math.random() * 96) + '%';
+    if (P.c === 'twk') el.style.top = (Math.random() * 92) + '%';
+    el.style.fontSize = z + 'px'; if (P.k) { el.style.width = el.style.height = z + 'px'; } else el.textContent = P.e[i % P.e.length];
+    el.style.animationDuration = ((P.c === 'twk' ? 2.5 + Math.random() * 3 : 8 + Math.random() * 9) * sp) + 's'; el.style.animationDelay = (-Math.random() * 14) + 's';
+    fx.appendChild(el);
+  }
+  fr.appendChild(fx);
+}
+function pageIn(sc) { sc.classList.remove('pg-in'); void sc.offsetWidth; sc.classList.add('pg-in'); clearTimeout(pageIn.t); pageIn.t = setTimeout(() => sc.classList.remove('pg-in'), 900); }
+function tapFx(e) {
+  const L = state && state.settings && state.settings.look; if (!L || !L.tapFx || L.tapFx === 'none' || L.motion === false) return;
+  const x = e.clientX, y = e.clientY; if (!x && !y) return;
+  if (L.tapFx === 'ring') { const r = document.createElement('i'); r.className = 'tapfx ring'; r.style.left = x + 'px'; r.style.top = y + 'px'; document.body.appendChild(r); setTimeout(() => r.remove(), 700); return; }
+  const set = { sparkle: ['✨', '✦', '⭐'], hearts: ['💖', '💕', '💗'], stars: ['⭐', '🌟', '✨'], bubbles: ['🫧', '○'], emoji: [L.pEmoji || L.emoji || '✨'] }[L.tapFx] || ['✨'];
+  for (let i = 0; i < 6; i++) { const r = document.createElement('i'), a = Math.random() * 6.283, d = 30 + Math.random() * 36; r.className = 'tapfx emo'; r.textContent = set[i % set.length]; r.style.left = x + 'px'; r.style.top = y + 'px'; r.style.setProperty('--dx', Math.cos(a) * d + 'px'); r.style.setProperty('--dy', Math.sin(a) * d - 14 + 'px'); r.style.setProperty('--rot', (Math.random() * 120 - 60) + 'deg'); document.body.appendChild(r); setTimeout(() => r.remove(), 900); }
+}
+const SND = {
+  soft: { w: 'sine', tap: [[520, .05]], ok: [[523, .09], [659, .13]], del: [[330, .1], [247, .15]], toast: [[587, .09]], win: [[523, .1], [659, .1], [784, .1], [1047, .24]] },
+  bubble: { w: 'sine', tap: [[300, .07, 700]], ok: [[400, .08, 900], [600, .1, 1200]], del: [[700, .12, 250]], toast: [[500, .07, 900]], win: [[400, .07, 900], [500, .07, 1000], [650, .07, 1300], [800, .14, 1700]] },
+  chime: { w: 'triangle', tap: [[880, .08]], ok: [[784, .15], [1175, .3]], del: [[392, .2], [294, .3]], toast: [[1047, .2]], win: [[784, .12], [988, .12], [1175, .12], [1568, .5]] },
+  retro: { w: 'square', v: .45, tap: [[660, .04]], ok: [[660, .06], [880, .09]], del: [[220, .08], [165, .13]], toast: [[990, .05]], win: [[523, .07], [659, .07], [784, .07], [1047, .07], [784, .07], [1047, .22]] },
+  wood: { w: 'triangle', tap: [[180, .05, 120]], ok: [[220, .05, 160], [300, .07, 200]], del: [[140, .09, 90]], toast: [[260, .06, 200]], win: [[220, .06], [280, .06], [330, .06], [440, .16]] },
+  sparkle: { w: 'sine', v: .8, tap: [[1500, .04]], ok: [[1319, .06], [1760, .06], [2093, .14]], del: [[900, .09, 500]], toast: [[1760, .07]], win: [[1319, .06], [1568, .06], [1760, .06], [2093, .06], [2637, .3]] }
+};
+let AC = null, lastTapSnd = 0, quietToast = false;
+function playSound(ev, force) {
+  try {
+    const L = state && state.settings && state.settings.look; if (!L || (!force && !L.sOn)) return;
+    if (!force && ((ev === 'tap' && L.sTap === false) || ((ev === 'ok' || ev === 'toast') && L.sOk === false) || (ev === 'del' && L.sDel === false) || (ev === 'win' && L.sWin === false))) return;
+    const C = window.AudioContext || window.webkitAudioContext; if (!C) return; if (!AC) AC = new C(); if (AC.state === 'suspended') AC.resume();
+    const P = SND[L.sPack] || SND.soft, notes = P[ev] || P.tap, vol = Math.max(0, Math.min(100, Number(L.sVol))) / 100 * .22 * (P.v || 1); let t = AC.currentTime + .005;
+    notes.forEach(n => {
+      const o = AC.createOscillator(), g = AC.createGain(); o.type = P.w; o.frequency.setValueAtTime(n[0], t); if (n[2]) o.frequency.exponentialRampToValueAtTime(n[2], t + n[1]);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(.0002, vol), t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + n[1] + .06);
+      o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + n[1] + .08); t += n[1] * .85;
+    });
+  } catch (e) { }
+}
+document.addEventListener('click', e => {
+  if (e.target.closest && e.target.closest('button,[data-act],.chip,a,label,summary,.nav')) { const n = Date.now(); if (n - lastTapSnd > 60) { lastTapSnd = n; playSound('tap'); } tapFx(e); }
+}, true);
 function confetti(force) {
   const L = state.settings.look; if (!force && !(L && L.confetti)) return; if (L && L.motion === false) return;
   const fr = $('#frame'), box = document.createElement('div'); box.className = 'confetti';
   const cols = [(getComputedStyle(document.documentElement).getPropertyValue('--p') || '').trim() || '#d97793', '#fbbf24', '#34d399', '#60a5fa', '#f472b6', '#a78bfa'];
+  const kind = (L && L.celebrate) || 'confetti', ek = { hearts: ['💖', '💕'], stars: ['⭐', '🌟', '✨'], coins: ['🪙', '💰'], snow: ['❄️', '❅'], emoji: [(L && (L.pEmoji || L.emoji)) || '🎉'] }[kind];
+  if (ek) { for (let i = 0; i < 34; i++) { const e = document.createElement('i'); e.textContent = ek[i % ek.length]; e.style.cssText = 'background:none;width:auto;height:auto;font-size:' + (14 + Math.random() * 14) + 'px;left:' + Math.random() * 100 + '%;animation-delay:' + (Math.random() * .5) + 's;animation-duration:' + (1.6 + Math.random() * 1.4) + 's'; box.appendChild(e); } fr.appendChild(box); setTimeout(() => box.remove(), 3600); playSound('win'); return; }
+  playSound('win');
   for (let i = 0; i < 44; i++) { const e = document.createElement('i'); e.style.left = Math.random() * 100 + '%'; e.style.background = cols[i % cols.length]; e.style.animationDelay = (Math.random() * .4) + 's'; e.style.animationDuration = (1.4 + Math.random() * 1.3) + 's'; box.appendChild(e); }
   fr.appendChild(box); setTimeout(() => box.remove(), 3500);
 }
+const FXKEYS = ['particles', 'pCount', 'pSpeed', 'pEmoji', 'pageAnim', 'hover', 'press', 'tapFx', 'btnFx', 'titleFx', 'celebrate', 'sOn', 'sPack', 'sVol', 'sTap', 'sOk', 'sDel', 'sWin'];
 const optRow = (title, k, opts, note) => `<p class="eyebrow" style="margin:16px 0 8px">${title}</p><div class="opts">${opts.map(o => `<button type="button" class="chip ${String(state.settings.look[k]) === String(o[0]) ? 'on' : ''}" data-act="look" data-k="${k}" data-v="${esc(o[0])}">${o[1]}</button>`).join('')}</div>${note ? `<p class="hint">${note}</p>` : ''}`;
 const lookToggle = (k, label, note) => `<label class="row b sm-t" style="padding:8px 0"><input type="checkbox" class="chk" data-look-toggle="${k}" ${state.settings.look[k] ? 'checked' : ''}> ${label}</label>${note ? `<p class="hint" style="margin:-4px 0 6px">${note}</p>` : ''}`;
 const colorRow = (label, k, base) => `<div class="row" style="margin-bottom:10px"><span class="grow sm-t b">${label}</span><input type="color" class="colorbox" data-look-color="${k}" value="${esc(state.settings.look[k] || base)}" aria-label="${label}">${state.settings.look[k] ? `<button type="button" class="link" data-act="look-clear" data-k="${k}">Reset</button>` : '<span class="xs sub">From theme</span>'}</div>`;
@@ -2186,9 +2347,39 @@ function homeListHtml(hide) {
   return ord.map((id, i) => `<div class="row" style="padding:4px 0"><label class="row b sm-t grow"><input type="checkbox" class="chk" data-home="${id}" ${hide.has(id) ? '' : 'checked'}> ${name(id)}</label><button type="button" class="icon-btn" ${i === 0 ? 'disabled' : ''} data-act="home-move" data-id="${id}" data-d="-1" aria-label="Move up">${ic('arrow-up')}</button><button type="button" class="icon-btn" ${i === ord.length - 1 ? 'disabled' : ''} data-act="home-move" data-id="${id}" data-d="1" aria-label="Move down">${ic('arrow-down')}</button></div>`).join('')
     + `<p class="hint">Use the arrows to reorder what shows on Home.</p><p class="eyebrow" style="margin:14px 0 6px">Quick action buttons</p>` + QUICKS.map(q => `<label class="row b sm-t" style="padding:5px 0"><input type="checkbox" class="chk" data-quick="${q[0]}" ${L.quickHide.includes(q[0]) ? '' : 'checked'}> ${q[1]}</label>`).join('');
 }
+
+function bgExtras() {
+  const L = state.settings.look;
+  if (L.bgStyle === 'gradient') return `<div class="card-sub" style="margin:10px 0 0"><div class="row" style="margin-bottom:8px"><span class="grow sm-t b">Gradient start</span><input type="color" class="colorbox" data-look-color="g1" value="${esc(L.g1)}"></div><div class="row"><span class="grow sm-t b">Gradient end</span><input type="color" class="colorbox" data-look-color="g2" value="${esc(L.g2)}"></div>${optRow('Direction', 'gAngle', LOOK_OPTS.gAngle)}</div>`;
+  if (L.bgStyle === 'image') return `<div style="margin-top:10px"><label class="btn btn-soft btn-sm block" style="cursor:pointer">${ic('plus')} ${L.bgImg ? 'Choose a different photo' : 'Choose a photo'}<input type="file" accept="image/*" data-look-img hidden></label>${L.bgImg ? `<button type="button" class="btn btn-line btn-sm block" style="margin-top:8px" data-act="look-img-clear">Remove photo</button>` : ''}<p class="hint">The photo is shrunk and kept only on this device (and in your backups).</p>${optRow('Veil over photo', 'bgDim', LOOK_OPTS.bgDim, 'A veil keeps text easy to read.')}</div>`;
+  return '';
+}
+const lookRange = (k, label, min, max) => `<label class="fld"><span>${label}: <b>${esc(String(state.settings.look[k]))}%</b></span><input type="range" min="${min}" max="${max}" step="5" value="${esc(String(state.settings.look[k]))}" data-look-range="${k}" style="width:100%"></label>`;
+function funBody() {
+  const L = state.settings.look, ev = (k, lbl) => `<label class="row b sm-t" style="padding:6px 0"><input type="checkbox" class="chk" data-look-toggle="${k}" ${L[k] !== false ? 'checked' : ''}> ${lbl}</label>`;
+  const emojiBox = (L.particles === 'custom' || L.tapFx === 'emoji' || L.celebrate === 'emoji') ? `<label class="fld" style="margin-top:12px"><span>Your fun emoji</span><input class="input" maxlength="4" data-look-text="pEmoji" value="${esc(L.pEmoji || '')}" placeholder="🦄"></label>` : '';
+  return `<div class="row wrap" style="gap:8px;margin-bottom:4px"><button type="button" class="btn btn-soft btn-sm" data-act="fx-random">🎲 Random effects</button><button type="button" class="btn btn-line btn-sm" data-act="fx-off">😌 Calm mode (all off)</button></div>
+    <p class="hint" style="margin-top:4px">Pick page backgrounds (including moving ones) in Colors &amp; looks above. Everything here is optional and never touches your business data.</p>
+    ${optRow('Floating things', 'particles', LOOK_OPTS.particles)}
+    ${L.particles !== 'none' ? optRow('How many', 'pCount', LOOK_OPTS.pCount) + optRow('Speed', 'pSpeed', LOOK_OPTS.pSpeed) : ''}
+    ${optRow('When I change pages', 'pageAnim', LOOK_OPTS.pageAnim)}
+    ${optRow('Cards when hovered (computer)', 'hover', LOOK_OPTS.hover)}
+    ${optRow('When I press a button', 'press', LOOK_OPTS.press)}
+    ${optRow('Where I tap', 'tapFx', LOOK_OPTS.tapFx)}
+    ${optRow('Main buttons', 'btnFx', LOOK_OPTS.btnFx)}
+    ${optRow('Page titles', 'titleFx', LOOK_OPTS.titleFx)}
+    ${optRow('Sale celebration', 'celebrate', LOOK_OPTS.celebrate, 'Turn the celebration on in Colors &amp; looks (“Confetti when I record a sale”).')}
+    ${emojiBox}
+    <p class="eyebrow" style="margin:22px 0 4px">Sounds</p>
+    ${lookToggle('sOn', 'Play sounds', 'Little tones made right in the app. Nothing to download.')}
+    ${L.sOn ? `${optRow('Sound pack', 'sPack', LOOK_OPTS.sPack)}<div style="margin-top:12px">${lookRange('sVol', 'Volume', 5, 100)}</div>
+      ${ev('sTap', 'Taps &amp; buttons')}${ev('sOk', 'Saved &amp; done messages')}${ev('sDel', 'Deletes &amp; undo')}${ev('sWin', 'Sale celebration')}
+      <div class="row wrap" style="gap:8px;margin-top:8px">${[['tap', 'Tap'], ['ok', 'Saved'], ['del', 'Delete'], ['win', 'Celebrate']].map(x => `<button type="button" class="btn btn-line btn-sm" data-act="snd-test" data-ev="${x[0]}">▶ ${x[1]}</button>`).join('')}</div>` : ''}
+    <button type="button" class="btn btn-line btn-sm block" style="margin-top:18px" data-act="fx-reset">${ic('undo')} Reset effects &amp; sounds</button>`;
+}
 function styleBody() {
   const L = state.settings.look, T = THEMES[state.settings.theme] || THEMES.blush, darks = Object.entries(THEMES).filter(([, t]) => t.dark);
-  return `<p class="eyebrow" style="margin-bottom:8px">One-tap looks</p><div class="opts">${LOOK_PRESETS.map((p, i) => `<button type="button" class="chip" data-act="look-preset" data-i="${i}">${esc(p.n)}</button>`).join('')}<button type="button" class="chip on" data-act="look-random">🎲 Surprise me</button></div>
+  return `<p class="eyebrow" style="margin-bottom:8px">One-tap looks</p><div class="opts"><button type="button" class="chip on" data-act="look-original">↩ Original (standard)</button>${LOOK_PRESETS.map((p, i) => `<button type="button" class="chip" data-act="look-preset" data-i="${i}">${esc(p.n)}</button>`).join('')}<button type="button" class="chip on" data-act="look-random">🎲 Surprise me</button></div>
     <p class="hint">A look sets the colors, font, shapes and styles together. You can change anything afterwards. It never touches your business data.</p>
     <p class="eyebrow" style="margin:18px 0 10px">Your own colors</p>
     ${colorRow('Main accent color', 'accent', T.p)}
@@ -2201,7 +2392,7 @@ function styleBody() {
     ${optRow('Corner shape', 'round', LOOK_OPTS.round)}
     ${optRow('Card style', 'cardStyle', LOOK_OPTS.cardStyle)}
     ${optRow('Borders', 'border', LOOK_OPTS.border)}
-    ${optRow('Page background', 'bgStyle', LOOK_OPTS.bgStyle)}
+    ${optRow('Page background', 'bgStyle', LOOK_OPTS.bgStyle)}${bgExtras()}
     ${optRow('Top bar', 'header', LOOK_OPTS.header)}
     ${optRow('Bottom bar', 'nav', LOOK_OPTS.nav)}
     ${optRow('Main buttons', 'btn', LOOK_OPTS.btn)}
@@ -2218,7 +2409,8 @@ function styleBody() {
     ${lookToggle('motion', 'Animations and smooth transitions')}
     <div class="row" style="gap:10px;align-items:flex-start">${`<div class="grow">${lookToggle('confetti', 'Confetti when I record a sale')}</div>`}<button type="button" class="btn btn-soft btn-sm" style="margin-top:4px" data-act="confetti-test">Try it</button></div>
     ${optRow('Screen layout on a computer', 'frame', LOOK_OPTS.frame, 'On a phone this does nothing; the app always fills the screen.')}
-    <button type="button" class="btn btn-line btn-sm block" style="margin-top:18px" data-act="look-reset">${ic('undo')} Reset all looks to default</button>`;
+    <button type="button" class="btn btn-soft btn-sm block" style="margin-top:18px" data-act="look-original">${ic('undo')} Back to the original look (theme, font &amp; all)</button>
+    <button type="button" class="btn btn-line btn-sm block" style="margin-top:10px" data-act="look-reset">${ic('undo')} Reset all looks to default</button>`;
 }
 V.settings = () => {
   const s = state.settings, b = s.business, hide = new Set(s.homeHide);
@@ -2237,6 +2429,7 @@ V.settings = () => {
     ${acc('look', 'Appearance &amp; home', 'sliders', `${themeSwatches(s.theme, 'theme')}<label class="fld" style="margin:16px 0"><span>Font</span><select class="select" data-set="font">${FONTS.map(f => `<option value="${esc(f[0])}" ${f[0] === s.font ? 'selected' : ''}>${f[1]}</option>`).join('')}</select></label>
       <p class="eyebrow" style="margin-bottom:8px">Show on Home</p>${homeListHtml(hide)}`)}
     ${acc('style', 'Colors &amp; looks', 'sliders', styleBody())}
+    ${acc('fun', 'Effects, animations &amp; sounds', 'star', funBody())}
     ${acc('cats', 'Categories &amp; budgets', 'tag', `<p class="eyebrow" style="margin-bottom:8px">Expense categories · monthly budget</p>${listEditor('expenseCats', s.expenseCats, true)}<p class="eyebrow" style="margin:18px 0 8px">Inventory categories</p>${listEditor('stockCats', s.stockCats)}`)}
     ${acc('lists', 'Payment methods &amp; carriers', 'truck', `<p class="eyebrow" style="margin-bottom:8px">Payment methods</p>${listEditor('paymentMethods', s.paymentMethods)}<p class="eyebrow" style="margin:18px 0 8px">Shipping carriers</p>${listEditor('carriers', s.carriers)}`)}
     ${acc('prefs', 'Preferences &amp; taxes', 'settings', `<div class="grid2"><label class="fld"><span>Low-stock level</span><input class="input" type="number" min="0" step="1" data-set="lowStock" value="${s.lowStock}"></label><label class="fld"><span>Income tax set-aside %</span><input class="input" type="number" min="0" max="100" step="any" data-set="taxRate" value="${s.taxRate}"></label></div>
@@ -2269,7 +2462,7 @@ const foot = (type, id, label = 'Save', extra = '') => {
 const formWrap = (type, id, inner, f = '') => `<form data-form="${type}" data-id="${id || ''}" autocomplete="off"><div class="sheet-body">${inner}</div>${f}</form>`;
 const nextSupplySku = () => { const n = Math.max(0, ...state.supplies.map(p => parseInt(String(p.sku || '').replace(/\D/g, '')) || 0)); return 'SUP-' + String(n + 1).padStart(3, '0'); };
 const nextSku = () => { const n = Math.max(0, ...state.products.map(p => parseInt(String(p.sku || '').replace(/\D/g, '')) || 0)); return 'PROD-' + String(n + 1).padStart(3, '0'); };
-const done = (msg, log) => { if (log) logAct(log[0], log[1]); closeSheet(); save(); render(); if (msg) toast(msg); if (msg === 'Sale recorded') confetti(); };
+const done = (msg, log) => { if (log) logAct(log[0], log[1]); closeSheet(); save(); render(); if (msg) { quietToast = msg === 'Sale recorded'; toast(msg); quietToast = false; } if (msg === 'Sale recorded') { const L = state.settings.look; if (L.confetti && L.motion !== false) confetti(); else playSound('win'); } };
 const OPEN = {}, FORMS = {};
 
 /* ---------- supply ---------- */
@@ -3148,7 +3341,7 @@ function render() {
   ROUND_NC = !!(state.settings.look && state.settings.look.wholeHome) && v === 'home';
   try { sc.innerHTML = V[v](); } finally { ROUND_NC = false; }
   if (lastView === v) $$('.fade', sc).forEach(x => x.classList.remove('fade'));
-  sc.scrollTop = keep; lastView = v;
+  sc.scrollTop = keep; if (lastView !== v && state.settings.look && state.settings.look.pageAnim !== 'none') pageIn(sc); lastView = v;
 }
 function refreshList() {
   const el = $('#list'); if (!el) return;
@@ -3224,7 +3417,7 @@ const ACT = {
   'home-move': el => { const o = state.settings.look.homeOrder, i = o.indexOf(el.dataset.id), j = i + Number(el.dataset.d); if (i < 0 || j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; applyLook(); save(); render(); },
   'look-preset': el => {
     const p = LOOK_PRESETS[Number(el.dataset.i)]; if (!p) return; const o = state.settings.look;
-    state.settings.look = { ...LOOK_DEFAULTS(), homeOrder: o.homeOrder, quickHide: o.quickHide, greeting: o.greeting, emoji: o.emoji, size: o.size, motion: o.motion, homeChart: o.homeChart, wholeHome: o.wholeHome, frame: o.frame, ...p.look };
+    state.settings.look = { ...LOOK_DEFAULTS(), homeOrder: o.homeOrder, quickHide: o.quickHide, greeting: o.greeting, emoji: o.emoji, size: o.size, motion: o.motion, homeChart: o.homeChart, wholeHome: o.wholeHome, ...Object.fromEntries(FXKEYS.map(k => [k, o[k]])), g1: o.g1, g2: o.g2, bgImg: o.bgImg, bgDim: o.bgDim, frame: o.frame, ...p.look };
     state.settings.theme = p.theme; state.settings.font = p.font; applyTheme(p.theme, p.font); save(); render(); toast(p.n + ' look applied');
   },
   'look-random': () => {
@@ -3239,6 +3432,20 @@ const ACT = {
     if (!await confirmBox('Reset all looks?', 'Colors, shapes, backgrounds and home layout go back to normal. Your theme and font stay, and your business data is not touched.', 'Reset', false)) return;
     state.settings.look = LOOK_DEFAULTS(); applyTheme(state.settings.theme, state.settings.font); save(); render();
   },
+  'look-original': async () => {
+    if (!await confirmBox('Back to the original look?', 'Theme, font, colors, shapes and home layout all go back to how the app first looked. Your business data is not touched.', 'Go back', false)) return;
+    state.settings.look = LOOK_DEFAULTS(); state.settings.theme = 'blush'; state.settings.font = FONTS[0][0];
+    applyTheme('blush', FONTS[0][0]); save(); render(); toast('Original look restored');
+  },
+  'look-img-clear': () => { state.settings.look.bgImg = ''; state.settings.look.bgStyle = 'solid'; applyLook(); save(); render(); },
+  'snd-test': el => playSound(el.dataset.ev, true),
+  'fx-random': () => {
+    const L = state.settings.look, pk = a => a[Math.floor(Math.random() * a.length)][0];
+    L.particles = pk(LOOK_OPTS.particles.filter(o => o[0] !== 'custom')); L.pageAnim = pk(LOOK_OPTS.pageAnim); L.hover = pk(LOOK_OPTS.hover); L.press = pk(LOOK_OPTS.press); L.tapFx = pk(LOOK_OPTS.tapFx.filter(o => o[0] !== 'emoji')); L.btnFx = pk(LOOK_OPTS.btnFx); L.titleFx = pk(LOOK_OPTS.titleFx); L.celebrate = pk(LOOK_OPTS.celebrate.filter(o => o[0] !== 'emoji'));
+    applyLook(); save(); render(); toast('Random effects applied. Tap again to reroll');
+  },
+  'fx-off': () => { const L = state.settings.look; Object.assign(L, { particles: 'none', pageAnim: 'none', hover: 'none', press: 'none', tapFx: 'none', btnFx: 'none', titleFx: 'none', sOn: false }); if (/^a-/.test(L.bgStyle)) L.bgStyle = 'solid'; applyLook(); save(); render(); toast('Calm mode on'); },
+  'fx-reset': () => { const L = state.settings.look, D = LOOK_DEFAULTS(); FXKEYS.forEach(k => L[k] = D[k]); applyLook(); save(); render(); },
   'rec-multi': async el => {
     const f = formOf(el), ss = state.supplies.filter(active).sort((a, b) => a.name.localeCompare(b.name));
     if (!ss.length) return toast('Add a supply first (Inventory › Supplies)');
@@ -3493,6 +3700,8 @@ document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.bind === 'q') { ui.q = t.value; ui.limit = 60; refreshList(); return; }
   if (t.dataset.bind === 'gq') { $('#gres').innerHTML = gresHtml(t.value); return; }
+  if (t.dataset.lookRange) { state.settings.look[t.dataset.lookRange] = t.value; save(); playSound('tap'); const b = t.closest('label') && t.closest('label').querySelector('b'); if (b) b.textContent = t.value + '%'; return; }
+  if (t.dataset.lookText) { state.settings.look[t.dataset.lookText] = t.value; applyLook(); save(); return; }
   if (t.dataset.lookColor) { state.settings.look[t.dataset.lookColor] = t.value; applyTheme(state.settings.theme, state.settings.font); return; }
   if (t.dataset.selfilter !== undefined) {
     const n = t.nextElementSibling, sel = n && (n.tagName === 'SELECT' ? n : n.querySelector('select')), f0 = t.closest('form[data-form]');
@@ -3531,6 +3740,13 @@ document.addEventListener('change', async e => {
   }
   if (d.biz) { state.settings.business[d.biz] = t.value.trim(); save(); toast('Saved'); return; }
   if (d.lookColor) { state.settings.look[d.lookColor] = t.value; applyTheme(state.settings.theme, state.settings.font); save(); render(); return; }
+  if (d.lookImg !== undefined) {
+    const f = t.files && t.files[0]; if (!f) return;
+    const img = new Image(), url = URL.createObjectURL(f);
+    img.onload = () => { const m = 1000, k = Math.min(1, m / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); state.settings.look.bgImg = c.toDataURL('image/jpeg', .72); state.settings.look.bgStyle = 'image'; applyLook(); save(); render(); toast('Photo background set'); };
+    img.onerror = () => { URL.revokeObjectURL(url); toast('That file could not be read as a picture'); };
+    img.src = url; return;
+  }
   if (d.lookSel) { state.settings.look[d.lookSel] = t.value; applyTheme(state.settings.theme, state.settings.font); save(); render(); return; }
   if (d.lookText) { state.settings.look[d.lookText] = t.value.trim(); save(); render(); return; }
   if (d.lookToggle) { state.settings.look[d.lookToggle] = t.checked; applyTheme(state.settings.theme, state.settings.font); save(); render(); return; }
@@ -3742,4 +3958,3 @@ if (state.setup) enterApp(); else applyTheme('blush', FONTS[0][0]);
 </script>
 </body>
 </html>
-
