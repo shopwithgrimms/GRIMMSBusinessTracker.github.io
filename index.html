@@ -526,6 +526,10 @@ html[data-motion=off] *{animation:none!important;transition:none!important}
 .aidots i{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:50%;background:var(--sub);animation:aid 1s infinite}.aidots i:nth-child(2){animation-delay:.15s}.aidots i:nth-child(3){animation-delay:.3s}@keyframes aid{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
 .aipanel{position:sticky;bottom:0;background:var(--bg);padding:10px 0 12px;border-top:1px solid var(--line);margin-top:4px}.aicats{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px}.aicat{flex:none;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:12.5px;font-weight:700}.aicat.on{background:var(--p);color:var(--on-p);border-color:var(--p)}
 .aichips{display:flex;flex-wrap:wrap;gap:6px;max-height:190px;overflow-y:auto}.aichip{padding:8px 12px;border-radius:14px;border:1px solid var(--p);background:var(--p-soft);color:var(--text);font-size:13px;font-weight:600;text-align:left}.aichip.alt{border-color:var(--line);background:var(--card)}.aichip:disabled{opacity:.45}
+.var-row{display:grid;grid-template-columns:1fr 1fr 70px 36px;gap:6px;align-items:center;margin-bottom:8px}
+.cdot{display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid var(--line);flex:none}
+.vchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}.vchips .pill{gap:5px}
+.po-line{border:1px solid var(--line);border-radius:14px;padding:10px;margin-bottom:8px}.po-line>*+*{margin-top:6px}
 </style>
 </head>
 <body>
@@ -884,8 +888,8 @@ const METRICS = [['revenue', 'Revenue', 'money'], ['profit', 'Net profit', 'mone
 const UNITS = ['pcs', 'pack', 'box', 'roll', 'sheet', 'm', 'ft', 'yd', 'g', 'kg', 'oz', 'lb', 'ml', 'L'];
 const TERMS = ['Due on receipt', 'Net 7', 'Net 15', 'Net 30', 'Net 60'];
 const HOME_WIDGETS = [['pipeline', 'Order pipeline'], ['goals', 'Goals'], ['attention', 'Needs attention'], ['upcoming', 'Coming up'], ['lowstock', 'Low stock'], ['quick', 'Quick actions']];
-const COLL = { product: 'products', supply: 'supplies', expense: 'expenses', income: 'income', task: 'tasks', event: 'events', goal: 'goals', supplier: 'suppliers', note: 'notes', shift: 'shifts', order: 'orders', listing: 'listings', customer: 'customers', mileage: 'mileage', taxpay: 'taxPayments', account: 'accounts', transfer: 'transfers' };
-const ARCHIVABLE = new Set(['product', 'supply', 'supplier', 'note', 'order', 'listing', 'customer']);
+const COLL = { po: 'purchaseOrders', bill: 'bills', product: 'products', supply: 'supplies', expense: 'expenses', income: 'income', task: 'tasks', event: 'events', goal: 'goals', supplier: 'suppliers', note: 'notes', shift: 'shifts', order: 'orders', listing: 'listings', customer: 'customers', mileage: 'mileage', taxpay: 'taxPayments', account: 'accounts', transfer: 'transfers' };
+const ARCHIVABLE = new Set(['product', 'supply', 'supplier', 'note', 'order', 'listing', 'customer', 'po', 'bill']);
 const DEFAULT_METRICS = ['Views', 'Favorites', 'Offers', 'Clicks', 'Likes', 'Watchers'];
 
 /* Typical starting points for popular platforms. Fees change often, so these are only a head start. */
@@ -902,7 +906,7 @@ const PLATFORM_PRESETS = [
 ];
 
 const HOME_ORDER = ['pipeline', 'goals', 'attention', 'lowstock', 'upcoming', 'quick'];
-const QUICKS = [['sale', 'Sale'], ['bulk', 'Bulk order'], ['expense', 'Expense'], ['supply', 'Supply'], ['product', 'Product'], ['listing', 'Listing'], ['task', 'Task'], ['time', 'Time'], ['customer', 'Customer'], ['note', 'Note'], ['income', 'Income'], ['mileage', 'Trip']];
+const QUICKS = [['sale', 'Sale'], ['bulk', 'Bulk order'], ['expense', 'Expense'], ['supply', 'Supply'], ['product', 'Product'], ['listing', 'Listing'], ['task', 'Task'], ['time', 'Time'], ['customer', 'Customer'], ['note', 'Note'], ['income', 'Income'], ['mileage', 'Trip'], ['bill', 'Bill'], ['po', 'Purchase order']];
 const LOOK_DEFAULTS = () => ({ auto: false, darkTheme: 'midnight', accent: '', bg: '', card: '', round: 'default', density: 'default', size: '100', cardStyle: 'outline', bgStyle: 'solid', header: 'plain', nav: 'labels', btn: 'solid', border: 'thin', frame: 'phone', motion: true, headFont: '', greeting: '', emoji: '', homeChart: 'line', wholeHome: false, confetti: false, g1: '#fbcfe8', g2: '#c4b5fd', gAngle: '160', bgImg: '', bgDim: '30', particles: 'none', pCount: '16', pSpeed: '1', pEmoji: '', pageAnim: 'none', hover: 'none', press: 'none', tapFx: 'none', btnFx: 'none', titleFx: 'none', celebrate: 'confetti', sOn: false, sPack: 'soft', sVol: '60', sTap: true, sOk: true, sDel: true, sWin: true, homeOrder: HOME_ORDER.slice(), quickHide: ['customer', 'note', 'income', 'mileage'] });
 const guessWeekStart = () => {
   const l = (navigator.language || 'en-US').toLowerCase();
@@ -920,13 +924,14 @@ const DEFAULTS = () => ({
     paymentMethods: ['Cash', 'Card', 'PayPal', 'Bank transfer', 'Other'],
     carriers: ['USPS', 'UPS', 'FedEx', 'DHL', 'Local delivery', 'Platform label', 'Pickup'],
     metrics: DEFAULT_METRICS.slice(),
+    forecast: { days: 60, sales: true, spend: true, cash: '' },
     look: LOOK_DEFAULTS(),
   },
   prefs: { period: 'month', cs: '', ce: '' },
-  counters: { order: 0, listing: 0 },
+  counters: { order: 0, listing: 0, po: 0 },
   backup: { last: 0, fileName: '' },
   dismissed: {},
-  products: [], supplies: [], orders: [], expenses: [], income: [], suppliers: [], customers: [], listings: [], mileage: [], taxPayments: [], accounts: [], transfers: [], meetings: [],
+  products: [], supplies: [], orders: [], expenses: [], income: [], suppliers: [], customers: [], listings: [], mileage: [], taxPayments: [], accounts: [], transfers: [], meetings: [], bills: [], purchaseOrders: [],
   tasks: [], events: [], shifts: [], activeShift: null, notes: [], goals: [], activity: [],
 });
 let state = DEFAULTS();
@@ -1024,6 +1029,12 @@ function normalize(src) {
     if (l.pTitleSeen == null) l.pTitleSeen = pName(l.productId);
     if (l.pDescSeen == null) l.pDescSeen = pDesc(l.productId);
   });
+  /* bills, purchase orders, sizes & colors, unpaid invoices */
+  ['bills', 'purchaseOrders'].forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
+  { const sf = (src.settings || {}).forecast; out.settings.forecast = { ...d.settings.forecast, ...(sf && typeof sf === 'object' && !Array.isArray(sf) ? sf : {}) }; }
+  out.products.forEach(p => { if (!Array.isArray(p.variants)) p.variants = []; });
+  out.purchaseOrders.forEach(po => { if (!Array.isArray(po.items)) po.items = []; });
+  out.orders.forEach(o => { if (o.unpaid === undefined) o.unpaid = !!(o.bulk && num(o.deposit) > 0 && !closedOrder(o) && oc(o).owed > 0); });
   out.v = 3;
   return out;
 }
@@ -1180,7 +1191,10 @@ function feeFor(channelName, base) {
   const c = chanByName(channelName);
   return c ? r2(base * num(c.pct) / 100 + (base > 0 ? num(c.fixed) : 0)) : 0;
 }
-const live = () => state.orders.filter(o => !NOT_SALE.includes(o.status));   // archived orders still count in the numbers
+const live = () => state.orders.filter(o => !NOT_SALE.includes(o.status));
+/* cash only counts once an invoice is paid (and from the day it was paid) */
+const cashOrders = () => live().filter(o => !isOwed(o));
+const cashDate = o => o.paidDate || o.date;   // archived orders still count in the numbers
 
 /* ----- a whole period ----- */
 function summary(r) {
@@ -1256,6 +1270,7 @@ function applyStock(oldO, newO) {
     const p = state.products.find(x => x.id === id);
     if (p) p.qty = r2(num(p.qty) + (a[id] || 0) - (b[id] || 0));
   });
+  applyVarStock(oldO, newO);
 }
 function putOrder(o) {
   const i = state.orders.findIndex(x => x.id === o.id), old = i >= 0 ? state.orders[i] : null;
@@ -1346,6 +1361,8 @@ const openOrdersFor = pid => state.orders.filter(o => !o.archived && !closedOrde
 const productFinished = p => num(p.qty) <= 0 && !openOrdersFor(p.id).length && state.orders.some(o => o.status === 'Fulfilled' && o.items.some(i => i.productId === p.id));
 function archiveBlock(type, r) {
   const find_ = (c, id) => state[c].find(x => x.id === id);
+  if (type === 'bill' && !r.archived && !r.paid) return 'Mark this bill as paid before archiving it (or delete it).';
+  if (type === 'po' && !r.archived && poOpen(r)) return 'Receive or cancel this order first, then you can archive it.';
   if (r.archived) {                                   // bringing something back
     if (type === 'product') {
       const short = (r.recipe || []).map(x => { const s = find_('supplies', x.supplyId); return s && avail(s) < num(x.qty) - 1e-9 ? `${s.name} (needs ${x.qty}, only ${avail(s)} free)` : null; }).filter(Boolean);
@@ -1432,7 +1449,8 @@ function taxInfo(r) {
    situation changes (sig changes), so new problems always come back.
    ===================================================================== */
 const MAIL_CATS = { sales: 'Sales', stock: 'Inventory', listings: 'Listings', money: 'Money', plan: 'Plan', system: 'Data' };
-function alerts() {
+function alerts() { let a = alerts0(); try { a = a.concat(extraAlerts()); } catch (e) { /* never block the inbox */ } return a; }
+function alerts0() {
   const t = today(), out = [], add = a => out.push(a);
   const on = state.orders.filter(active), cnt = (...s) => on.filter(o => s.includes(o.status));
   const names = (arr, n = 3) => arr.slice(0, n).map(o => o.customer || orderNo(o)).join(', ') + (arr.length > n ? ` +${arr.length - n} more` : '');
@@ -1492,6 +1510,8 @@ function alerts() {
 const visibleAlerts = () => alerts().filter(a => state.dismissed[a.key] !== a.sig);
 /* which inbox categories belong to which page */
 function pageCats(v) {
+  if (v === 'bills' || v === 'forecast') return ['money'];
+  if (v === 'purchases') return ['stock'];
   if (v === 'sales') return ['sales'];
   if (v === 'stock') return ['stock', 'listings'];
   if (v === 'money' || v === 'taxes') return ['money'];
@@ -1612,7 +1632,7 @@ async function copyText(text, label) {
 /* =====================================================================
    10. VIEW STATE + SMALL RENDER HELPERS
    ===================================================================== */
-const ui = { tab: 'home', sub: null, ret: null, inboxAll: false, showDismissed: false, seg: { stock: 'supplies', money: 'overview', plan: 'tasks' }, q: '', filter: 'all', sort: '', cat: '', ch: '', arch: false, selMode: false, sel: new Set(), vis: [], cal: today().slice(0, 7), calSel: today(), limit: 60, showDone: false, setOpen: { business: true } };
+const ui = { tab: 'home', sub: null, ret: null, inboxAll: false, showDismissed: false, seg: { stock: 'supplies', money: 'overview', plan: 'tasks', bills: 'bills' }, q: '', filter: 'all', sort: '', cat: '', ch: '', arch: false, selMode: false, sel: new Set(), vis: [], cal: today().slice(0, 7), calSel: today(), limit: 60, showDone: false, setOpen: { business: true } };
 const charts = {};
 const BULK_EDIT = new Set(['order', 'product', 'supply', 'listing', 'expense', 'task', 'note']);
 
@@ -1716,13 +1736,15 @@ function chartHover(el, ev, leave) {
 /* =====================================================================
    11. HEADER + NAV
    ===================================================================== */
-const TITLES = { sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More', plan: 'Plan', goals: 'Goals', suppliers: 'Suppliers', customers: 'Customers', notes: 'Notes', mileage: 'Mileage', activity: 'Activity', settings: 'Settings', taxes: 'Taxes', assistant: 'Business Assistant', inbox: 'Inbox' };
+const TITLES = { sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More', plan: 'Plan', goals: 'Goals', suppliers: 'Suppliers', customers: 'Customers', notes: 'Notes', mileage: 'Mileage', activity: 'Activity', settings: 'Settings', taxes: 'Taxes', assistant: 'Business Assistant', inbox: 'Inbox', bills: 'Bills & Invoices', forecast: 'Cash Flow Forecast', purchases: 'Purchase Orders' };
 function addType() {
   const v = ui.sub || ui.tab, s = ui.seg;
   if (v === 'sales') return ['order', 'Sale'];
   if (v === 'stock') return s.stock === 'products' ? ['product', 'Product'] : s.stock === 'supplies' ? ['supply', 'Supply'] : ['listing', 'Listing'];
   if (v === 'money') return s.money === 'expenses' ? ['expense', 'Expense'] : s.money === 'income' ? ['income', 'Income'] : null;
   if (v === 'plan') return s.plan === 'tasks' ? ['task', 'Task'] : s.plan === 'calendar' ? ['event', 'Event'] : ['shift', 'Entry'];
+  if (v === 'bills') return s.bills === 'invoices' ? ['newinvoice', 'Invoice'] : ['bill', 'Bill'];
+  if (v === 'purchases') return ['po', 'Order'];
   if (v === 'goals') return ['goal', 'Goal'];
   if (v === 'suppliers') return ['supplier', 'Supplier'];
   if (v === 'customers') return ['customer', 'Customer'];
@@ -1833,6 +1855,8 @@ V.home = () => {
         <button data-q="note" data-act="add" data-type="note">${ic('sticky-note')}Note</button>
         <button data-q="income" data-act="add" data-type="income">${ic('banknote')}Income</button>
         <button data-q="mileage" data-act="add" data-type="mileage">${ic('car')}Trip</button>
+        <button data-q="bill" data-act="add" data-type="bill">${ic('receipt')}Bill</button>
+        <button data-q="po" data-act="add" data-type="po">${ic('truck')}Purchase order</button>
       </div></div>` : ''}
   </div>`;
 };
@@ -1854,13 +1878,13 @@ function salesFiltered() {
 }
 function orderCard(o) {
   const c = oc(o), title = o.customer || (o.items[0] && o.items[0].name) || 'Sale', t = today();
-  const lines = o.items.map(i => `${i.qty}× ${i.name}${itemSku(i) ? ' (' + itemSku(i) + ')' : ''}`).join(', ');
+  const lines = o.items.map(i => `${i.qty}× ${lineName(i)}${itemSku(i) ? ' (' + itemSku(i) + ')' : ''}`).join(', ');
   const shipping = ['Order Received', 'In Preparation', 'Packaged'].includes(o.status);
   return `<button class="card sm item click ${NOT_SALE.includes(o.status) ? 'done' : ''} ${selCls(o.id)}" ${selAttr(o.id)} data-act="open-order" data-id="${o.id}">
     ${selMark(o.id)}<div class="ava">${esc(initial(o.channel || title))}</div>
     <div class="grow"><h4 class="trunc t">${esc(title)}</h4><div class="meta trunc">${orderNo(o)} · ${fmtDate(o.date)}${o.channel ? ' · ' + esc(o.channel) : ''}</div><div class="meta trunc">${esc(lines)}</div>${shipping && o.shipBy ? `<div class="meta ${o.shipBy < t ? 'bad-t b' : ''}">Ship by ${fmtDate(o.shipBy)}</div>` : ''}
       ${(o.bulk || (num(o.deposit) > 0 && c.owed > 0 && !closedOrder(o))) ? `<div class="row" style="gap:6px;margin-top:3px">${o.bulk ? pill('Bulk', 'brand', 'layers') : ''}${num(o.deposit) > 0 && c.owed > 0 && !closedOrder(o) ? pill('Balance ' + money(c.owed), 'warn') : ''}</div>` : ''}</div>
-    <div class="side"><div class="amt num t">${money(c.net)}</div>${statusPill(o.status)}</div></button>`;
+    <div class="side"><div class="amt num t">${money(c.net)}</div>${statusPill(o.status)}${isOwed(o) ? pill('Unpaid ' + money(owedAmt(o)), invDueDate(o) < today() ? 'bad' : 'warn') : ''}</div></button>`;
 }
 function salesList() {
   const l = salesFiltered(); ui.vis = l.map(o => o.id);
@@ -1903,6 +1927,7 @@ function stockCard(it, prod) {
     <button class="grow" style="text-align:left;min-width:0" data-act="edit" data-type="${prod ? 'product' : 'supply'}" data-id="${it.id}">
       <h4 class="trunc">${esc(it.name)}</h4><div class="meta trunc">${meta}</div>
       <div class="row" style="gap:6px;margin-top:4px;flex-wrap:wrap">${it.category ? pill(it.category) : ''}${margin != null ? pill(pct(margin) + ' margin', margin < 20 ? 'warn' : 'ok') : ''}${prod && (it.recipe || []).length ? pill('Uses ' + it.recipe.length + ' suppl' + (it.recipe.length > 1 ? 'ies' : 'y'), 'mute') : ''}${usedIn ? pill('In ' + usedIn + ' product' + (usedIn > 1 ? 's' : ''), 'mute') : ''}${nlive ? pill(nlive + ' live', 'ok', 'store') : ''}${it.location ? pill(it.location, 'mute', 'map-pin') : ''}</div>
+      ${prod ? variantChips(it) : ''}
       ${alloc > 0 ? `<div class="meta" style="margin-top:3px">${r2(it.qty)} owned · <b>${r2(alloc)} used in products</b></div>` : ''}</button>
     <div class="side" style="border-left:1px solid var(--line);padding-left:10px">
       <div class="bb num" style="font-size:15px">${esc(String(q))}<small class="sub" style="font-weight:600;font-size:10px"> ${prod ? 'units' : esc(it.unit || 'units')}</small></div>
@@ -1984,7 +2009,8 @@ V.stock = () => {
 
 /* ---------------- MONEY ---------------- */
 function groupBy(arr, keyFn) { const m = new Map(); arr.forEach(x => { const k = keyFn(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }); return m; }
-function moneyOverview() {
+function moneyOverview() { return moneyGlance() + moneyOverview0(); }
+function moneyOverview0() {
   const p = state.prefs.period, r = periodRange(p), s = summary(r), os = live().filter(o => inR(o.date, r));
   const kv = (l, v, cls = '', sign = '') => `<div class="kv ${cls}"><span>${l}</span><span class="num">${sign}${money(Math.abs(v))}</span></div>`;
   const ch = [...groupBy(os, o => o.channel || 'Other').entries()].map(([k, a]) => ({ k, n: a.length, net: sum(a, o => oc(o).net), profit: sum(a, o => oc(o).profit), fees: sum(a, o => oc(o).fees) })).sort((a, b) => b.net - a.net);
@@ -2593,6 +2619,9 @@ V.more = () => {
       ${row('list-checks', 'Plan', `Tasks, calendar and time tracking${open ? ' · ' + open + ' open' : ''}`, 'plan')}
       ${row('target', 'Goals', 'Revenue, profit and order targets', 'goals')}
       ${row('landmark', 'Taxes', 'What to set aside, sales tax and payments', 'taxes')}
+      ${row('receipt', 'Bills & invoices', billsLine(), 'bills')}
+      ${row('line-chart', 'Cash flow forecast', 'Will your money cover what is coming?', 'forecast')}
+      ${row('truck', 'Purchase orders', 'Order from suppliers and receive stock', 'purchases')}
       ${row('users', 'Customers', `${nc} saved · repeat buyers and lifetime value`, 'customers')}
       ${row('contact', 'Suppliers', 'Who you buy from', 'suppliers')}
       ${row('car', 'Mileage', 'Business trips and the deduction they are worth', 'mileage')}
@@ -2738,6 +2767,8 @@ function dataBody() {
       <button class="btn btn-soft block" data-act="copy-backup">${ic('copy')} Copy ALL my data as text</button>
       <button class="btn btn-soft block" data-act="paste-restore">${ic('upload')} Restore by pasting text</button>
       <p class="hint" style="margin:-2px 0 4px">Moving to another phone or computer? Copy here, then open the app there and choose "Restore by pasting text".</p>
+      <button class="btn btn-soft block" data-act="biz-text">${ic('file-text')} Copy my whole business as text (report)</button>
+      <p class="hint" style="margin:-2px 0 4px">A readable list of everything: supplies, products, listings and orders, active, archived and sold. Different from "Copy ALL my data", which is for moving to another device.</p>
       <p class="eyebrow" style="margin-top:6px">Export spreadsheets (CSV)</p>
       <div class="grid2">${[['orders', 'Sales'], ['expenses', 'Expenses'], ['products', 'Products'], ['supplies', 'Supplies'], ['listings', 'Listings'], ['snaps', 'Analytics'], ['customers', 'Customers'], ['mileage', 'Mileage'], ['income', 'Income']].map(x => `<button class="btn btn-line btn-sm" data-act="export-csv" data-k="${x[0]}">${x[1]}</button>`).join('')}</div>
       <button class="btn btn-line btn-sm block" data-act="csv-import">${ic('upload')} Import products from CSV</button>
@@ -2975,7 +3006,7 @@ const fCheck = (l, n, v, a = '') => `<label class="row b sm-t" style="margin-bot
 const optsWithNew = (list, v, label) => { const l = list.includes(v) || !v ? list : list.concat([v]); return l.map(o => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('') + `<option value="__new">＋ New ${label}…</option>`; };
 const fCat = (l, n, key, v, label = 'category') => `<label class="fld"><span>${l}</span><select class="select" name="${n}" data-newlist="${key}" data-label="${label}" data-prev="${esc(v)}">${optsWithNew(state.settings[key], v, label)}</select></label>`;
 const fSupplier = (v, blank = 'None') => `<label class="fld"><span>Supplier</span><select class="select" name="supplierId" data-newsupplier data-prev="${esc(v || '')}"><option value="">${blank}</option>${state.suppliers.filter(active).map(s => `<option value="${s.id}" ${s.id === v ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}<option value="__new">＋ New supplier…</option></select></label>`;
-const DUP = new Set(['product', 'supply', 'listing', 'order', 'expense', 'task']);
+const DUP = new Set(['product', 'supply', 'listing', 'order', 'expense', 'task', 'bill', 'po']);
 const find = (coll, id) => state[coll].find(x => x.id === id);
 const foot = (type, id, label = 'Save', extra = '') => {
   const rec = id && COLL[type] ? find(COLL[type], id) : null;
@@ -3055,10 +3086,11 @@ OPEN.product = id => {
       <div id="tier-rows">${(d.tiers || []).map(tierRow).join('')}</div>
       <button type="button" class="link" data-act="tier-add">${ic('plus')} Add a price break</button>
       <p class="hint">For customers buying in bulk. Example: buy 10 or more, pay 20 each. It fills in automatically on a sale.</p></div>
+    ${varEditor(d)}
     <div class="preview" id="pv"></div>
     ${fText('Tags', 'tags', d.tags, 'maxlength="80" placeholder="gift, bestseller, seasonal"')}
     ${fArea('Notes', 'notes', d.notes)}`, foot('product', id)));
-  formLive($('form[data-form=product]'));
+  formLive($('form[data-form=product]')); syncVarQty($('form[data-form=product]'));
 };
 FORMS.product = (f, fd, id) => {
   const name = tidy(fd.get('name')); if (!name) return toast('Please enter a name');
@@ -3068,6 +3100,9 @@ FORMS.product = (f, fd, id) => {
     for (const r of recipe) { const free = freeFor(r.supplyId, id), s = find('supplies', r.supplyId); if (r.qty > free + 1e-9) return toast(`Only ${free} ${s.unit} of ${s.name} available. Add stock first or use less`); }
   }
   const rec = { name, title: tidy(fd.get('title')), description: tidy(fd.get('description')), sku: tidy(fd.get('sku')), barcode: tidy(fd.get('barcode')), category: fd.get('category') || '', location: tidy(fd.get('location')), supplierId: fd.get('supplierId') || '', price: num(fd.get('price')), cost: num(fd.get('cost')), qty: Math.round(num(fd.get('qty'))), low: fd.get('low') === '' ? '' : Math.max(0, Math.round(num(fd.get('low')))), tags: tidy(fd.get('tags')), notes: tidy(fd.get('notes')), recipe, batch, tiers: readTiers(f) };
+  { const vs = readVariants(f), seen = new Set();
+    for (const v of vs) { const k = lc(v.size) + '|' + lc(v.color); if (seen.has(k)) return toast('Two rows have the same size and color'); seen.add(k); }
+    rec.variants = vs; if (vs.length) rec.qty = sum(vs, v => num(v.qty)); }
   if (id) Object.assign(old, rec); else state.products.push({ id: uid('p'), ...rec });
   done('Product saved', [(id ? 'Updated product ' : 'Added product ') + name, 'tag']);
 };
@@ -3107,6 +3142,7 @@ const lineRow = l => {
   return `<div class="line"><div class="row" style="margin-bottom:8px"><select class="select sm" name="lp"><option value="">Custom item / service</option>${state.products.filter(x => active(x) || (p && x.id === p.id)).map(x => `<option value="${x.id}" ${p && x.id === p.id ? 'selected' : ''}>${esc(pLabel(x))} (${x.qty} in stock)</option>`).join('')}</select><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove item">${ic('x')}</button></div>
     <input class="input sm" name="ln" placeholder="Item name" value="${esc(custom ? l.name : (p ? p.name : ''))}" ${custom ? '' : 'hidden'} style="margin-bottom:8px">
     <select class="select sm" name="ll" style="margin-bottom:8px" ${p ? '' : 'hidden'}>${p ? listingOpts(p.id, l.listingId) : ''}</select>
+    <select class="select sm" name="lv" style="margin-bottom:8px" ${p && (p.variants || []).length ? '' : 'hidden'}>${p && (p.variants || []).length ? variantOpts(p, l) : ''}</select><input type="hidden" name="lsz" value="${esc(l.size || '')}"><input type="hidden" name="lcl" value="${esc(l.color || '')}">
     <input type="hidden" name="lr" value="${l.returned || 0}">
     <div class="grid3"><label>Qty<input class="input" type="number" step="1" min="1" name="lq" value="${l.qty ?? 1}"></label><label>Price each<input class="input" type="number" step="any" min="0" name="lc" value="${l.price ?? ''}" placeholder="0.00"></label><label>Cost each<input class="input" type="number" step="any" min="0" name="lk" value="${l.cost ?? ''}" placeholder="0.00"></label></div>
     <div class="warn-txt" data-stockwarn></div><div class="hint" data-tierhint style="margin-top:4px"></div></div>`;
@@ -3114,9 +3150,9 @@ const lineRow = l => {
 const customerNames = () => [...new Set(state.customers.map(c => c.name).concat(state.orders.map(o => o.customer)).filter(Boolean))];
 OPEN.order = (id, pre = {}) => {
   const o = id ? find('orders', id) : null;
-  const d = o ? clone(o) : { acct: defaultAcct('orders'), date: today(), customer: pre.customer || '', channel: (state.settings.channels[0] || {}).name || '', items: [{ productId: '', name: '', qty: 1, price: '', cost: '' }], discount: '', bulk: !!pre.bulk, bulkPct: '', po: '', terms: pre.bulk ? 'Net 15' : '', deposit: '', shipCharged: '', tax: '', postage: '', fees: '', feesManual: false, finalProfit: '', status: 'Order Received', payment: '', carrier: '', shipBy: '', tracking: '', ref: '', notes: '' };
+  const d = o ? clone(o) : { acct: defaultAcct('orders'), date: today(), customer: pre.customer || '', channel: (state.settings.channels[0] || {}).name || '', items: [{ productId: '', name: '', qty: 1, price: '', cost: '' }], discount: '', bulk: !!pre.bulk, bulkPct: '', po: '', terms: pre.bulk ? 'Net 15' : '', deposit: '', shipCharged: '', tax: '', postage: '', fees: '', feesManual: false, finalProfit: '', status: 'Order Received', payment: '', carrier: '', shipBy: '', tracking: '', ref: '', notes: '', unpaid: !!pre.unpaid, invTerms: pre.unpaid ? 'Net 15' : '', invDue: '' };
   const chans = state.settings.channels.map(c => c.name); if (d.channel && !chans.includes(d.channel)) chans.push(d.channel);
-  openSheet(o ? 'Edit sale ' + orderNo(o) : (d.bulk ? 'New bulk order' : 'New sale'), formWrap('order', id, `
+  openSheet(o ? 'Edit sale ' + orderNo(o) : (d.bulk ? 'New bulk order' : d.unpaid ? 'New invoice' : 'New sale'), formWrap('order', id, `
     <div class="grid2">${fDate('Date', 'date', d.date)}${fSel('Sold via', 'channel', chans.length ? chans : [''], d.channel)}</div>
     <label class="fld"><span>Customer</span><input class="input" name="customer" list="cust-list" value="${esc(d.customer)}" maxlength="80" placeholder="Name (optional)"><datalist id="cust-list">${customerNames().map(c => `<option value="${esc(c)}">`).join('')}</datalist></label>
     ${fCheck('Bulk / wholesale order', 'bulk', d.bulk)}
@@ -3130,6 +3166,10 @@ OPEN.order = (id, pre = {}) => {
     ${fNum('Sales tax collected', 'tax', d.tax || '', '0.00', 'min="0"')}
     ${fSel('Money went into', 'acct', acctOpts(), d.acct || '')}
     <p class="hint" style="margin-top:-8px;margin-bottom:12px">Whatever you pick here is added to that account and to Money → Income by itself.</p>
+    <div class="preview" style="background:none;border:1px dashed var(--line);margin-bottom:12px">
+      ${fCheck('Not paid yet: the customer still owes me (unpaid invoice)', 'unpaid', d.unpaid)}
+      <div class="grid2">${fSel('Payment terms', 'invTerms', [['', 'Due on receipt']].concat(TERMS.filter(x => x !== 'Due on receipt').map(x => [x, x])), d.invTerms || d.terms || '')}${fDate('Due date (optional)', 'invDue', d.invDue, false)}</div>
+      <p class="hint" style="margin:0">It shows under Bills &amp; invoices until you record the payment. Cash is added to your account only once it is paid. Leave the due date blank to work it out from the terms.</p></div>
     ${fNum('Final amount you received (before cost of goods) · optional', 'finalProfit', d.finalProfit, 'Leave blank to use the estimate. Cost of goods is still taken off for your profit')}
     <p class="hint" style="margin-top:-6px;margin-bottom:12px">Once you know what you really ended up with from this order (after fees and postage, before the cost of what you made or bought), type it here. It replaces the estimate. Your cost of goods is still counted and shown separately, so you can see your profit both with and without it.</p>
     <label class="fld"><span>Status</span><select class="select" name="status">${statusOptions(d.status)}</select></label>
@@ -3143,10 +3183,16 @@ OPEN.order = (id, pre = {}) => {
 };
 function autoFees(o) { const c = oc(o); return feeFor(o.channel, c.sub - c.disc + num(o.shipCharged)); }
 function readOrder(f, existing) {
+  const o = readOrder0(f, existing), fd = new FormData(f), was = !!(existing && existing.unpaid);
+  o.unpaid = fd.get('unpaid') === 'on'; o.invTerms = fd.get('invTerms') || ''; o.invDue = fd.get('invDue') || '';
+  if (was && !o.unpaid) o.paidDate = today(); if (!was && o.unpaid) delete o.paidDate;
+  return o;
+}
+function readOrder0(f, existing) {
   const fd = new FormData(f);
   const items = $$('.line', f).map(row => {
     const pid = $('[name=lp]', row).value, p = pid && find('products', pid), ll = $('[name=ll]', row);
-    return { productId: p ? p.id : '', name: p ? p.name : tidy($('[name=ln]', row).value), listingId: p && ll ? ll.value : '', qty: Math.max(0, Math.round(num($('[name=lq]', row).value))), price: num($('[name=lc]', row).value), cost: num($('[name=lk]', row).value), returned: num($('[name=lr]', row).value) };
+    return { productId: p ? p.id : '', name: p ? p.name : tidy($('[name=ln]', row).value), listingId: p && ll ? ll.value : '', qty: Math.max(0, Math.round(num($('[name=lq]', row).value))), price: num($('[name=lc]', row).value), cost: num($('[name=lk]', row).value), returned: num($('[name=lr]', row).value), ...varOf(row) };
   }).filter(l => l.qty > 0 && (l.productId || l.name));
   items.forEach(l => { l.returned = Math.min(l.returned, l.qty); });
   const feeRaw = String(fd.get('fees') || '').trim(), manual = feeRaw !== '', bulk = fd.get('bulk') === 'on';
@@ -3157,6 +3203,7 @@ function readOrder(f, existing) {
 FORMS.order = (f, fd, id) => {
   const old = id ? find('orders', id) : null; let o = readOrder(f, old);
   if (!o.items.length) return toast('Add at least one item with a quantity');
+  if (!old) { const need = o.items.find(l => { const p = l.productId && find('products', l.productId); return p && (p.variants || []).length && !l.variantId; }); if (need) return toast(`Pick a size / color for ${need.name}`); }
   if (!o.date) return toast('Please choose a date');
   if (!old || old.status !== o.status) o = setOrderStatus(o, o.status);
   if (!old) { state.counters.order++; o.id = uid('o'); o.no = state.counters.order; o.createdAt = Date.now(); }
@@ -3172,12 +3219,13 @@ OPEN.orderDetail = id => {
   openSheet(`${orderNo(o)} ${statusPill(o.status)}${o.bulk ? ' ' + pill('Bulk', 'brand') : ''}${o.archived ? ' ' + pill('Archived', 'mute') : ''}`, `<div class="sheet-body stack-sm">
     <p class="sm-t sub">${fmtDateLong(o.date)}${o.customer ? ' · <b style="color:var(--text)">' + esc(o.customer) + '</b>' : ''}${o.channel ? ' · ' + esc(o.channel) : ''}${o.payment ? ' · paid by ' + esc(o.payment) : ''}${o.ref ? ' · #' + esc(o.ref) : ''}</p>
     ${STATUS_HELP[o.status] ? `<div class="notice warn">${ic('info')}<span>${esc(STATUS_HELP[o.status])}.</span></div>` : ''}
-    <div class="card sm">${o.items.map(l => `<div class="kv"><span>${l.qty}× ${esc(l.name)}${l.returned ? ` <span class="warn-t xs">(${l.returned} returned)</span>` : ''}</span><span class="num">${money(l.qty * l.price)}</span></div>`).join('')}</div>
+    <div class="card sm">${o.items.map(l => `<div class="kv"><span>${l.qty}× ${esc(lineName(l))}${l.returned ? ` <span class="warn-t xs">(${l.returned} returned)</span>` : ''}</span><span class="num">${money(l.qty * l.price)}</span></div>`).join('')}</div>
     <div class="card sm">${kv('Items', c.sub)}${c.disc ? kv('Discount', c.disc, '', 1) : ''}${num(o.shipCharged) ? kv('Shipping buyer paid (not counted as your income)', num(o.shipCharged)) : ''}${c.tax ? kv('Sales tax collected (not income)', c.tax) : ''}${c.refund ? kv('Refunded', c.refund, '', 1) : ''}${kv('Fees' + (o.feesManual ? '' : ' (auto)'), c.fees, '', 1)}<div class="kv b"><span>You receive after fees</span><span class="num">${money(c.payout)}</span></div>${kv('Postage', c.post, '', 1)}${c.reimb ? kv('Claim paid back to you', c.reimb) : ''}
       ${c.hasFinal ? kv('Estimated amount made (not used)', c.calcMade) : ''}<div class="kv b sec"><span>${c.hasFinal ? 'Money you made (actual)' : 'Money you made'} <span class="xs sub">before cost of goods</span></span><span class="num ${c.made < 0 ? 'bad-t' : 'ok-t'}">${c.made < 0 ? '− ' : ''}${money(Math.abs(c.made))}</span></div>
       ${kv('Cost of goods', c.cogs, '', 1)}<div class="kv total sec"><span>Profit after cost of goods</span><span class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${c.profit < 0 ? '− ' : ''}${money(Math.abs(c.profit))}</span></div>${c.margin != null ? `<p class="hint">${pct(c.margin)} margin after cost of goods · cost of goods is what the materials or stock cost you. It is shown separately so you can see what you made with and without it.</p>` : ''}</div>
     <div class="card sm"><h4 class="eyebrow" style="margin-bottom:6px">Dates</h4><div class="kv"><span>Ordered</span><span class="num">${fmtDate(o.date)}</span></div>${FLOW.map(st => `<div class="kv" style="align-items:center;${o.status === st ? 'font-weight:800' : ''}"><span>${st}</span><input class="input sm" type="date" style="width:auto;flex:none" data-order-date="${o.id}" data-step="${esc(st)}" value="${esc((o.stepDates || {})[st] || '')}" aria-label="${esc(st)} date"></div>`).join('')}</div>
     ${(o.bulk || num(o.deposit) > 0) ? `<div class="card sm"><h4 class="eyebrow" style="margin-bottom:6px">Bulk order</h4>${o.po ? `<div class="kv"><span>PO</span><b>${esc(o.po)}</b></div>` : ''}${o.terms ? `<div class="kv"><span>Terms</span><b>${esc(o.terms)}</b></div>` : ''}${num(o.bulkPct) ? `<div class="kv"><span>Wholesale discount</span><b>${pct(num(o.bulkPct))}</b></div>` : ''}${num(o.deposit) ? kv('Deposit paid', num(o.deposit)) : ''}<div class="kv total"><span>Balance due</span><span class="num ${c.owed > 0 && !closedOrder(o) ? 'warn-t' : ''}">${money(closedOrder(o) ? 0 : c.owed)}</span></div></div>` : ''}
+    ${isOwed(o) ? `<div class="card sm" style="border-color:var(--warn)"><h4 class="eyebrow" style="margin-bottom:6px">Unpaid invoice</h4><div class="kv"><span>Still owed</span><b class="num warn-t">${money(owedAmt(o))}</b></div><div class="kv"><span>Due</span><b>${fmtDate(invDueDate(o))}${invDueDate(o) < today() ? ' · overdue' : ''}</b></div><div class="row" style="gap:8px;margin-top:8px"><button class="btn btn-primary btn-sm grow" data-act="pay-invoice" data-id="${o.id}">Record payment</button><button class="btn btn-line btn-sm" data-act="inv-remind" data-id="${o.id}">${ic('copy')} Reminder</button></div></div>` : (o.paidDate ? `<p class="xs sub">Invoice paid ${fmtDate(o.paidDate)}</p>` : '')}
     ${next && !NOT_SALE.includes(o.status) ? `<button class="btn btn-primary block" data-act="advance" data-id="${o.id}">Mark as ${next} ${ic('arrow-right')}</button>` : ''}
     <label class="fld" style="margin-bottom:0"><span>Status</span><select class="select" data-order-status="${o.id}">${statusOptions(o.status)}</select></label>
     ${(o.carrier || o.tracking || o.shipBy) ? `<p class="sm-t"><span class="eyebrow">Shipping</span><br><b>${esc([o.carrier, o.tracking].filter(Boolean).join(' · ') || 'No tracking yet')}</b>${o.shipBy ? ` <span class="sub">· ship by ${fmtDate(o.shipBy)}</span>` : ''}</p>` : ''}${o.notes ? `<p class="sm-t sub" style="white-space:pre-line">${esc(o.notes)}</p>` : ''}
@@ -3202,14 +3250,14 @@ FORMS.refund = (f, fd, id) => {
 OPEN.invoice = id => {
   const o = find('orders', id); if (!o) return;
   const c = oc(o), b = state.settings.business, cust = state.customers.find(x => lc(x.name) === lc(o.customer));
-  const nl = s => esc(s).replace(/\n/g, '<br>'), paid = closedOrder(o) || c.owed <= 0;
+  const nl = s => esc(s).replace(/\n/g, '<br>'), paid = isOwed(o) ? false : (closedOrder(o) || c.owed <= 0);
   openSheet('Invoice', `<div class="sheet-body"><div class="invoice" id="invoice">
     <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><h2>${esc(state.settings.name || 'Invoice')}</h2><div style="color:#525252">${b.address ? nl(b.address) + '<br>' : ''}${[b.email, b.phone].filter(Boolean).map(esc).join(' · ')}${b.taxId ? '<br>ID: ' + esc(b.taxId) : ''}</div></div>
       <div style="text-align:right"><div style="font-size:10px;letter-spacing:.08em;color:#737373;font-weight:700">INVOICE</div><div style="font-weight:800;font-size:16px">${orderNo(o)}</div><div style="color:#525252">${fmtDateLong(o.date)}</div>${o.po ? `<div style="color:#525252">PO: ${esc(o.po)}</div>` : ''}${o.terms ? `<div style="color:#525252">Terms: ${esc(o.terms)}</div>` : ''}</div></div>
     ${(o.customer || cust) ? `<div style="margin-top:16px"><div style="font-size:10px;letter-spacing:.08em;color:#737373;font-weight:700">BILL TO</div><b>${esc(o.customer)}</b>${cust && cust.address ? '<br>' + nl(cust.address) : ''}${cust && cust.email ? '<br>' + esc(cust.email) : ''}</div>` : ''}
-    <table><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Amount</th></tr></thead><tbody>${o.items.map(l => `<tr><td>${esc(l.name)}</td><td class="r">${l.qty}</td><td class="r">${money(l.price)}</td><td class="r">${money(l.qty * l.price)}</td></tr>`).join('')}</tbody></table>
+    <table><thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Amount</th></tr></thead><tbody>${o.items.map(l => `<tr><td>${esc(lineName(l))}</td><td class="r">${l.qty}</td><td class="r">${money(l.price)}</td><td class="r">${money(l.qty * l.price)}</td></tr>`).join('')}</tbody></table>
     <table style="width:60%;margin-left:auto"><tbody><tr class="tot"><td>Subtotal</td><td class="r">${money(c.sub)}</td></tr>${c.disc ? `<tr class="tot"><td>Discount${num(o.bulkPct) ? ' (' + pct(num(o.bulkPct)) + ' wholesale)' : ''}</td><td class="r">− ${money(c.disc)}</td></tr>` : ''}${num(o.shipCharged) ? `<tr class="tot"><td>Shipping</td><td class="r">${money(num(o.shipCharged))}</td></tr>` : ''}${c.tax ? `<tr class="tot"><td>Sales tax</td><td class="r">${money(c.tax)}</td></tr>` : ''}${c.refund ? `<tr class="tot"><td>Refunded</td><td class="r">− ${money(c.refund)}</td></tr>` : ''}<tr class="grand"><td>Total</td><td class="r">${money(c.net + c.shipPaid + c.tax)}</td></tr>${num(o.deposit) ? `<tr class="tot"><td>Deposit paid</td><td class="r">− ${money(num(o.deposit))}</td></tr><tr class="grand"><td>Balance due</td><td class="r">${money(paid ? 0 : c.owed)}</td></tr>` : ''}</tbody></table>
-    <div style="color:#525252">${NOT_SALE.includes(o.status) ? '<b>' + esc(o.status) + '.</b> ' : paid ? '<b style="color:#047857">Paid' + (o.payment ? ' by ' + esc(o.payment) : '') + '.</b> ' : '<b style="color:#b45309">Payment due.</b> '}${b.note ? esc(b.note) : ''}</div></div></div>
+    <div style="color:#525252">${NOT_SALE.includes(o.status) ? '<b>' + esc(o.status) + '.</b> ' : paid ? '<b style="color:#047857">Paid' + (o.payment ? ' by ' + esc(o.payment) : '') + '.</b> ' : '<b style="color:#b45309">Payment due' + (isOwed(o) ? ' by ' + fmtDate(invDueDate(o)) + ' (' + money(c.owed) + ')' : '') + '.</b> '}${b.note ? esc(b.note) : ''}</div></div></div>
     <div class="sheet-foot noprint"><button class="btn btn-line" data-act="open-order" data-id="${o.id}">Back</button><button class="btn btn-primary" data-act="print">${ic('printer')} Print / save PDF</button></div>`);
 };
 
@@ -3220,14 +3268,14 @@ const acctName = id => (state.accounts.find(a => a.id === id) || {}).name || 'De
 function acctBal(a, r) {
   const W = d => !r || inR(d, r);
   /* money in = cash you received from sales (before cost of goods, since that was spent earlier) + other income; money out = expenses */
-  const inn = sum(live().filter(o => o.acct === a.id && W(o.date)), o => oc(o).made) + sum(state.income.filter(x => x.acct === a.id && W(x.date)), x => num(x.amount));
+  const inn = sum(cashOrders().filter(o => o.acct === a.id && W(cashDate(o))), o => oc(o).made) + sum(state.income.filter(x => x.acct === a.id && W(x.date)), x => num(x.amount));
   const out = sum(state.expenses.filter(x => x.acct === a.id && W(x.date)), x => num(x.amount)) + sum(state.taxPayments.filter(x => x.acct === a.id && W(x.date)), x => num(x.amount));
   const tin = sum(state.transfers.filter(t => t.to === a.id && W(t.date)), t => num(t.amount)), tout = sum(state.transfers.filter(t => t.from === a.id && W(t.date)), t => num(t.amount));
   return { inn, out, tin, tout, bal: r2((r ? 0 : num(a.opening)) + inn - out + tin - tout) };
 }
 function balSeries(days = 30) {
   const ids = state.accounts.map(a => a.id), ev = [];
-  live().filter(o => ids.includes(o.acct)).forEach(o => ev.push([o.date, oc(o).made]));
+  cashOrders().filter(o => ids.includes(o.acct)).forEach(o => ev.push([cashDate(o), oc(o).made]));
   state.income.filter(x => ids.includes(x.acct)).forEach(x => ev.push([x.date, num(x.amount)]));
   state.expenses.filter(x => ids.includes(x.acct)).forEach(x => ev.push([x.date, -num(x.amount)]));
   state.taxPayments.filter(x => ids.includes(x.acct)).forEach(x => ev.push([x.date, -num(x.amount)]));
@@ -3241,7 +3289,7 @@ const lastAcct = coll => { const l = (state[coll] || []).filter(x => hasAcct(x.a
 const defaultAcct = coll => state.accounts.length === 1 ? state.accounts[0].id : lastAcct(coll);
 function ledger(opt = {}) {
   const A = opt.acct, keep = id => A ? id === A : hasAcct(id), rows = [];
-  live().forEach(o => { if (!keep(o.acct)) return; const c = oc(o); rows.push({ k: 'sale', ico: 'receipt', date: o.date, amt: c.made, acct: o.acct, t: orderNo(o) + (o.customer ? ' · ' + o.customer : ''), m: [o.channel, o.payment].filter(Boolean).join(' · ') || 'Sale', act: 'open-order', id: o.id, due: num(o.deposit) > 0 && !closedOrder(o) ? c.owed : 0, src: o.channel || 'Other' }); });
+  cashOrders().forEach(o => { if (!keep(o.acct)) return; const c = oc(o); rows.push({ k: 'sale', ico: 'receipt', date: cashDate(o), amt: c.made, acct: o.acct, t: orderNo(o) + (o.customer ? ' · ' + o.customer : ''), m: [o.channel, o.payment].filter(Boolean).join(' · ') || 'Sale', act: 'open-order', id: o.id, due: num(o.deposit) > 0 && !closedOrder(o) ? c.owed : 0, src: o.channel || 'Other' }); });
   state.income.forEach(x => { if (!keep(x.acct)) return; rows.push({ k: 'income', ico: 'banknote', date: x.date, amt: num(x.amount), acct: x.acct, t: x.desc, m: 'Other income', act: 'edit', type: 'income', id: x.id, src: x.desc }); });
   state.expenses.forEach(x => { if (!keep(x.acct)) return; rows.push({ k: x.stockBuy ? 'stock' : 'expense', ico: x.repeat || x.from ? 'repeat' : 'receipt', date: x.date, amt: -num(x.amount), acct: x.acct, t: x.desc, m: [x.stockBuy ? 'Stock bought' : (x.cat || 'Expense'), x.vendor].filter(Boolean).join(' · '), act: 'edit', type: 'expense', id: x.id, src: x.stockBuy ? 'Stock bought' : (x.cat || 'Other') }); });
   state.taxPayments.forEach(x => { if (!keep(x.acct)) return; rows.push({ k: 'tax', ico: 'landmark', date: x.date, amt: -num(x.amount), acct: x.acct, t: (x.kind || 'Tax') + ' payment', m: x.note || 'Tax', act: 'edit', type: 'taxpay', id: x.id, src: (x.kind || 'Tax') + ' payments' }); });
@@ -3642,7 +3690,7 @@ const price_ = r => num(r.price);
 /* =====================================================================
    10. RECORD OPERATIONS: delete, archive, duplicate, bulk edit, bulk listings, CSV, search
    ===================================================================== */
-const TYPE_NAME = { order: 'sale', product: 'product', supply: 'supply', listing: 'listing', expense: 'expense', income: 'income entry', task: 'task', event: 'event', goal: 'goal', supplier: 'supplier', note: 'note', shift: 'time entry', customer: 'customer', mileage: 'trip', taxpay: 'tax payment', account: 'account', transfer: 'transfer' };
+const TYPE_NAME = { po: 'purchase order', bill: 'bill', order: 'sale', product: 'product', supply: 'supply', listing: 'listing', expense: 'expense', income: 'income entry', task: 'task', event: 'event', goal: 'goal', supplier: 'supplier', note: 'note', shift: 'time entry', customer: 'customer', mileage: 'trip', taxpay: 'tax payment', account: 'account', transfer: 'transfer' };
 const plural = (type, n) => n === 1 ? TYPE_NAME[type] : (type === 'supply' ? 'supplies' : TYPE_NAME[type] + 's');
 
 /* Deleting a product frees its supplies for good (they are only ever "counted as used" while the product exists). */
@@ -3650,7 +3698,7 @@ function deleteRecords(type, ids) {
   const set = new Set(ids), coll = COLL[type];
   if (type === 'order') ids.forEach(removeOrder); else state[coll] = state[coll].filter(x => !set.has(x.id));
   if (type === 'supply') state.products.forEach(p => { p.recipe = (p.recipe || []).filter(r => !set.has(r.supplyId)); });
-  if (type === 'supplier') { state.supplies.forEach(s => { if (set.has(s.supplierId)) s.supplierId = ''; }); state.products.forEach(s => { if (set.has(s.supplierId)) s.supplierId = ''; }); }
+  if (type === 'supplier') { state.purchaseOrders.forEach(po => { if (set.has(po.supplierId)) po.supplierId = ''; }); state.supplies.forEach(s => { if (set.has(s.supplierId)) s.supplierId = ''; }); state.products.forEach(s => { if (set.has(s.supplierId)) s.supplierId = ''; }); }
   if (type === 'product') state.listings.forEach(l => { if (set.has(l.productId)) l.productId = ''; if (Array.isArray(l.bundle)) l.bundle = l.bundle.filter(id => !set.has(id)); });
   logAct(`Deleted ${ids.length} ${plural(type, ids.length)}`, 'trash');
 }
@@ -3662,6 +3710,8 @@ async function confirmDelete(type, ids) {
     const used = ids.map(i => find('products', i)).filter(Boolean).filter(p => !p.archived).reduce((a, p) => a + (p.recipe || []).length, 0);
     msg = 'Past sales keep their records. Listings for it stay but are unlinked.' + (used ? ' The supplies it was using go back to your supplies for good.' : '');
   }
+  else if (type === 'po') msg = 'Stock you already received stays in your inventory. A bill made from it is kept. Archive or cancel it instead to keep a record.';
+  else if (type === 'bill') msg = 'If it was already paid, the expense it made stays in your expenses.';
   else if (type === 'supply') msg = 'It is also taken out of any product recipe that uses it, which makes those products cheaper to make on paper. Archive it instead if you only want it out of the way.';
   else if (type === 'expense' && ids.some(i => (find('expenses', i) || {}).repeat)) msg = 'Repeating expenses stop repeating; past entries are kept.';
   else if (ARCHIVABLE.has(type)) msg = 'Tip: Archive hides it but keeps the history. Delete removes it for good (Undo is offered right after).';
@@ -3700,7 +3750,7 @@ function dupRecord(type, id) {
   const src = find(COLL[type], id); if (!src) return null;
   const c = clone(src); c.id = uid('d'); delete c.archived;
   if (type === 'product') {
-    c.name += ' (copy)'; c.sku = nextSku(); c.qty = 0;
+    c.name += ' (copy)'; c.sku = nextSku(); c.qty = 0; c.variants = (c.variants || []).map(v => ({ ...v, id: uid('v'), qty: 0 }));
     c.recipe = (c.recipe || []).filter(r => { const s = find('supplies', r.supplyId); return s && avail(s) >= num(r.qty) - 1e-9; });
     state.products.push(c);
   }
@@ -3709,6 +3759,8 @@ function dupRecord(type, id) {
   else if (type === 'order') { state.counters.order++; c.no = state.counters.order; c.date = today(); c.status = 'Order Received'; c.tracking = ''; c.refund = 0; c.reimb = 0; c.deposit = 0; c.finalProfit = ''; c.createdAt = Date.now(); c.items.forEach(l => { l.returned = 0; }); putOrder(c); }
   else if (type === 'expense') { c.date = today(); delete c.repeat; delete c.from; c.stockBuy = false; state.expenses.push(c); }
   else if (type === 'task') { c.done = false; delete c.doneAt; state.tasks.push(c); }
+  else if (type === 'bill') { c.paid = false; c.paidDate = ''; delete c.expenseId; delete c.nextId; delete c.paidAmt; delete c.poId; c.due = today(); state.bills.push(c); }
+  else if (type === 'po') { state.counters.po = (state.counters.po || 0) + 1; c.no = state.counters.po; c.status = 'Draft'; c.date = today(); c.expected = ''; c.receivedDate = ''; delete c.billId; delete c.payDue; (c.items || []).forEach(l => { l.received = 0; }); state.purchaseOrders.push(c); }
   else return null;
   return c.id;
 }
@@ -3981,6 +4033,9 @@ function navTo(g) {
   else if (g[0] === 'listings') { ui.seg.stock = 'listings'; go('stock'); ui.filter = f || 'all'; render(); }
   else if (g[0] === 'stock') { ui.seg.stock = 'products'; go('stock'); ui.filter = f === 'need' ? 'low' : (f || 'all'); render(); }
   else if (g[0] === 'taxes') go('more', 'taxes');
+  else if (g[0] === 'bills') { ui.seg.bills = f || 'bills'; go('more', 'bills'); }
+  else if (g[0] === 'forecast') go('more', 'forecast');
+  else if (g[0] === 'purchases') go('more', 'purchases');
   else if (g[0] === 'backup') { ui.setOpen.data = true; go('more', 'settings'); }
   else if (g[0] === 'money') { if (f) ui.seg.money = f; go('money'); }
   else { go(g[0]); if (f) { ui.filter = f; render(); } }
@@ -4381,6 +4436,608 @@ async function importFile(file) {
 }
 
 /* =====================================================================
+   NEW FEATURES
+   - Sizes & colors on products (with a count for each)
+   - Bills you owe, and unpaid invoices customers owe you
+   - Cash flow forecast
+   - Purchase orders (order from suppliers, receive stock, make a bill)
+   - "Copy my whole business as text" report (everything, active + archived + sold)
+   ===================================================================== */
+const fD = k => k ? fmtDate(k) : '—';
+
+/* ---------- invoices + bills: shared helpers ---------- */
+const termDays = t => { const m = /net\s*(\d+)/i.exec(t || ''); return m ? +m[1] : 0; };
+const invDueDate = o => o.invDue || addDays(o.date, termDays(o.invTerms || o.terms));
+const owedAmt = o => Math.max(0, oc(o).owed);
+const isOwed = o => !!o.unpaid && !NOT_SALE.includes(o.status) && !RESOLVED.includes(o.status) && owedAmt(o) > 0.004;
+const owedOrders = () => state.orders.filter(isOwed);
+const billOpen = () => state.bills.filter(b => !b.paid && !b.archived);
+const billDue = b => b.due || today();
+const billsLine = () => { const nb = billOpen().length, ni = owedOrders().length; return `${nb} bill${nb === 1 ? '' : 's'} to pay · ${ni} unpaid invoice${ni === 1 ? '' : 's'}`; };
+
+/* ---------- sizes & colors ---------- */
+const varLabel = v => [v.size, v.color].filter(Boolean).join(' / ') || 'Standard';
+const lineName = l => l.name + ((l.size || l.color) ? ` (${[l.size, l.color].filter(Boolean).join(' / ')})` : '');
+const colorDot = c => { try { return c && CSS.supports('color', c) ? `<i class="cdot" style="background:${esc(c)}"></i>` : ''; } catch (e) { return ''; } };
+const variantOpts = (p, l = {}) => {
+  const vs = p.variants || [], has = vs.some(v => v.id === l.variantId);
+  return `<option value="">Choose size / color…</option>`
+    + (l.variantId && !has ? `<option value="${esc(l.variantId)}" selected>${esc([l.size, l.color].filter(Boolean).join(' / ') || l.variantLabel || 'Removed option')} (removed)</option>` : '')
+    + vs.map(v => `<option value="${v.id}" ${v.id === l.variantId ? 'selected' : ''}>${esc(varLabel(v))} (${num(v.qty)} in stock)</option>`).join('');
+};
+const SIZE_SUGG = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'One size', 'Small', 'Medium', 'Large', 'Kids', 'Adult'];
+const COLOR_SUGG = ['Black', 'White', 'Red', 'Blue', 'Navy', 'Green', 'Pink', 'Purple', 'Yellow', 'Orange', 'Brown', 'Beige', 'Gray', 'Gold', 'Silver', 'Natural'];
+const varRow = v => `<div class="var-row" data-vid="${esc(v.id || '')}"><input class="input sm" name="vs" list="size-list" maxlength="30" placeholder="Size" value="${esc(v.size || '')}" aria-label="Size"><input class="input sm" name="vc" list="color-list" maxlength="30" placeholder="Color" value="${esc(v.color || '')}" aria-label="Color"><input class="input sm" type="number" step="1" name="vq" placeholder="Qty" value="${v.qty ?? ''}" aria-label="How many"><button type="button" class="icon-btn" data-act="var-del" aria-label="Remove">${ic('x')}</button></div>`;
+const varEditor = d => `<div class="fld"><span class="lbl">Sizes &amp; colors <small style="text-transform:none;letter-spacing:0;font-weight:600">optional</small></span>
+  <datalist id="size-list">${SIZE_SUGG.map(x => `<option value="${x}">`).join('')}</datalist><datalist id="color-list">${COLOR_SUGG.map(x => `<option value="${x}">`).join('')}</datalist>
+  <div id="var-rows">${(d.variants || []).map(varRow).join('')}</div>
+  <div class="row" style="gap:16px;margin-bottom:8px"><button type="button" class="link" data-act="var-add">${ic('plus')} Add a size / color</button></div>
+  <div class="preview" style="background:none;border:1px dashed var(--line)"><p class="eyebrow" style="margin-bottom:6px">Quick builder</p>
+    <div class="grid2"><input class="input sm" data-vg="s" placeholder="Sizes: S, M, L" aria-label="Sizes"><input class="input sm" data-vg="c" placeholder="Colors: Red, Blue" aria-label="Colors"></div>
+    <button type="button" class="btn btn-soft btn-sm block" style="margin-top:8px" data-act="var-gen">${ic('layers')} Make every combination</button></div>
+  <p class="hint">Give each size / color its own count. Once you add any, <b>In stock</b> becomes their total and a sale asks which one was sold.</p></div>`;
+const readVariants = f => $$('.var-row', f).map(r => ({ id: r.dataset.vid || uid('v'), size: tidy($('[name=vs]', r).value), color: tidy($('[name=vc]', r).value), qty: Math.round(num($('[name=vq]', r).value)) })).filter(v => v.size || v.color);
+function syncVarQty(f) {
+  if (!f) return; const q = $('[name=qty]', f), rows = $$('.var-row', f); if (!q) return;
+  if (rows.length) { q.value = sum(rows, r => Math.round(num($('[name=vq]', r).value))); q.readOnly = true; q.style.opacity = '.7'; }
+  else { q.readOnly = false; q.style.opacity = ''; }
+}
+const variantChips = p => {
+  const vs = p.variants || []; if (!vs.length) return '';
+  return `<div class="vchips">${vs.slice(0, 10).map(v => `<span class="pill ${num(v.qty) <= 0 ? 'bad' : num(v.qty) <= lowOf(p) ? 'warn' : 'mute'}">${colorDot(v.color)}${esc(varLabel(v))} · ${num(v.qty)}</span>`).join('')}${vs.length > 10 ? `<span class="pill mute">+${vs.length - 10} more</span>` : ''}</div>`;
+};
+function applyVarStock(oldO, newO) {
+  const ve = o => { const m = {}; if (!o || NO_STOCK.includes(o.status)) return m; (o.items || []).forEach(l => { if (l.productId && l.variantId) { const k = l.productId + '|' + l.variantId; m[k] = (m[k] || 0) + Math.max(0, l.qty - (l.returned || 0)); } }); return m; };
+  const a = ve(oldO), b = ve(newO);
+  new Set([...Object.keys(a), ...Object.keys(b)]).forEach(k => {
+    const [pid, vid] = k.split('|'), p = state.products.find(x => x.id === pid), v = p && (p.variants || []).find(x => x.id === vid);
+    if (v) v.qty = r2(num(v.qty) + (a[k] || 0) - (b[k] || 0));
+  });
+}
+/* read the size / color picked on one sale line */
+function varOf(row) {
+  const pid = $('[name=lp]', row).value, p = pid && find('products', pid), s = $('[name=lv]', row);
+  const v = p && s && (p.variants || []).find(x => x.id === s.value);
+  if (v) return { variantId: v.id, size: v.size || '', color: v.color || '' };
+  if (p && s && s.value) return { variantId: s.value, size: ($('[name=lsz]', row) || {}).value || '', color: ($('[name=lcl]', row) || {}).value || '' };
+  return { variantId: '', size: '', color: '' };
+}
+
+/* stock adjust: pick which size / color */
+{
+  const open0 = OPEN.restock;
+  OPEN.restock = (type, id) => {
+    open0(type, id);
+    if (type !== 'product') return;
+    const p = find('products', id), f = $('form[data-form=restock]');
+    if (!p || !f || !(p.variants || []).length) return;
+    const lab = $('[name=mode]', f).closest('label');
+    lab.insertAdjacentHTML('beforebegin', `<label class="fld"><span>Which size / color?</span><select class="select" name="variantId">${p.variants.map(v => `<option value="${v.id}">${esc(varLabel(v))} (${num(v.qty)} in stock)</option>`).join('')}</select></label>`);
+  };
+  const form0 = FORMS.restock;
+  FORMS.restock = (f, fd, id) => {
+    const vid = fd.get('variantId'); if (!vid || fd.get('type') !== 'product') return form0(f, fd, id);
+    const p = find('products', id), v = p && (p.variants || []).find(x => x.id === vid); if (!v) return toast('Pick a size / color');
+    const mode = fd.get('mode'), amt = num(fd.get('amt')), paid = num(fd.get('paid'));
+    if (fd.get('amt') === '') return toast('Enter a quantity');
+    const before = num(v.qty); let after;
+    if (mode === 'add') { if (amt <= 0) return toast('Enter a quantity'); if (paid > 0 && !(p.recipe || []).length) { const have = Math.max(0, num(p.qty)); p.cost = r2((have * num(p.cost) + paid) / (have + amt)); } after = before + amt; }
+    else if (mode === 'remove') after = before - amt;
+    else after = amt;
+    v.qty = r2(after); p.qty = r2(num(p.qty) + (after - before));
+    done(`${p.name} (${varLabel(v)}): ${before} → ${v.qty}`, [`Stock for ${p.name} ${varLabel(v)}: ${before} → ${v.qty}`, 'package']);
+  };
+}
+
+/* ---------- unpaid invoices: record a payment, copy a reminder ---------- */
+OPEN.newinvoice = () => OPEN.order('', { unpaid: true });
+OPEN.payinv = id => {
+  const o = find('orders', id); if (!o) return;
+  openSheet('Record payment', formWrap('payinv', id, `
+    <p class="b" style="margin-bottom:4px">${esc(o.customer || orderNo(o))} <span class="sub" style="font-weight:600">· ${orderNo(o)}</span></p>
+    <p class="hint" style="margin:0 0 12px">Still owed: <b>${money(owedAmt(o))}</b>${num(o.deposit) ? ' (after ' + money(num(o.deposit)) + ' already paid)' : ''}. Enter less for a part-payment.</p>
+    <div class="grid2">${fNum('Amount received *', 'amount', owedAmt(o), '0.00', 'required min="0"')}${fDate('Date received', 'date', today())}</div>
+    ${fSel('Money went into', 'acct', acctOpts(), o.acct || defaultAcct('orders') || '')}
+    ${fSel('Paid with', 'method', [''].concat(state.settings.paymentMethods).map(x => [x, x || 'Not set']), o.payment || '')}
+    <p class="hint">Cash is added to your account once the invoice is paid in full.</p>`, foot('', '', 'Save payment')));
+};
+FORMS.payinv = (f, fd, id) => {
+  const o = find('orders', id); if (!o) return;
+  const amt = Math.max(0, num(fd.get('amount'))), date = fd.get('date') || today();
+  if (!(amt > 0)) return toast('Enter the amount you received');
+  o.deposit = r2(num(o.deposit) + amt);
+  o.payments = (o.payments || []).concat([{ date, amount: amt, method: fd.get('method') || '' }]);
+  if (fd.get('method')) o.payment = fd.get('method');
+  if (fd.get('acct')) o.acct = fd.get('acct');
+  const full = oc(o).owed <= 0.004;
+  if (full) { o.unpaid = false; o.paidDate = date; }
+  done(full ? 'Invoice paid in full' : 'Payment saved', [`${full ? 'Paid in full' : 'Part-payment'} on ${orderNo(o)}${o.customer ? ' · ' + o.customer : ''} · ${money(amt)}`, 'banknote']);
+};
+
+/* ---------- BILLS you owe ---------- */
+OPEN.bill = id => {
+  const b = id ? find('bills', id) : null;
+  const d = b || { name: '', vendor: '', amount: '', due: today(), cat: state.settings.expenseCats[0] || '', repeat: '', acct: defaultAcct('expenses') || '', stockBuy: false, notes: '' };
+  const vendors = [...new Set(state.suppliers.map(s => s.name).concat(state.expenses.map(x => x.vendor), state.bills.map(x => x.vendor)).filter(Boolean))];
+  openSheet(b ? 'Edit bill' : 'New bill', formWrap('bill', id, `
+    ${b && b.paid ? `<div class="notice" style="margin-bottom:12px">${ic('check-circle')}<span>Paid ${fD(b.paidDate)}. Changes here do not change the expense it created.</span></div>` : ''}
+    ${fText('What is it? *', 'name', d.name, 'required maxlength="100" placeholder="e.g. Studio rent"')}
+    <div class="grid2">${fNum('Amount *', 'amount', d.amount, '0.00', 'required min="0"')}${fDate('Due date', 'due', d.due)}</div>
+    <label class="fld"><span>Who is it from?</span><input class="input" name="vendor" list="bill-vend" value="${esc(d.vendor)}" maxlength="60" placeholder="Vendor or supplier"><datalist id="bill-vend">${vendors.map(v => `<option value="${esc(v)}">`).join('')}</datalist></label>
+    <div class="grid2">${fCat('Category', 'cat', 'expenseCats', d.cat)}${fSel('Repeats', 'repeat', [['', 'Never'], ['weekly', 'Every week'], ['monthly', 'Every month'], ['yearly', 'Every year']], d.repeat || '')}</div>
+    ${fSel('Pay from', 'acct', acctOpts(), d.acct || '')}
+    ${fCheck('This bill is for stock (supplies or products I resell)', 'stockBuy', d.stockBuy)}
+    <p class="hint" style="margin:-6px 0 12px">Stock is not counted as an expense in your profit (it is costed when sold), but the cash still leaves your account.</p>
+    ${fArea('Notes', 'notes', d.notes, 'Invoice number, account number…')}
+    <p class="hint">When you mark it paid it becomes an expense, and a repeating bill makes the next one for you.</p>`, foot('bill', id)));
+};
+FORMS.bill = (f, fd, id) => {
+  const name = tidy(fd.get('name')); if (!name) return toast('Say what the bill is');
+  const rec = { name, amount: Math.max(0, num(fd.get('amount'))), due: fd.get('due') || today(), vendor: tidy(fd.get('vendor')), cat: fd.get('cat') || '', repeat: fd.get('repeat') || '', acct: fd.get('acct') || '', stockBuy: fd.get('stockBuy') === 'on', notes: tidy(fd.get('notes')) };
+  if (!(rec.amount > 0)) return toast('Enter the amount');
+  if (id) Object.assign(find('bills', id), rec); else state.bills.push({ id: uid('b'), paid: false, paidDate: '', ...rec });
+  done('Bill saved', [`${id ? 'Updated' : 'Added'} bill ${name} · ${money(rec.amount)}`, 'receipt']);
+};
+OPEN.billpay = id => {
+  const b = find('bills', id); if (!b) return;
+  openSheet('Pay bill', formWrap('billpay', id, `
+    <p class="b" style="margin-bottom:12px">${esc(b.name)}${b.vendor ? ' <span class="sub" style="font-weight:600">· ' + esc(b.vendor) + '</span>' : ''}</p>
+    <div class="grid2">${fNum('Amount paid *', 'amount', b.amount, '0.00', 'required min="0"')}${fDate('Date paid', 'date', today())}</div>
+    ${fSel('Paid from', 'acct', acctOpts(), b.acct || defaultAcct('expenses') || '')}
+    <p class="hint">This adds an expense${b.stockBuy ? ' (stock, so it is not counted against profit)' : ''} and takes the money out of the account you pick.${b.repeat ? ' The next ' + b.repeat.replace('ly', '') + ' bill is created for you.' : ''}</p>`, foot('', '', 'Mark as paid')));
+};
+FORMS.billpay = (f, fd, id) => {
+  const b = find('bills', id); if (!b) return;
+  const amt = Math.max(0, num(fd.get('amount'))), date = fd.get('date') || today(), acct = fd.get('acct') || '';
+  if (!(amt > 0)) return toast('Enter what you paid');
+  const x = { id: uid('x'), date, desc: b.name, amount: amt, cat: b.cat || '', vendor: b.vendor || '', deductible: true, acct, billId: b.id, notes: b.notes || '' };
+  if (b.stockBuy) x.stockBuy = true;
+  state.expenses.push(x);
+  b.paid = true; b.paidDate = date; b.paidAmt = amt; b.expenseId = x.id; b.acct = acct;
+  if (b.repeat && !b.nextId) {
+    const nb = { id: uid('b'), name: b.name, vendor: b.vendor, amount: b.amount, due: repeatDate(b.due, b.repeat, 1), cat: b.cat, repeat: b.repeat, acct, stockBuy: !!b.stockBuy, notes: b.notes, paid: false, paidDate: '' };
+    state.bills.push(nb); b.nextId = nb.id;
+  }
+  done('Bill paid', [`Paid bill ${b.name} · ${money(amt)}`, 'receipt']);
+};
+
+function billsView() {
+  const t = today(), wk = addDays(t, 7), all = state.bills.filter(b => !!b.archived === ui.arch);
+  const unpaid = all.filter(b => !b.paid).sort((a, b) => billDue(a).localeCompare(billDue(b)));
+  const paid = all.filter(b => b.paid).sort((a, b) => (b.paidDate || '').localeCompare(a.paidDate || ''));
+  const od = unpaid.filter(b => billDue(b) < t), soon = unpaid.filter(b => billDue(b) >= t && billDue(b) <= wk), later = unpaid.filter(b => billDue(b) > wk);
+  const tot = a => sum(a, b => num(b.amount));
+  const row = b => `<div class="card sm item ${b.paid ? 'done' : ''}"><button class="check ${b.paid ? 'on' : ''}" data-act="${b.paid ? 'bill-unpay' : 'bill-pay'}" data-id="${b.id}" aria-label="${b.paid ? 'Mark unpaid' : 'Mark paid'}">${ic('check')}</button>
+    <button class="grow" style="text-align:left;min-width:0" data-act="edit" data-type="bill" data-id="${b.id}"><h4 class="trunc t">${esc(b.name)}</h4><div class="meta trunc">${b.vendor ? esc(b.vendor) + ' · ' : ''}${b.paid ? 'Paid ' + fD(b.paidDate) : (billDue(b) < t ? '<span class="bad-t b">Overdue · </span>' : 'Due ') + fD(billDue(b))}${b.repeat ? ' · repeats ' + b.repeat : ''}</div></button>
+    <div class="side"><div class="amt num t">${money(b.paid ? num(b.paidAmt || b.amount) : b.amount)}</div></div></div>`;
+  const group = (label, arr, cls) => arr.length ? `<div class="stack-sm"><h4 class="eyebrow ${cls || ''}" style="padding:0 4px">${label} · ${arr.length} · ${money(tot(arr))}</h4>${arr.map(row).join('')}</div>` : '';
+  const head = `<div class="row between xs sub b" style="padding:0 4px;min-height:26px"><span>${ui.arch ? 'Archived bills' : unpaid.length + ' to pay'}</span><button class="link" data-act="arch-toggle">${ui.arch ? 'Show active' : 'Archived'}</button></div>`;
+  if (!state.bills.length) return empty('receipt', 'No bills yet', 'Add what you owe (rent, subscriptions, supplier invoices) and see exactly when money has to go out.', emptyBtn('Add a bill', 'bill'));
+  return `${ui.arch ? '' : `<div class="card"><div class="row between"><div><span class="eyebrow">Unpaid bills</span><h2 class="rev num" style="margin:4px 0 0">${money(tot(unpaid))}</h2></div><div style="text-align:right"><div class="kv" style="gap:12px"><span class="bad-t b">Overdue</span><b class="num ${od.length ? 'bad-t' : ''}">${money(tot(od))}</b></div><div class="kv" style="gap:12px"><span>Next 7 days</span><b class="num">${money(tot(soon))}</b></div></div></div></div>`}
+    ${head}${ui.arch ? archNote() : ''}
+    ${group('Overdue', od, 'bad-t')}${group('Due in the next 7 days', soon)}${group('Later', later)}
+    ${!unpaid.length ? empty('check-circle', ui.arch ? 'Nothing archived' : 'All paid up', ui.arch ? 'Archived bills show here.' : 'No unpaid bills right now.') : ''}
+    ${paid.length ? `<button class="link" style="margin-top:6px" data-act="paid-toggle">${ui.showPaid ? 'Hide' : 'Show'} ${paid.length} paid</button>${ui.showPaid ? `<div class="stack-sm" style="margin-top:8px">${paid.slice(0, 40).map(row).join('')}</div>` : ''}` : ''}`;
+}
+function invoicesView() {
+  const t = today(), os = owedOrders().sort((a, b) => invDueDate(a).localeCompare(invDueDate(b)));
+  const od = os.filter(o => invDueDate(o) < t), tot = sum(os, owedAmt);
+  const paid = state.orders.filter(o => o.paidDate && !o.unpaid && !NOT_SALE.includes(o.status)).sort((a, b) => b.paidDate.localeCompare(a.paidDate));
+  const row = o => { const due = invDueDate(o), late = due < t, dd = daysBetween(due, t);
+    return `<div class="card sm item"><div class="grow" style="min-width:0"><button style="text-align:left;width:100%" data-act="open-order" data-id="${o.id}"><h4 class="trunc t">${esc(o.customer || orderNo(o))}</h4><div class="meta trunc">${orderNo(o)} · ${late ? `<span class="bad-t b">${dd} day${dd === 1 ? '' : 's'} overdue</span>` : 'Due ' + fD(due)}${num(o.deposit) > 0 ? ' · ' + money(num(o.deposit)) + ' paid' : ''}</div></button>
+      <div class="row" style="gap:8px;margin-top:8px"><button class="btn btn-primary btn-sm grow" data-act="pay-invoice" data-id="${o.id}">Record payment</button><button class="btn btn-line btn-sm" data-act="inv-remind" data-id="${o.id}" aria-label="Copy a payment reminder">${ic('copy')}</button><button class="btn btn-line btn-sm" data-act="invoice" data-id="${o.id}" aria-label="View invoice">${ic('file-text')}</button></div></div>
+      <div class="side"><div class="amt num t ${late ? 'bad-t' : ''}">${money(owedAmt(o))}</div></div></div>`; };
+  return `<div class="card"><div class="row between"><div><span class="eyebrow">Customers owe you</span><h2 class="rev num" style="margin:4px 0 0">${money(tot)}</h2></div><div style="text-align:right"><div class="kv" style="gap:12px"><span class="bad-t b">Overdue</span><b class="num ${od.length ? 'bad-t' : ''}">${money(sum(od, owedAmt))}</b></div><div class="kv" style="gap:12px"><span>Invoices</span><b class="num">${os.length}</b></div></div></div></div>
+    ${os.length ? `<div class="stack-sm">${os.map(row).join('')}</div>` : empty('file-text', 'No unpaid invoices', 'When a customer owes you money it shows here with its due date. Tap + Invoice, or tick "Not paid yet" on any sale.', emptyBtn('New invoice', 'newinvoice'))}
+    ${paid.length ? `<button class="link" style="margin-top:6px" data-act="paid-toggle">${ui.showPaid ? 'Hide' : 'Show'} ${paid.length} paid invoice${paid.length === 1 ? '' : 's'}</button>${ui.showPaid ? `<div class="stack-sm" style="margin-top:8px">${paid.slice(0, 40).map(o => `<button class="card sm item click done" data-act="open-order" data-id="${o.id}"><div class="grow" style="min-width:0"><h4 class="trunc t">${esc(o.customer || orderNo(o))}</h4><div class="meta">${orderNo(o)} · paid ${fD(o.paidDate)}</div></div><div class="side"><div class="amt num t">${money(oc(o).buyerTotal + oc(o).tax)}</div></div></button>`).join('')}</div>` : ''}` : ''}`;
+}
+V.bills = () => `<div class="page stack-sm fade">${seg('bills', [['bills', 'Bills to pay'], ['invoices', 'Unpaid invoices']], ui.seg.bills)}${ui.seg.bills === 'bills' ? billsView() : invoicesView()}</div>`;
+
+/* a short look at what you owe and are owed, shown at the top of Money */
+function moneyGlance() {
+  const t = today(), bl = billOpen(), od = bl.filter(b => billDue(b) < t), ow = owedOrders(), ood = ow.filter(o => invDueDate(o) < t), fcz = forecastCalc();
+  const btn = (act, sg, ico, title, big, sub, tone) => `<button class="list-row" data-act="${act}" ${sg ? `data-seg="${sg}"` : ''}><span class="ico">${ic(ico)}</span><span class="grow"><b style="display:block;font-size:14px">${title}</b><span class="xs sub">${sub}</span></span><b class="num ${tone || ''}">${big}</b>${ic('chevron-right', 'chev')}</button>`;
+  const baseline = state.accounts.length || fcz.hasOwn;
+  return `<div class="stack-sm">
+    ${btn('open-bills', 'bills', 'receipt', 'Bills to pay', money(sum(bl, b => num(b.amount))), od.length ? `${od.length} overdue` : `${bl.length} unpaid`, od.length ? 'bad-t' : '')}
+    ${btn('open-bills', 'invoices', 'file-text', 'Unpaid invoices', money(sum(ow, owedAmt)), ood.length ? `${ood.length} overdue` : `${ow.length} waiting on payment`, ood.length ? 'bad-t' : '')}
+    ${btn('open-forecast', '', 'line-chart', 'Cash flow forecast', baseline ? money(fcz.end) : '', baseline ? `Next ${fcz.days} days${fcz.low.v < 0 ? ' · may run short ' + fD(fcz.low.d) : ''}` : 'Add an account or your cash to start', fcz.low.v < 0 ? 'bad-t' : '')}</div>`;
+}
+
+/* ---------- CASH FLOW FORECAST ---------- */
+function forecastCalc() {
+  const fc = state.settings.forecast, days = [30, 60, 90].includes(+fc.days) ? +fc.days : 60, t = today(), endD = addDays(t, days);
+  const hasOwn = String(fc.cash ?? '').trim() !== '', autoCash = state.accounts.length ? sum(state.accounts, a => acctBal(a).bal) : 0;
+  const start = hasOwn ? num(fc.cash) : autoCash;
+  const ev = [], push = (d, amt, kind, label, act, type, id) => { if (d <= endD && Math.abs(amt) > 0.004) ev.push({ d: d < t ? t : d, amt, kind, label, act, type, id }); };
+  owedOrders().forEach(o => { const due = invDueDate(o); push(due < t ? addDays(t, 7) : due, owedAmt(o), 'inv', `${orderNo(o)}${o.customer ? ' · ' + o.customer : ''}`, 'open-order', '', o.id); });
+  billOpen().forEach(b => {
+    push(billDue(b), -num(b.amount), 'bill', b.name, 'edit', 'bill', b.id);
+    if (b.repeat) for (let k = 1; k < 60; k++) { const d = repeatDate(billDue(b), b.repeat, k); if (d > endD) break; push(d, -num(b.amount), 'bill', b.name + ' (repeats)', 'edit', 'bill', b.id); }
+  });
+  state.purchaseOrders.filter(po => !po.archived && ['Sent', 'Partially Received'].includes(po.status) && !poBill(po)).forEach(po => {
+    const d = po.payDue || addDays(po.expected || po.date, termDays(po.terms));
+    push(d, -poTotal(po), 'po', `${poNo(po)} · ${poSupplier(po)}`, 'open-po', '', po.id);
+  });
+  state.expenses.filter(e => e.repeat).forEach(e => { for (let k = 1; k < 80; k++) { const d = repeatDate(e.repeat.anchor, e.repeat.every, e.repeat.n + k); if (d > endD) break; push(d, -num(e.amount), 'rec', e.desc, 'edit', 'expense', e.id); } });
+  /* typical sales and everyday spending, from recent history */
+  const first = [...state.orders.map(o => o.date), ...state.expenses.map(e => e.date)].filter(Boolean).sort()[0];
+  const lb = Math.min(60, Math.max(14, first ? daysBetween(first, t) + 1 : 14)), from = addDays(t, -(lb - 1));
+  const avgIn = fc.sales ? sum(cashOrders().filter(o => o.date >= from && o.date <= t), o => oc(o).made) / lb : 0;
+  const avgOut = fc.spend ? sum(state.expenses.filter(e => e.date >= from && e.date <= t && !e.repeat && !e.from && !e.billId), e => num(e.amount)) / lb : 0;
+  const byDay = groupBy(ev, e => e.d), buckets = [], pts = [{ label: 'Today', value: r2(start) }];
+  let bal = start, low = { v: start, d: t }, bi = 0, bo = 0;
+  for (let i = 0; i <= days; i++) {
+    const d = addDays(t, i); let din = i ? avgIn : 0, dout = i ? avgOut : 0;
+    (byDay.get(d) || []).forEach(e => { if (e.amt > 0) din += e.amt; else dout += -e.amt; });
+    bal = bal + din - dout; bi += din; bo += dout;
+    if (bal < low.v) low = { v: r2(bal), d };
+    if ((i > 0 && i % 7 === 0) || i === days) { buckets.push({ end: d, inn: r2(bi), out: r2(bo), bal: r2(bal) }); pts.push({ label: fmtDate(d), value: r2(bal) }); bi = 0; bo = 0; }
+  }
+  const tot = k => sum(ev.filter(e => e.kind === k), e => e.amt);
+  return { start, days, hasOwn, autoCash, pts, buckets, low, end: r2(bal), ev: ev.sort((a, b) => a.d.localeCompare(b.d)), lb, avgIn, avgOut, tot: { inv: tot('inv'), bill: -tot('bill'), po: -tot('po'), rec: -tot('rec'), sales: avgIn * days, spend: avgOut * days } };
+}
+V.forecast = () => {
+  const fc = state.settings.forecast, c = forecastCalc(), baseline = state.accounts.length || c.hasOwn, endD = addDays(today(), c.days);
+  const line = (l, v, sign, cls) => `<div class="kv"><span>${l}</span><span class="num ${cls || ''}">${sign}${money(Math.abs(v))}</span></div>`;
+  const icons = { inv: 'file-text', bill: 'receipt', po: 'truck', rec: 'repeat' };
+  return `<div class="page stack fade">
+    ${chips([['30', '30 days'], ['60', '60 days'], ['90', '90 days']], String(c.days), 'fc-days')}
+    ${!baseline ? `<div class="notice warn">${ic('info')}<span>Add your accounts (Money › Accounts) or type what you have right now below, so the forecast starts from the right number.</span></div>` : ''}
+    ${baseline && c.low.v < 0 ? `<div class="notice warn">${ic('alert-triangle')}<span><b>Heads up:</b> your cash could dip to ${money(c.low.v)} around ${fD(c.low.d)}. Chase unpaid invoices, move a bill, or hold off on a supplier order.</span></div>` : ''}
+    <div class="card" style="text-align:center"><span class="eyebrow">Projected cash on ${fD(endD)}</span><h2 class="rev num ${c.end < 0 ? 'bad-t' : ''}" style="margin:6px 0 4px">${money(c.end)}</h2><p class="xs sub">Lowest point: <b class="${c.low.v < 0 ? 'bad-t' : ''}">${money(c.low.v)}</b> on ${fD(c.low.d)}</p></div>
+    <div class="card"><h4 class="eyebrow" style="margin-bottom:10px">Cash over the next ${c.days} days</h4>${lineChart('fc', c.pts)}</div>
+    <div class="card"><h4 class="eyebrow" style="margin-bottom:8px">Where it comes from and goes</h4>
+      <div class="kv"><span>Cash you start with</span><b class="num">${money(c.start)}</b></div>
+      ${line('Invoices customers owe you', c.tot.inv, '+ ', 'ok-t')}
+      ${fc.sales ? line('Expected new sales', c.tot.sales, '+ ', 'ok-t') : ''}
+      ${line('Bills to pay', c.tot.bill, '− ', 'bad-t')}
+      ${line('Supplier orders to pay', c.tot.po, '− ', 'bad-t')}
+      ${line('Repeating expenses', c.tot.rec, '− ', 'bad-t')}
+      ${fc.spend ? line('Typical everyday spending', c.tot.spend, '− ', 'bad-t') : ''}
+      <div class="kv total sec"><span>Projected cash</span><b class="num ${c.end < 0 ? 'bad-t' : ''}">${money(c.end)}</b></div>
+      <p class="hint">An estimate, not a promise. Overdue invoices are assumed paid in a week. Sales and everyday spending use your last ${c.lb} days. Tax you set aside is not included.</p></div>
+    <div class="card"><h4 class="eyebrow" style="margin-bottom:8px">Week by week</h4>
+      <div class="kv xs sub b"><span>Week ending</span><span>In · Out · Cash</span></div>
+      ${c.buckets.map(b => `<div class="kv"><span>${fD(b.end)}</span><span class="num"><span class="ok-t">+${money(b.inn, true)}</span> <span class="bad-t">−${money(b.out, true)}</span> <b class="${b.bal < 0 ? 'bad-t' : ''}">${money(b.bal, true)}</b></span></div>`).join('')}</div>
+    <h4 class="eyebrow" style="padding:0 4px">Coming up</h4>
+    ${c.ev.length ? `<div class="stack-sm">${c.ev.slice(0, 30).map(e => `<button class="card sm item click" data-act="${e.act}" ${e.type ? `data-type="${e.type}"` : ''} data-id="${e.id}"><div class="ava">${ic(icons[e.kind])}</div><div class="grow" style="min-width:0"><h4 class="trunc">${esc(e.label)}</h4><div class="meta">${fD(e.d)}${e.kind === 'inv' ? ' · expected in' : ''}</div></div><div class="side"><div class="amt num t ${e.amt < 0 ? 'bad-t' : 'ok-t'}">${e.amt < 0 ? '−' : '+'}${money(Math.abs(e.amt))}</div></div></button>`).join('')}</div>` : empty('calendar', 'Nothing scheduled', 'Add bills, unpaid invoices or supplier orders and they appear here by date.')}
+    <div class="card"><h4 class="eyebrow" style="margin-bottom:10px">Make it match your business</h4>
+      <label class="fld"><span>Starting cash ${state.accounts.length ? '(blank = your accounts)' : ''}</span><input class="input" type="number" step="any" inputmode="decimal" data-fc="cash" value="${esc(fc.cash ?? '')}" placeholder="${state.accounts.length ? money(c.autoCash) : '0.00'}"></label>
+      <label class="row b sm-t" style="margin-bottom:10px"><input type="checkbox" class="chk" data-fc="sales" ${fc.sales ? 'checked' : ''}> Include expected new sales</label>
+      <label class="row b sm-t"><input type="checkbox" class="chk" data-fc="spend" ${fc.spend ? 'checked' : ''}> Include typical everyday spending</label></div></div>`;
+};
+
+/* ---------- PURCHASE ORDERS ---------- */
+const PO_STATUS = ['Draft', 'Sent', 'Partially Received', 'Received', 'Cancelled'];
+const PO_TONE = { Draft: 'mute', Sent: 'brand', 'Partially Received': 'warn', Received: 'ok', Cancelled: 'bad' };
+const poNo = po => 'PO-' + String(po.no || 0).padStart(3, '0');
+const poSub = po => sum(po.items || [], l => num(l.qty) * num(l.cost));
+const poTotal = po => r2(poSub(po) + num(po.shipping) + num(po.tax));
+const poSupplier = po => supplierName(po.supplierId) || 'No supplier';
+const poRecv = po => sum(po.items || [], l => Math.min(num(l.qty), num(l.received)));
+const poLeft = po => sum(po.items || [], l => Math.max(0, num(l.qty) - num(l.received)));
+const poOpen = po => ['Draft', 'Sent', 'Partially Received'].includes(po.status);
+const poBill = po => po.billId ? find('bills', po.billId) : null;
+const poLineText = l => `${l.name}${l.variantLabel ? ' (' + l.variantLabel + ')' : ''}`;
+
+const poLineRow = (l = {}) => {
+  const key = l.kind === 'supply' ? 's:' + l.refId : l.kind === 'product' ? 'p:' + l.refId : '';
+  const sups = state.supplies.filter(s => active(s) || (l.kind === 'supply' && s.id === l.refId)), prods = state.products.filter(p => active(p) || (l.kind === 'product' && p.id === l.refId));
+  const gone = l.refId && !sups.some(s => 's:' + s.id === key) && !prods.some(p => 'p:' + p.id === key);
+  const p = l.kind === 'product' && find('products', l.refId), hasV = p && (p.variants || []).length;
+  return `<div class="po-line" data-recv="${num(l.received)}"><div class="row"><select class="select sm" name="pi"><option value="">Something else (type a name)</option>${gone ? `<option value="${esc(key)}" selected>${esc(l.name)}</option>` : ''}
+    ${sups.length ? `<optgroup label="Supplies">${sups.map(s => `<option value="s:${s.id}" ${key === 's:' + s.id ? 'selected' : ''}>${esc(s.sku ? s.sku + ' · ' : '')}${esc(s.name)}</option>`).join('')}</optgroup>` : ''}
+    ${prods.length ? `<optgroup label="Products">${prods.map(x => `<option value="p:${x.id}" ${key === 'p:' + x.id ? 'selected' : ''}>${esc(x.sku ? x.sku + ' · ' : '')}${esc(x.name)}</option>`).join('')}</optgroup>` : ''}</select>
+    <button type="button" class="icon-btn" data-act="po-line-del" aria-label="Remove item">${ic('x')}</button></div>
+    <input class="input sm" name="pn" maxlength="100" placeholder="Item name" value="${esc(l.name || '')}" ${l.refId ? 'hidden' : ''}>
+    <select class="select sm" name="pv" ${hasV ? '' : 'hidden'}>${hasV ? variantOpts(p, l) : ''}</select>
+    <div class="grid2"><label class="xs sub b">Quantity<input class="input sm" type="number" step="any" min="0" name="pq" value="${l.qty ?? ''}" placeholder="0"></label><label class="xs sub b">Cost each<input class="input sm" type="number" step="any" min="0" name="pc" value="${l.cost ?? ''}" placeholder="0.00"></label></div></div>`;
+};
+function poPick(row) {
+  const sel = $('[name=pi]', row).value, pn = $('[name=pn]', row), pc = $('[name=pc]', row), pq = $('[name=pq]', row), pv = $('[name=pv]', row);
+  const sup = sel.startsWith('s:') ? find('supplies', sel.slice(2)) : null, prod = sel.startsWith('p:') ? find('products', sel.slice(2)) : null, it = sup || prod;
+  if (it) { pn.value = it.name; pn.hidden = true; if (pc.value === '' || pc.dataset.auto) { const c = sup ? num(sup.cost) : num(prod.cost); pc.value = c > 0 ? c : ''; pc.dataset.auto = 1; } if (pq.value === '') pq.value = 1; }
+  else { if (pn.hidden) pn.value = ''; pn.hidden = false; }
+  if (prod && (prod.variants || []).length) { pv.innerHTML = variantOpts(prod, {}); pv.hidden = false; } else { pv.innerHTML = ''; pv.hidden = true; }
+  poPreview(row.closest('form'));
+}
+function poPreview(f) {
+  const pv = f && $('#pv', f); if (!pv) return;
+  const rows = $$('.po-line', f), old = f.dataset.id ? find('purchaseOrders', f.dataset.id) : null;
+  const sub = rows.length ? sum(rows, r => num($('[name=pq]', r).value) * num($('[name=pc]', r).value)) : (old ? poSub(old) : 0), sh = num($('[name=shipping]', f).value), tx = num($('[name=tax]', f).value);
+  pv.innerHTML = `<div class="kv"><span>Items</span><b class="num">${money(sub)}</b></div>${sh ? `<div class="kv"><span>Shipping</span><b class="num">${money(sh)}</b></div>` : ''}${tx ? `<div class="kv"><span>Tax</span><b class="num">${money(tx)}</b></div>` : ''}<div class="kv total"><span>Order total</span><b class="num">${money(sub + sh + tx)}</b></div>`;
+}
+const readPoLines = f => $$('.po-line', f).map(r => {
+  const sel = $('[name=pi]', r).value, kind = sel.startsWith('s:') ? 'supply' : sel.startsWith('p:') ? 'product' : 'custom', refId = sel.slice(2);
+  const item = kind === 'supply' ? find('supplies', refId) : kind === 'product' ? find('products', refId) : null;
+  const vs = $('[name=pv]', r), v = item && kind === 'product' && vs && (item.variants || []).find(x => x.id === vs.value);
+  return { kind: item ? kind : 'custom', refId: item ? refId : '', name: item ? item.name : tidy($('[name=pn]', r).value), variantId: v ? v.id : '', variantLabel: v ? varLabel(v) : '', qty: Math.max(0, num($('[name=pq]', r).value)), cost: Math.max(0, num($('[name=pc]', r).value)), received: num(r.dataset.recv) };
+}).filter(l => l.qty > 0 && l.name);
+
+OPEN.po = id => {
+  const po = id ? find('purchaseOrders', id) : null;
+  const d = po ? clone(po) : { supplierId: '', date: today(), expected: addDays(today(), 7), terms: '', items: [{}], shipping: '', tax: '', notes: '', status: 'Sent' };
+  const locked = po && poRecv(po) > 0, canStatus = !po || ['Draft', 'Sent', 'Cancelled'].includes(po.status);
+  openSheet(po ? 'Edit ' + poNo(po) : 'New purchase order', formWrap('po', id, `
+    ${fSupplier(d.supplierId, 'Choose a supplier')}
+    <div class="grid2">${fDate('Order date', 'date', d.date)}${fDate('Expected by', 'expected', d.expected, false)}</div>
+    ${fSel('Payment terms', 'terms', [['', 'Not set']].concat(TERMS.map(x => [x, x])), d.terms || '')}
+    <div class="fld"><span class="lbl">Items</span>
+      ${locked ? `<div class="card sm">${d.items.map(l => `<div class="kv"><span>${num(l.qty)}× ${esc(poLineText(l))}</span><span class="num">${money(num(l.qty) * num(l.cost))}</span></div>`).join('')}</div><p class="hint">Some of this order has arrived, so its items are locked. Cancel it and start a new order for changes.</p>`
+        : `<div id="po-lines">${d.items.map(poLineRow).join('')}</div><div class="row" style="gap:16px"><button type="button" class="link" data-act="po-line-add">${ic('plus')} Add an item</button><button type="button" class="link" data-act="po-low">${ic('list-checks')} Add low-stock items</button></div>`}</div>
+    <div class="grid2">${fNum('Shipping cost', 'shipping', d.shipping, '0.00', 'min="0"')}${fNum('Tax', 'tax', d.tax, '0.00', 'min="0"')}</div>
+    ${canStatus ? fSel('Status', 'status', po && po.status === 'Cancelled' ? ['Draft', 'Sent', 'Cancelled'] : ['Draft', 'Sent'].concat(po ? ['Cancelled'] : []), d.status) : ''}
+    ${fArea('Notes', 'notes', d.notes, 'Delivery instructions, quote number…')}
+    <div class="preview" id="pv"></div>`, foot('po', id)));
+  poPreview($('form[data-form=po]'));
+};
+FORMS.po = (f, fd, id) => {
+  const old = id ? find('purchaseOrders', id) : null, locked = old && poRecv(old) > 0;
+  const items = locked ? old.items : readPoLines(f);
+  if (!items.length) return toast('Add at least one item with a quantity');
+  const bad = items.find(l => { const p = l.kind === 'product' && find('products', l.refId); return p && (p.variants || []).length && !l.variantId; });
+  if (bad) return toast(`Pick a size / color for ${bad.name}`);
+  const rec = { supplierId: fd.get('supplierId') || '', date: fd.get('date') || today(), expected: fd.get('expected') || '', terms: fd.get('terms') || '', items, shipping: Math.max(0, num(fd.get('shipping'))), tax: Math.max(0, num(fd.get('tax'))), notes: tidy(fd.get('notes')) };
+  if (fd.get('status')) rec.status = fd.get('status');
+  let po;
+  if (old) { Object.assign(old, rec); po = old; }
+  else { state.counters.po = (state.counters.po || 0) + 1; po = { id: uid('po'), no: state.counters.po, status: rec.status || 'Sent', receivedDate: '', ...rec }; state.purchaseOrders.push(po); }
+  done('Purchase order saved', [`${old ? 'Updated' : 'New'} ${poNo(po)} · ${poSupplier(po)} · ${money(poTotal(po))}`, 'truck']);
+};
+const poCard = po => {
+  const late = poOpen(po) && po.status !== 'Draft' && po.expected && po.expected < today();
+  return `<button class="card sm item click ${po.status === 'Cancelled' ? 'done' : ''}" data-act="open-po" data-id="${po.id}"><div class="ava">${ic('truck')}</div><div class="grow" style="min-width:0"><h4 class="trunc t">${esc(poSupplier(po))}</h4><div class="meta trunc">${poNo(po)} · ${fD(po.date)}${po.expected ? ' · expected ' + fD(po.expected) : ''}</div><div class="meta trunc">${esc((po.items || []).map(l => `${l.qty}× ${poLineText(l)}`).join(', '))}</div>${late ? '<div class="meta bad-t b">Late</div>' : ''}</div><div class="side"><div class="amt num t">${money(poTotal(po))}</div>${pill(po.status, PO_TONE[po.status] || 'mute')}</div></button>`;
+};
+V.purchases = () => {
+  const list = state.purchaseOrders.filter(p => !!p.archived === ui.arch && (ui.filter === 'all' || (ui.filter === 'open' ? poOpen(p) : p.status === ui.filter))).sort((a, b) => (b.no || 0) - (a.no || 0));
+  const openVal = sum(state.purchaseOrders.filter(p => !p.archived && ['Sent', 'Partially Received'].includes(p.status)), poTotal);
+  return `<div class="page stack-sm fade">${chips([['all', 'All'], ['open', 'Open'], ['Draft', 'Draft'], ['Sent', 'Sent'], ['Partially Received', 'Partial'], ['Received', 'Received'], ['Cancelled', 'Cancelled']], ui.filter)}
+    <div class="row between xs sub b" style="padding:0 4px;min-height:26px"><span>${list.length} ${ui.arch ? 'archived' : 'order' + (list.length === 1 ? '' : 's')}${!ui.arch && openVal ? ' · ' + money(openVal) + ' on order' : ''}</span><button class="link" data-act="arch-toggle">${ui.arch ? 'Show active' : 'Archived'}</button></div>${ui.arch ? archNote() : ''}
+    ${!state.purchaseOrders.length ? empty('truck', 'No purchase orders yet', 'Order supplies or stock from a supplier, mark what arrives, and your inventory updates by itself.', emptyBtn('New purchase order', 'po')) : list.length ? list.map(poCard).join('') : empty('search', 'No matches', ui.arch ? 'No archived orders.' : 'Try a different filter.')}</div>`;
+};
+OPEN.poDetail = id => {
+  const po = find('purchaseOrders', id); if (!po) return;
+  const bill = poBill(po), kv = (l, v, cls = '') => `<div class="kv ${cls}"><span>${l}</span><span class="num">${money(v)}</span></div>`, late = poOpen(po) && po.status !== 'Draft' && po.expected && po.expected < today();
+  openSheet(`${poNo(po)} ${pill(po.status, PO_TONE[po.status] || 'mute')}${po.archived ? ' ' + pill('Archived', 'mute') : ''}`, `<div class="sheet-body stack-sm">
+    <p class="sm-t sub"><b style="color:var(--text)">${esc(poSupplier(po))}</b> · ordered ${fD(po.date)}${po.expected ? ' · expected ' + fD(po.expected) : ''}${po.terms ? ' · ' + esc(po.terms) : ''}${late ? ' · <span class="bad-t b">late</span>' : ''}</p>
+    <div class="card sm">${(po.items || []).map(l => `<div class="kv"><span>${num(l.qty)}× ${esc(poLineText(l))} <span class="xs sub">· ${money(l.cost)} each</span>${num(l.received) ? ` <span class="${num(l.received) >= num(l.qty) ? 'ok-t' : 'warn-t'} xs b">(${num(l.received)} received)</span>` : ''}</span><span class="num">${money(num(l.qty) * num(l.cost))}</span></div>`).join('')}</div>
+    <div class="card sm">${kv('Items', poSub(po))}${num(po.shipping) ? kv('Shipping', num(po.shipping)) : ''}${num(po.tax) ? kv('Tax', num(po.tax)) : ''}${kv('Order total', poTotal(po), 'total sec')}</div>
+    ${bill ? `<div class="card sm"><h4 class="eyebrow" style="margin-bottom:6px">Bill</h4><div class="kv"><span>${bill.paid ? 'Paid ' + fD(bill.paidDate) : 'Due ' + fD(bill.due)}</span><button class="link" data-act="edit" data-type="bill" data-id="${bill.id}">${bill.paid ? 'View' : 'Open bill'}</button></div></div>` : ''}
+    ${po.receivedDate ? `<p class="xs sub">Last delivery logged ${fD(po.receivedDate)}</p>` : ''}${po.notes ? `<p class="sm-t sub" style="white-space:pre-line">${esc(po.notes)}</p>` : ''}
+    ${po.status === 'Draft' ? `<button class="btn btn-primary block" data-act="po-sent" data-id="${po.id}">Mark as sent to supplier</button>` : ''}
+    ${['Sent', 'Partially Received'].includes(po.status) ? `<button class="btn btn-primary block" data-act="po-recv" data-id="${po.id}">${ic('package')} Receive items</button>` : ''}
+    <div class="grid3"><button class="btn btn-line btn-sm" data-act="po-copy" data-id="${po.id}">${ic('copy')} Copy text</button>${!bill && po.status !== 'Cancelled' ? `<button class="btn btn-line btn-sm" data-act="po-bill" data-id="${po.id}">${ic('receipt')} Make bill</button>` : '<span></span>'}<button class="btn btn-line btn-sm" data-act="dup" data-type="po" data-id="${po.id}">${ic('copy')} Duplicate</button></div>
+    <div class="grid2"><button class="btn btn-line btn-sm" data-act="archive" data-type="po" data-id="${po.id}">${ic('archive')} ${po.archived ? 'Restore' : 'Archive'}</button>${poOpen(po) ? `<button class="btn btn-danger btn-sm" data-act="po-cancel" data-id="${po.id}">Cancel order</button>` : '<span></span>'}</div></div>
+    <div class="sheet-foot"><button class="btn btn-danger ibtn" data-act="delete" data-type="po" data-id="${po.id}" aria-label="Delete">${ic('trash')}</button><button class="btn btn-primary" data-act="edit" data-type="po" data-id="${po.id}">${ic('pencil')} Edit</button></div>`);
+};
+OPEN.porecv = id => {
+  const po = find('purchaseOrders', id); if (!po) return;
+  openSheet('Receive items', formWrap('porecv', id, `
+    <p class="b" style="margin-bottom:4px">${poNo(po)} <span class="sub" style="font-weight:600">· ${esc(poSupplier(po))}</span></p>
+    <p class="hint" style="margin:0 0 12px">Enter how many of each arrived. Stock goes up by itself. You can receive in parts.</p>
+    ${(po.items || []).map((l, i) => { const left = Math.max(0, num(l.qty) - num(l.received)); return left > 0 ? `<div class="row" style="margin-bottom:8px"><span class="grow sm-t b">${esc(poLineText(l))}</span><span class="xs sub">${num(l.received)}/${num(l.qty)}</span><input class="input sm" style="width:84px" type="number" step="any" min="0" max="${left}" name="rc${i}" value="${left}" aria-label="Received"></div>` : `<div class="row sm-t sub" style="margin-bottom:8px"><span class="grow">${esc(poLineText(l))}</span><span class="ok-t b">All ${num(l.qty)} received</span></div>`; }).join('')}
+    ${poBill(po) ? '' : fCheck(`Also make a bill for ${money(poTotal(po))} so I remember to pay`, 'mkbill', true)}`, foot('', '', 'Add to stock')));
+};
+function applyReceive(l, r) {
+  if (l.kind === 'supply') {
+    const s = find('supplies', l.refId); if (!s) return;
+    if (num(l.cost) > 0) { const have = Math.max(0, num(s.qty)); s.cost = Math.round((have * num(s.cost) + r * num(l.cost)) / (have + r) * 1e4) / 1e4; }
+    s.qty = r2(num(s.qty) + r);
+  } else if (l.kind === 'product') {
+    const p = find('products', l.refId); if (!p) return;
+    if (!(p.recipe || []).length && num(l.cost) > 0) { const have = Math.max(0, num(p.qty)); p.cost = Math.round((have * num(p.cost) + r * num(l.cost)) / (have + r) * 1e4) / 1e4; }
+    const v = l.variantId && (p.variants || []).find(x => x.id === l.variantId); if (v) v.qty = r2(num(v.qty) + r);
+    p.qty = r2(num(p.qty) + r);
+  }
+}
+function makePoBill(po) {
+  const cat = state.settings.expenseCats.find(c => /suppl|stock|inventory|material|packag/i.test(c)) || (state.settings.expenseCats.includes('Other') ? 'Other' : state.settings.expenseCats[0] || '');
+  const b = { id: uid('b'), name: `${poNo(po)} · ${poSupplier(po)}`, vendor: supplierName(po.supplierId) || '', amount: poTotal(po), due: po.payDue || addDays(po.receivedDate || po.date, termDays(po.terms)), cat, repeat: '', acct: defaultAcct('expenses') || '', stockBuy: true, notes: 'Made from ' + poNo(po), paid: false, paidDate: '', poId: po.id };
+  state.bills.push(b); po.billId = b.id; logAct(`Made a bill for ${poNo(po)} · ${money(b.amount)}`, 'receipt');
+}
+FORMS.porecv = (f, fd, id) => {
+  const po = find('purchaseOrders', id); if (!po) return;
+  let any = false;
+  po.items.forEach((l, i) => { const left = Math.max(0, num(l.qty) - num(l.received)), r = Math.max(0, Math.min(left, num(fd.get('rc' + i)))); if (!(r > 0)) return; any = true; applyReceive(l, r); l.received = r2(num(l.received) + r); });
+  if (!any) return toast('Enter how many arrived');
+  po.receivedDate = today(); po.status = poLeft(po) <= 1e-9 ? 'Received' : 'Partially Received';
+  if (fd.get('mkbill') === 'on' && !poBill(po)) makePoBill(po);
+  done(`${poNo(po)}: stock updated`, [`Received items on ${poNo(po)} (${po.status})`, 'package']);
+};
+const poText = po => {
+  const b = state.settings.business, L = [`PURCHASE ORDER ${poNo(po)}`, `From: ${state.settings.name || 'My business'}${b.address ? '\n' + b.address : ''}${b.email ? '\n' + b.email : ''}`, `To: ${poSupplier(po)}`, `Date: ${po.date}${po.expected ? '\nNeeded by: ' + po.expected : ''}${po.terms ? '\nTerms: ' + po.terms : ''}`, '', 'Items:'];
+  (po.items || []).forEach(l => L.push(`- ${num(l.qty)} × ${poLineText(l)} @ ${money(l.cost)} = ${money(num(l.qty) * num(l.cost))}`));
+  L.push('', `Items: ${money(poSub(po))}`); if (num(po.shipping)) L.push(`Shipping: ${money(num(po.shipping))}`); if (num(po.tax)) L.push(`Tax: ${money(num(po.tax))}`);
+  L.push(`TOTAL: ${money(poTotal(po))}`); if (po.notes) L.push('', po.notes); return L.join('\n');
+};
+
+/* ---------- extra inbox alerts ---------- */
+function extraAlerts() {
+  const t = today(), out = [], add = a => out.push(a), wk = addDays(t, 7), nm = (a, f) => a.slice(0, 3).map(f).join(', ') + (a.length > 3 ? ` +${a.length - 3} more` : '');
+  const bl = billOpen(), bod = bl.filter(b => billDue(b) < t), bsoon = bl.filter(b => billDue(b) >= t && billDue(b) <= wk);
+  if (bod.length) add({ key: 'billod', cat: 'money', icon: 'alert-triangle', tone: 'bad', title: `${bod.length} bill${bod.length > 1 ? 's' : ''} overdue · ${money(sum(bod, b => num(b.amount)))}`, detail: nm(bod, b => b.name), sig: bod.map(b => b.id).join(), go: ['bills', 'bills'] });
+  if (bsoon.length) add({ key: 'billsoon', cat: 'money', icon: 'receipt', tone: 'warn', title: `${bsoon.length} bill${bsoon.length > 1 ? 's' : ''} due this week · ${money(sum(bsoon, b => num(b.amount)))}`, detail: nm(bsoon, b => b.name), sig: bsoon.map(b => b.id).join(), go: ['bills', 'bills'] });
+  const ow = owedOrders(), iod = ow.filter(o => invDueDate(o) < t), isoon = ow.filter(o => invDueDate(o) >= t && invDueDate(o) <= wk);
+  if (iod.length) add({ key: 'invod', cat: 'money', icon: 'file-text', tone: 'bad', title: `${iod.length} unpaid invoice${iod.length > 1 ? 's' : ''} overdue · ${money(sum(iod, owedAmt))}`, detail: nm(iod, o => o.customer || orderNo(o)), sig: iod.map(o => o.id).join(), go: ['bills', 'invoices'] });
+  if (isoon.length) add({ key: 'invsoon', cat: 'money', icon: 'file-text', tone: 'warn', title: `${isoon.length} invoice${isoon.length > 1 ? 's' : ''} due this week · ${money(sum(isoon, owedAmt))}`, detail: nm(isoon, o => o.customer || orderNo(o)), sig: isoon.map(o => o.id).join(), go: ['bills', 'invoices'] });
+  const late = state.purchaseOrders.filter(p => !p.archived && ['Sent', 'Partially Received'].includes(p.status) && p.expected && p.expected < t);
+  if (late.length) add({ key: 'polate', cat: 'stock', icon: 'truck', tone: 'warn', title: `${late.length} supplier order${late.length > 1 ? 's' : ''} running late`, detail: nm(late, p => poNo(p) + ' · ' + poSupplier(p)), sig: late.map(p => p.id).join(), go: ['purchases'] });
+  if (state.accounts.length || String(state.settings.forecast.cash ?? '').trim() !== '') {
+    const c = forecastCalc();
+    if (c.low.v < 0) add({ key: 'cashshort', cat: 'money', icon: 'trending-down', tone: 'bad', title: `Cash may run short around ${fmtDate(c.low.d)}`, detail: `Your forecast dips to ${money(c.low.v)}. Open the forecast to see why.`, sig: c.low.d + ':' + Math.round(c.low.v), go: ['forecast'] });
+  }
+  return out;
+}
+
+/* ---------- COPY MY WHOLE BUSINESS AS TEXT ---------- */
+const BZ_SECTIONS = [['supplies', 'Supplies'], ['products', 'Products (with sizes & colors)'], ['listings', 'Listings'], ['orders', 'Sales & orders (sold, fulfilled, everything)'], ['invoices', 'Unpaid invoices'], ['bills', 'Bills'], ['po', 'Purchase orders'], ['people', 'Suppliers & customers'], ['money', 'Accounts, expenses & income'], ['plan', 'Tasks, goals & notes']];
+function bizReport(o) {
+  const L = [], add = (...a) => L.push(...a), m = n => money(n), on = new Set(o.on), t = today();
+  const scopeName = { all: 'Everything: active AND archived', active: 'Active only', archived: 'Archived only' }[o.scope];
+  const block = (title, list, fmt) => {
+    const act = list.filter(x => !x.archived), arc = list.filter(x => x.archived), show = [];
+    if (o.scope !== 'archived') show.push(['ACTIVE', act]);
+    if (o.scope !== 'active') show.push(['ARCHIVED', arc]);
+    add('', '=== ' + title + ' ===');
+    show.forEach(([lab, a]) => { add(`-- ${lab} (${a.length}) --`); if (!a.length) add('(none)'); a.forEach((x, i) => add(fmt(x, i + 1))); });
+  };
+  const tag = (...a) => a.filter(Boolean).join(' · ');
+  add(`${(state.settings.name || 'MY BUSINESS').toUpperCase()}${state.settings.industry ? ' (' + state.settings.industry + ')' : ''}`, `Full business report · created ${new Date().toLocaleString()}`, `Showing: ${scopeName} · Currency: ${state.settings.currency}`);
+  const cnt = (a) => `${a.filter(x => !x.archived).length} active, ${a.filter(x => x.archived).length} archived`;
+  add('', 'AT A GLANCE');
+  if (on.has('supplies')) add(`- Supplies: ${cnt(state.supplies)}`);
+  if (on.has('products')) add(`- Products: ${cnt(state.products)}`);
+  if (on.has('listings')) add(`- Listings: ${cnt(state.listings)}`);
+  if (on.has('orders')) add(`- Sales & orders: ${cnt(state.orders)}`);
+  if (on.has('invoices')) add(`- Unpaid invoices: ${owedOrders().length} owing ${m(sum(owedOrders(), owedAmt))}`);
+  if (on.has('bills')) add(`- Bills: ${billOpen().length} unpaid owing ${m(sum(billOpen(), b => num(b.amount)))}`);
+  if (on.has('po')) add(`- Purchase orders: ${cnt(state.purchaseOrders)}`);
+
+  if (on.has('supplies')) block('SUPPLIES (what you buy)', state.supplies, (s, i) => {
+    const alloc = allocated(s.id), st = stockState(s);
+    return `${i}. ${s.name}${s.sku ? ' [' + s.sku + ']' : ''}${st !== 'ok' ? ' ⚠ ' + st.toUpperCase() : ''}\n   ${tag(`Own ${r2(num(s.qty))} ${s.unit}`, `available ${avail(s)}`, alloc ? `used in products ${r2(alloc)}` : '', `cost ${m(num(s.cost))} per ${s.unit}`, `value ${m(num(s.qty) * num(s.cost))}`)}\n   ${tag(s.category, supplierName(s.supplierId) && 'from ' + supplierName(s.supplierId), s.location && 'at ' + s.location, `low alert ${lowOf(s)}`)}${s.notes ? '\n   Notes: ' + s.notes : ''}`;
+  });
+  if (on.has('products')) block('PRODUCTS (what you sell)', state.products, (p, i) => {
+    const st = productStats(p.id), uc = unitCost(p), q = num(p.qty), fin = productFinished(p), state_ = stockState(p);
+    const rec = (p.recipe || []).map(r => { const s = find('supplies', r.supplyId); return s ? `${s.name} ×${r.qty}` : ''; }).filter(Boolean);
+    const ls = state.listings.filter(l => listingProducts(l).includes(p.id));
+    return `${i}. ${p.name}${p.sku ? ' [' + p.sku + ']' : ''}${fin ? ' ✔ SOLD OUT (all sold)' : state_ !== 'ok' ? ' ⚠ ' + state_.toUpperCase() : ''}\n   ${tag(`In stock ${q}`, `price ${m(num(p.price))}`, `cost ${m(uc)}`, num(p.price) > 0 ? `margin ${pct((num(p.price) - uc) / num(p.price) * 100)}` : '', `value ${m(Math.max(0, q) * uc)}`)}\n   ${tag(`Sold ${st.units}`, `revenue ${m(st.rev)}`, `profit before fees ${m(st.profit)}`)}\n   ${tag(p.category, supplierName(p.supplierId) && 'from ' + supplierName(p.supplierId), p.location && 'at ' + p.location, p.barcode && 'barcode ' + p.barcode, p.tags && 'tags: ' + p.tags)}${(p.variants || []).length ? '\n   Sizes & colors: ' + p.variants.map(v => `${varLabel(v)} ×${num(v.qty)}`).join(', ') : ''}${rec.length ? '\n   Made from: ' + rec.join(', ') + (num(p.batch) > 1 ? ` (makes ${p.batch})` : '') : ''}${(p.tiers || []).length ? '\n   Bulk prices: ' + p.tiers.map(x => `${x.minQty}+ at ${m(num(x.price))}`).join(', ') : ''}${ls.length ? '\n   Listings: ' + ls.map(l => `${l.title} (${l.status})`).join('; ') : ''}${p.notes ? '\n   Notes: ' + p.notes : ''}`;
+  });
+  if (on.has('listings')) block('LISTINGS (where it is for sale)', state.listings, (l, i) => {
+    const ps = listingProducts(l).map(id => (find('products', id) || {}).name).filter(Boolean), urls = Object.entries(l.urls || {});
+    return `${i}. ${l.title}${l.sku ? ' [' + l.sku + ']' : ''} · ${l.status.toUpperCase()}${l.status === 'Sold' || listingReleased(l) ? ' ✔ SOLD' : ''}\n   ${tag(`price ${m(num(l.price))}${listingPrice(l) !== num(l.price) ? ' (now ' + m(listingPrice(l)) + ' on sale)' : ''}`, listingChans(l).join(', ') || 'no platform', ps.length && 'product: ' + ps.join(' + '), l.listedDate && 'listed ' + l.listedDate, l.relistDate && 'renews ' + l.relistDate)}${urls.length ? '\n   Links: ' + urls.map(([k, v]) => `${k}: ${v}`).join('  ') : ''}${l.notes ? '\n   Notes: ' + l.notes : ''}`;
+  });
+  if (on.has('orders')) {
+    block('SALES & ORDERS (everything sold, fulfilled or not)', state.orders.slice().sort((a, b) => (b.no || 0) - (a.no || 0)), o => {
+      const c = oc(o), lines = o.items.map(l => `     - ${l.qty}× ${lineName(l)} @ ${m(l.price)}${l.returned ? ` (${l.returned} returned)` : ''}`).join('\n');
+      return `${orderNo(o)} · ${o.date} · ${o.customer || 'No customer'}${o.channel ? ' · ' + o.channel : ''} · ${o.status}${isOwed(o) ? ` · UNPAID ${m(owedAmt(o))} due ${invDueDate(o)}` : ''}${o.bulk ? ' · BULK' : ''}\n${lines}\n   ${tag(`Total ${m(c.gross)}`, c.refund && `refunded ${m(c.refund)}`, `fees ${m(c.fees)}`, `postage ${m(c.post)}`, `profit ${m(c.profit)}`, o.tracking && 'tracking ' + o.tracking, o.ref && 'order # ' + o.ref)}${o.notes ? '\n   Notes: ' + o.notes : ''}`;
+    });
+    const sold = new Map(); live().forEach(o => o.items.forEach(l => { const k = (l.productId || 'c:' + l.name) + '|' + (l.variantId || ''), u = Math.max(0, l.qty - (l.returned || 0)), e = sold.get(k) || { name: lineName(l), units: 0, rev: 0 }; e.units += u; e.rev += u * l.price; sold.set(k, e); }));
+    add('', '-- EVERYTHING SOLD, ALL TIME (includes archived orders) --');
+    const sl = [...sold.values()].filter(x => x.units > 0).sort((a, b) => b.rev - a.rev); if (!sl.length) add('(nothing sold yet)'); sl.forEach(x => add(`- ${x.name}: ${x.units} sold · ${m(x.rev)}`));
+  }
+  if (on.has('invoices')) {
+    add('', '=== UNPAID INVOICES (customers who owe you) ===');
+    const os = owedOrders().sort((a, b) => invDueDate(a).localeCompare(invDueDate(b))); if (!os.length) add('(none)');
+    os.forEach(o => { const d = invDueDate(o); add(`- ${o.customer || orderNo(o)} · ${orderNo(o)} · owes ${m(owedAmt(o))} · due ${d}${d < t ? ` (${daysBetween(d, t)} days overdue)` : ''}`); });
+    if (os.length) add(`Total owed to you: ${m(sum(os, owedAmt))}`);
+  }
+  if (on.has('bills')) block('BILLS (what you owe)', state.bills.slice().sort((a, b) => (a.due || '').localeCompare(b.due || '')), (b, i) => `${i}. ${b.name}${b.vendor ? ' · ' + b.vendor : ''} · ${m(num(b.amount))} · ${b.paid ? 'PAID ' + b.paidDate : (billDue(b) < t ? 'OVERDUE, was due ' : 'due ') + billDue(b)}${b.repeat ? ' · repeats ' + b.repeat : ''}${b.cat ? ' · ' + b.cat : ''}${b.stockBuy ? ' · stock' : ''}`);
+  if (on.has('po')) block('PURCHASE ORDERS (what you ordered from suppliers)', state.purchaseOrders.slice().sort((a, b) => (b.no || 0) - (a.no || 0)), po => `${poNo(po)} · ${po.date} · ${poSupplier(po)} · ${po.status.toUpperCase()} · ${m(poTotal(po))}${po.expected ? ' · expected ' + po.expected : ''}${po.terms ? ' · ' + po.terms : ''}\n${(po.items || []).map(l => `     - ${num(l.qty)}× ${poLineText(l)} @ ${m(l.cost)} (${num(l.received)} received)`).join('\n')}${po.notes ? '\n   Notes: ' + po.notes : ''}`);
+  if (on.has('people')) {
+    block('SUPPLIERS', state.suppliers, (s, i) => `${i}. ${s.name}${s.contact ? ' · ' + s.contact : ''}${s.website ? ' · ' + s.website : ''}${s.notes ? '\n   Notes: ' + s.notes : ''}`);
+    block('CUSTOMERS', state.customers, (c, i) => { const cs = customerStats(c.name); return `${i}. ${c.name}${c.email ? ' · ' + c.email : ''}${c.phone ? ' · ' + c.phone : ''} · ${cs.orders} order${cs.orders === 1 ? '' : 's'} · spent ${m(cs.spent)}${cs.last ? ' · last ' + cs.last : ''}`; });
+  }
+  if (on.has('money')) {
+    const all = summary(['0000-01-01', '9999-12-31']);
+    add('', '=== MONEY ===', `All time: net sales ${m(all.net)} · expenses ${m(all.expenses)} · other income ${m(all.income)} · profit ${m(all.profit)}`);
+    add('-- ACCOUNTS --'); if (!state.accounts.length) add('(none)'); state.accounts.forEach(a => add(`- ${a.name} (${a.kind || 'Account'}): ${m(acctBal(a).bal)}`));
+    add(`-- EXPENSES (${state.expenses.length}) --`); if (!state.expenses.length) add('(none)'); state.expenses.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).forEach(e => add(`- ${e.date} · ${e.desc} · ${m(num(e.amount))}${e.cat ? ' · ' + e.cat : ''}${e.vendor ? ' · ' + e.vendor : ''}${e.stockBuy ? ' · stock' : ''}`));
+    add(`-- OTHER INCOME (${state.income.length}) --`); if (!state.income.length) add('(none)'); state.income.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).forEach(e => add(`- ${e.date} · ${e.desc} · ${m(num(e.amount))}`));
+  }
+  if (on.has('plan')) {
+    add('', '=== TASKS, GOALS & NOTES ===', '-- OPEN TASKS --'); const ot = state.tasks.filter(x => !x.done); if (!ot.length) add('(none)'); ot.forEach(x => add(`- ${x.title}${x.due ? ' · due ' + x.due : ''}${x.priority && x.priority !== 'Normal' ? ' · ' + x.priority : ''}`));
+    add('-- GOALS --'); if (!state.goals.length) add('(none)'); state.goals.forEach(g => { const gi = goalInfo(g); add(`- ${g.name}: ${Math.round(gi.ratio * 100)}% · ${gi.status}`); });
+    block('NOTES', state.notes, (n, i) => `${i}. ${n.title || 'Untitled'}${n.body ? ' — ' + String(n.body).slice(0, 400) : ''}`);
+  }
+  add('', '— end of report —');
+  return L.join('\n');
+}
+OPEN.bizText = () => {
+  ui.bz = ui.bz || { on: BZ_SECTIONS.map(s => s[0]).filter(k => k !== 'plan'), scope: 'all' };
+  const txt = bizReport(ui.bz);
+  openSheet('Copy my whole business as text', `<div class="sheet-body">
+    <p class="hint" style="margin:0 0 10px">A readable list of your whole business: what you have, what is archived, what has sold, who owes you and who you owe. This is for reading or sharing. To move to another device, use <b>Copy ALL my data as text</b> instead.</p>
+    <label class="fld"><span>Include</span><select class="select" data-bzscope><option value="all" ${ui.bz.scope === 'all' ? 'selected' : ''}>Everything (active + archived)</option><option value="active" ${ui.bz.scope === 'active' ? 'selected' : ''}>Active only</option><option value="archived" ${ui.bz.scope === 'archived' ? 'selected' : ''}>Archived only</option></select></label>
+    <div class="grid2" style="margin-bottom:12px">${BZ_SECTIONS.map(s => `<label class="row b xs" style="gap:8px"><input type="checkbox" class="chk" data-bz="${s[0]}" ${ui.bz.on.includes(s[0]) ? 'checked' : ''}> ${s[1]}</label>`).join('')}</div>
+    <textarea class="textarea" id="bz-box" readonly style="min-height:240px;font-size:12px;font-family:monospace;white-space:pre"></textarea>
+    <p class="hint" id="bz-count" style="margin-top:6px"></p></div>
+    <div class="sheet-foot"><button class="btn btn-line" data-act="bz-dl">${ic('download')} Save .txt</button><button class="btn btn-primary" data-act="bz-copy">${ic('copy')} Copy it</button></div>`, { noFocus: true });
+  bzRefresh();
+};
+function bzRefresh() { const b = $('#bz-box'); if (!b) return; b.value = bizReport(ui.bz); const c = $('#bz-count'); if (c) c.textContent = `${b.value.split('\n').length} lines · ${b.value.length.toLocaleString()} characters`; }
+
+/* ---------- actions + events for all of the above ---------- */
+Object.assign(ACT, {
+  'arch-toggle': () => { ui.arch = !ui.arch; render(); },
+  'paid-toggle': () => { ui.showPaid = !ui.showPaid; render(); },
+  'bill-pay': el => OPEN.billpay(el.dataset.id),
+  'bill-unpay': async el => {
+    const b = find('bills', el.dataset.id); if (!b) return;
+    if (!await confirmBox('Mark as unpaid?', 'The expense it created is removed and the bill goes back to your unpaid list.', 'Mark unpaid', false)) return;
+    state.expenses = state.expenses.filter(x => x.id !== b.expenseId);
+    const nb = b.nextId && find('bills', b.nextId); if (nb && !nb.paid) state.bills = state.bills.filter(x => x.id !== nb.id);
+    b.paid = false; b.paidDate = ''; delete b.expenseId; delete b.nextId; delete b.paidAmt;
+    logAct(`Marked bill ${b.name} unpaid`, 'undo'); save(); render(); toast('Back on your unpaid list');
+  },
+  'pay-invoice': el => { closeSheet(); OPEN.payinv(el.dataset.id); },
+  'inv-remind': el => {
+    const o = find('orders', el.dataset.id); if (!o) return; const due = invDueDate(o), late = due < today();
+    copyText(`Hi${o.customer ? ' ' + o.customer : ''},\n\nA friendly reminder that ${orderNo(o)} (${money(owedAmt(o))}) ${late ? 'was due on' : 'is due on'} ${fmtDateLong(due)}. ${late ? 'Could you please send payment when you can?' : 'Please let me know if you have any questions.'}\n\nThank you,\n${state.settings.name || ''}`, 'Reminder');
+  },
+  'open-bills': el => { ui.seg.bills = el.dataset.seg || 'bills'; go('more', 'bills'); },
+  'open-forecast': () => go('more', 'forecast'),
+  'fc-days': el => { state.settings.forecast.days = +el.dataset.v; save(); render(); },
+  'var-add': el => { const f = formOf(el); $('#var-rows', f).insertAdjacentHTML('beforeend', varRow({})); syncVarQty(f); const r = $$('.var-row', f).pop(); if (r) $('[name=vs]', r).focus(); },
+  'var-del': el => { const f = formOf(el), r = el.closest('.var-row'); if (r) r.remove(); syncVarQty(f); },
+  'var-gen': el => {
+    const f = formOf(el), box = el.closest('.preview'), split = s => [...new Set(String(s || '').split(',').map(x => x.trim()).filter(Boolean))];
+    const sz = split($('[data-vg=s]', box).value), cl = split($('[data-vg=c]', box).value);
+    if (!sz.length && !cl.length) return toast('Type some sizes and/or colors first, separated by commas');
+    const have = new Set($$('.var-row', f).map(r => lc($('[name=vs]', r).value) + '|' + lc($('[name=vc]', r).value)));
+    let n = 0;
+    (sz.length ? sz : ['']).forEach(s => (cl.length ? cl : ['']).forEach(c => { const k = lc(s) + '|' + lc(c); if (have.has(k)) return; have.add(k); $('#var-rows', f).insertAdjacentHTML('beforeend', varRow({ size: s, color: c, qty: 0 })); n++; }));
+    $('[data-vg=s]', box).value = ''; $('[data-vg=c]', box).value = ''; syncVarQty(f);
+    toast(n ? `Added ${n} option${n > 1 ? 's' : ''}. Now set how many of each you have` : 'Those are already in the list');
+  },
+  'open-po': el => OPEN.poDetail(el.dataset.id),
+  'po-line-add': el => { const f = formOf(el); $('#po-lines', f).insertAdjacentHTML('beforeend', poLineRow({})); poPreview(f); },
+  'po-line-del': el => { const f = formOf(el), r = el.closest('.po-line'); if (r) r.remove(); poPreview(f); },
+  'po-low': el => {
+    const f = formOf(el), low = state.supplies.filter(x => active(x) && stockState(x) !== 'ok').map(s => ({ kind: 'supply', refId: s.id, name: s.name, qty: Math.max(1, Math.ceil(lowOf(s) * 2 - stockQty(s))), cost: num(s.cost) }))
+      .concat(state.products.filter(x => active(x) && !(x.variants || []).length && stockState(x) !== 'ok').map(p => ({ kind: 'product', refId: p.id, name: p.name, qty: Math.max(1, Math.ceil(lowOf(p) * 2 - stockQty(p))), cost: num(p.cost) })));
+    if (!low.length) return toast('Nothing is running low right now');
+    $$('.po-line', f).forEach(r => { if (!$('[name=pi]', r).value && !tidy($('[name=pn]', r).value) && !$('[name=pq]', r).value) r.remove(); });
+    const have = new Set($$('.po-line', f).map(r => $('[name=pi]', r).value));
+    const add = low.filter(l => !have.has((l.kind === 'supply' ? 's:' : 'p:') + l.refId));
+    add.forEach(l => $('#po-lines', f).insertAdjacentHTML('beforeend', poLineRow(l))); poPreview(f);
+    toast(add.length ? `Added ${add.length} low-stock item${add.length > 1 ? 's' : ''}. Adjust the amounts` : 'Those are already on the order');
+  },
+  'po-sent': el => { const po = find('purchaseOrders', el.dataset.id); if (!po) return; po.status = 'Sent'; logAct(`${poNo(po)} marked sent`, 'truck'); save(); render(); OPEN.poDetail(po.id); toast('Marked as sent'); },
+  'po-recv': el => { closeSheet(); OPEN.porecv(el.dataset.id); },
+  'po-bill': el => { const po = find('purchaseOrders', el.dataset.id); if (!po || poBill(po)) return; makePoBill(po); save(); render(); OPEN.poDetail(po.id); toast('Bill made. Find it under Bills & invoices'); },
+  'po-cancel': async el => {
+    const po = find('purchaseOrders', el.dataset.id); if (!po) return;
+    if (!await confirmBox('Cancel this order?', 'Anything that already arrived stays in your stock. The order is kept so you have a record.', 'Cancel order', true)) return;
+    po.status = 'Cancelled'; logAct(`${poNo(po)} cancelled`, 'x'); save(); render(); OPEN.poDetail(po.id); toast('Order cancelled');
+  },
+  'po-copy': el => { const po = find('purchaseOrders', el.dataset.id); if (po) copyText(poText(po), 'Purchase order'); },
+  'biz-text': () => OPEN.bizText(),
+  'bz-copy': () => copyText(($('#bz-box') || {}).value, 'Your business report'),
+  'bz-dl': () => { const v = ($('#bz-box') || {}).value; if (v) download(`business-report-${today()}.txt`, 'text/plain', v); },
+});
+document.addEventListener('change', e => {
+  const t = e.target; if (!t || !t.matches) return;
+  if (t.matches('form[data-form=order] select[name=lp]')) {
+    const row = t.closest('.line'), lv = row && $('[name=lv]', row), p = t.value && find('products', t.value);
+    if (lv) { if (p && (p.variants || []).length) { lv.innerHTML = variantOpts(p, {}); lv.hidden = false; } else { lv.innerHTML = ''; lv.hidden = true; } }
+  }
+  if (t.matches('form[data-form=po] select[name=pi]')) poPick(t.closest('.po-line'));
+  if (t.dataset.fc) {
+    const k = t.dataset.fc; state.settings.forecast[k] = t.type === 'checkbox' ? t.checked : t.value.trim(); save(); render();
+  }
+  if (t.dataset.bz !== undefined) { const s = new Set(ui.bz.on); t.checked ? s.add(t.dataset.bz) : s.delete(t.dataset.bz); ui.bz.on = [...s]; bzRefresh(); }
+  if (t.dataset.bzscope !== undefined) { ui.bz.scope = t.value; bzRefresh(); }
+});
+document.addEventListener('input', e => {
+  const t = e.target; if (!t || !t.closest) return;
+  if (t.name === 'vq') syncVarQty(t.closest('form'));
+  const f = t.closest('form[data-form=po]'); if (f) { if (t.name === 'pc') delete t.dataset.auto; poPreview(f); }
+});
+
+
+/* =====================================================================
    13. EVENTS
    ===================================================================== */
 document.addEventListener('click', e => {
@@ -4637,6 +5294,19 @@ function genSample() {
   pd('p1').description = 'Handmade glass bead bracelet on silver-tone wire. Fits most wrists (6.5–7.5 in). Ships in a gift box with a thank-you card.';
   d.mileage = [[3, 'Post office run', 'Studio', 'Post office', 4.2], [10, 'Supplier pickup', 'Studio', 'Northside Supply Co.', 22.5], [17, 'Craft fair', 'Studio', 'City Hall', 14], [29, 'Post office run', 'Studio', 'Post office', 4.2], [47, 'Bank deposit', 'Studio', 'Bank', 6.1]].map(m => ({ id: uid('m'), date: addDays(t, -m[0]), purpose: m[1], from: m[2], to: m[3], miles: m[4] }));
   for (let i = 1; i <= 6; i++) { const day = addDays(t, -i), s = new Date(day + 'T09:00').getTime() + ri(0, 3) * 36e5; d.shifts.push({ id: uid('h'), date: day, startMs: s, endMs: s + ri(4, 7) * 36e5, breakMs: 30 * 6e4, note: pick(['Packing orders', 'Making stock', 'Photos & listings', 'Admin']) }); }
+  /* sample sizes & colors, bills, an unpaid invoice and a purchase order */
+  { const p5 = d.products.find(x => x.id === 'p5');
+    if (p5) { const q = Math.max(0, num(p5.qty)), a = Math.ceil(q * .45), b = Math.floor(q * .35), c = Math.max(0, q - a - b);
+      p5.variants = [{ id: uid('v'), size: 'One size', color: 'Natural', qty: a }, { id: uid('v'), size: 'One size', color: 'Black', qty: b }, { id: uid('v'), size: 'One size', color: 'Navy', qty: c }]; }
+    const mk = (name, vendor, amount, due, cat, repeat, extra = {}) => ({ id: uid('b'), name, vendor, amount, due, cat, repeat, acct: '', stockBuy: false, notes: '', paid: false, paidDate: '', ...extra });
+    d.bills = [mk('Studio rent', 'Maple Properties', 450, addDays(t, -3), 'Rent & Utilities', 'monthly'), mk('Website hosting', 'HostCo', 24, addDays(t, 5), 'Software & Subscriptions', 'monthly'), mk('Packaging order invoice', 'PackRight', 186.4, addDays(t, 12), 'Packaging', '', { stockBuy: true })];
+    const px = { id: uid('x'), date: addDays(t, -12), desc: 'Internet', amount: 60, cat: 'Rent & Utilities', vendor: 'FiberNet', deductible: true, acct: '' };
+    d.expenses.push(px); d.bills.push(mk('Internet', 'FiberNet', 60, addDays(t, -12), 'Rent & Utilities', 'monthly', { paid: true, paidDate: addDays(t, -12), paidAmt: 60, expenseId: px.id }));
+    px.billId = d.bills[d.bills.length - 1].id;
+    const hb = d.orders.find(o => o.customer === 'Harbor Gift Shop'); if (hb) { hb.unpaid = true; hb.invTerms = 'Net 15'; }
+    const od = d.orders.find(o => o.customer && o.customer !== 'Harbor Gift Shop' && !o.bulk && o.date <= addDays(t, -15) && o.status === 'Fulfilled'); if (od) { od.unpaid = true; od.invTerms = 'Net 7'; }
+    const s0 = d.supplies[0], s1 = d.supplies[1];
+    if (s0 && s1) { d.counters.po = 1; d.purchaseOrders = [{ id: uid('po'), no: 1, status: 'Sent', date: addDays(t, -3), expected: addDays(t, 4), terms: 'Net 30', supplierId: s0.supplierId || 's1', shipping: 12, tax: 0, notes: 'Please include a packing slip.', receivedDate: '', items: [{ kind: 'supply', refId: s0.id, name: s0.name, variantId: '', variantLabel: '', qty: 40, cost: num(s0.cost) || 1, received: 0 }, { kind: 'supply', refId: s1.id, name: s1.name, variantId: '', variantLabel: '', qty: 25, cost: num(s1.cost) || 1, received: 0 }] }]; } }
   state = d;
   d.orders.forEach(o => ensureCustomer(o.customer));
   const c0 = d.customers.find(c => c.name === 'Maya R.'); if (c0) { c0.email = 'maya@example.com'; c0.phone = '(555) 010-3322'; c0.address = '48 Oak Avenue\nSeattle, WA 98101'; c0.tags = 'vip'; }
