@@ -277,6 +277,15 @@ button.metric{text-align:left}
 .card.selected{border-color:var(--p);background:var(--p-soft)}
 .selbar{box-shadow:0 8px 28px rgba(0,0,0,.2);border-color:var(--p)}
 .sticky-bar{padding-top:6px}
+.faq-q{padding:0;margin-bottom:8px}
+.faq-q>summary{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;list-style:none;font-size:14px}
+.faq-q>summary::-webkit-details-marker{display:none}
+.faq-q>summary b{flex:1;font-weight:700}
+.faq-q>summary .chev{width:14px;height:14px;opacity:.5;transition:transform .2s;flex:none}
+.faq-q[open]>summary .chev{transform:rotate(180deg)}
+.faq-a{padding:0 16px 14px;border-top:1px solid var(--line)}
+.faq-steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:12px;font-size:14px}
+.faq-steps li::marker{color:var(--p);font-weight:800}
 .acc{padding:16px 18px}
 .acc-h{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font-size:14px}
 .acc-h>.ic:first-child{color:var(--p);width:18px;height:18px}
@@ -1795,7 +1804,7 @@ function chartHover(el, ev, leave) {
 /* =====================================================================
    11. HEADER + NAV
    ===================================================================== */
-const TITLES = { sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More', plan: 'Plan', goals: 'Goals', suppliers: 'Suppliers', customers: 'Customers', notes: 'Notes', mileage: 'Mileage', activity: 'Activity', settings: 'Settings', taxes: 'Taxes', assistant: 'Business Assistant', inbox: 'Inbox', bills: 'Bills & Invoices', forecast: 'Cash Flow Forecast', purchases: 'Orders & Deliveries', stockin: 'Stock In' };
+const TITLES = { sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More', plan: 'Plan', goals: 'Goals', suppliers: 'Suppliers', customers: 'Customers', notes: 'Notes', mileage: 'Mileage', activity: 'Activity', settings: 'Settings', taxes: 'Taxes', assistant: 'Business Assistant', inbox: 'Inbox', bills: 'Bills & Invoices', forecast: 'Cash Flow Forecast', purchases: 'Orders & Deliveries', stockin: 'Stock In', faq: 'Help & FAQ' };
 function addType() {
   const v = ui.sub || ui.tab, s = ui.seg;
   if (v === 'sales') return ['order', 'Sale'];
@@ -2702,6 +2711,7 @@ V.more = () => {
       ${row('car', 'Mileage', 'Business trips and the deduction they are worth', 'mileage')}
       ${row('sticky-note', 'Notes', 'Ideas, research and reminders', 'notes')}
       ${row('history', 'Activity', 'A log of sales, stock and changes', 'activity')}
+      ${row('info', 'Help & FAQ', 'How to use the app from start to finish, plus answers to common questions', 'faq')}
       ${row('settings', 'Settings', 'Business, platforms, invoices, backup', 'settings')}
     </div>
     <p class="hint" style="text-align:center">Saved on this device with automatic safety copies. Back up anytime from Settings.</p></div>`;
@@ -4111,7 +4121,8 @@ function render() {
 function refreshList() {
   const el = $('#list'); if (!el) return;
   const v = ui.sub || ui.tab, m = ui.seg;
-  el.innerHTML = v === 'sales' ? salesList() : v === 'stock' ? stockList() : v === 'notes' ? notesList() : v === 'customers' ? customersList() : v === 'suppliers' ? suppliersList() : v === 'mileage' ? mileageList()
+  if (v === 'faq') { const g = $('#faq-intro'); if (g) g.style.display = (ui.q || '').trim() ? 'none' : 'flex'; }
+  el.innerHTML = v === 'sales' ? salesList() : v === 'stock' ? stockList() : v === 'notes' ? notesList() : v === 'customers' ? customersList() : v === 'suppliers' ? suppliersList() : v === 'mileage' ? mileageList() : v === 'faq' ? faqList()
     : v === 'money' ? (m.money === 'expenses' ? expenseList() : incomeList()) : v === 'plan' ? tasksList() : '';
 }
 function resetFilters() { ui.q = ''; ui.filter = 'all'; ui.sort = ''; ui.cat = ''; ui.ch = ''; ui.arch = false; ui.selMode = false; ui.sel.clear(); ui.limit = 60; }
@@ -4695,6 +4706,196 @@ const HELP = {
     example: 'Set Etsy at 9.5% + $0.45: every Etsy sale now subtracts that fee automatically.',
     links: [['Sales', 'Fees apply to sales', 't:sales'], ['Taxes', 'Uses your tax %', 's:taxes'], ['Home', 'Choose Home cards', 'h']], tip: 'Fees change often. Check your platform’s current rates.' },
 };
+
+
+/* =====================================================================
+   HELP & FAQ: a start-to-finish guide plus questions on every feature
+   (More › Help & FAQ). Answers: lines starting with "• " become bullets.
+   ===================================================================== */
+const FAQ_GUIDE = [
+  ['Set up the basics', 'Open the app and tap Get Started (or Explore with sample data to practice first). Enter your business name, currency, the platforms you sell on and, if you like, a monthly revenue goal.', 's:settings:business', 'Business settings'],
+  ['Add your platforms and fees', 'In More › Settings › Platforms & fees, add each place you sell (Etsy, eBay, markets, your own site). Enter its fee % and fixed fee so every sale works out your real profit.', 's:settings:channels', 'Platforms & fees'],
+  ['Add suppliers (optional)', 'In More › Suppliers, save the shops and people you buy from so you can pick them later on supplies and orders.', 's:suppliers', 'Suppliers'],
+  ['Enter components and supplies', 'In Inventory, use the Components tab for parts that go INTO your products (beads, wire, fabric) and the Supplies tab for extras like mailers and tape. Enter how many you have and what each costs.', 't:stock:components', 'Components'],
+  ['Enter your products', 'In Inventory › Products tap + Product. Add the name, SKU, price and quantity. If you make it yourself, add a recipe so the cost is worked out for you. If you bought it ready-made, type its cost.', 't:stock:products', 'Products'],
+  ['Create listings (optional)', 'In Inventory › Listings, record where each product is for sale, the price on each platform and when it needs renewing.', 't:stock:listings', 'Listings'],
+  ['Record a sale', 'In Sales tap + Sale, pick the products, the platform and the customer. Stock goes down and the fee, cost and profit are worked out.', 't:sales', 'Sales'],
+  ['Track the order to the finish', 'Open the order and move its status along: Order Received, In Preparation, Packaged, Shipped, Delivered, Fulfilled. Add the tracking number when you ship.', 't:sales', 'Sales'],
+  ['Restock and track deliveries', 'When you order more from a supplier, add it in More › Orders & deliveries. Tap where it is now, and when it arrives tap Arrived to add the items to your stock.', 's:purchases', 'Orders & deliveries'],
+  ['Record money going out and coming in', 'In Money, add Expenses (software, ads, rent) and Income that is not a sale (grants, tips). Add Accounts if you want running balances.', 't:money:expenses', 'Expenses'],
+  ['Handle bills and invoices', 'In More › Bills & invoices, add bills you must pay and keep an eye on invoices customers still owe you.', 's:bills', 'Bills & invoices'],
+  ['Check taxes and goals', 'More › Taxes shows what to set aside. More › Goals tracks targets like monthly revenue.', 's:taxes', 'Taxes'],
+  ['Make Home and the Inbox your daily check', 'Home shows how you are doing. The bell shows alerts (late orders, low stock, bills due) so nothing slips.', 'h', 'Home'],
+  ['Back up your data', 'Everything is stored on this device only. In More › Settings › Your data & backups, download a backup file regularly or turn on auto-save to a file.', 's:settings:data', 'Backups'],
+];
+
+const FAQ = [
+  { id: 'start', t: 'Getting started', ic: 'star', q: [
+    ['What is this app?', 'Grimms Business Tracker keeps your sales, inventory, money, listings, goals, plans and taxes in one place. It works out fees, costs, stock and profit for you.'],
+    ['Do I need an account or internet?', 'No account and no sign-in. Your data is saved on this device. Fonts and a few online extras (like some widgets or package tracking links) need internet, but the tracker itself is yours to use any time.'],
+    ['What is “Explore with sample data”?', 'It fills the app with a pretend shop so you can click around safely. When you are done, go to More › Settings › Your data & backups and erase everything, then start fresh with your own details.'],
+    ['Where do I find things?', 'The bottom bar has five tabs:\n• Home: your dashboard\n• Sales: every order you take\n• Inventory: products, components, supplies and listings\n• Money: overview, expenses, income and accounts\n• More: everything else (Plan, Goals, Taxes, Bills, Orders & deliveries, Customers, Suppliers, Mileage, Notes, Activity, Settings, this FAQ)'],
+    ['What is the “?” button at the top?', 'Every page has a ? button. It explains what that page is for, how to use it, gives an example and shows which other pages it connects to.'],
+    ['Does the app work on my phone?', 'Yes, it is built for phones and also works on tablets and computers. On a computer it is shown in a phone-style frame (you can change that in Settings › Colors & looks).'],
+    ['In what order should I enter things?', 'Settings and platforms first, then components and supplies, then products, then sales. See the Start to finish guide at the top of this page.'],
+  ]},
+  { id: 'setup', t: 'Setup & settings', ic: 'settings', q: [
+    ['How do I change my business name or currency?', 'More › Settings › Business & invoices.'],
+    ['How do I add a platform like Etsy or eBay?', 'More › Settings › Platforms & fees. Tap Add eBay, Etsy, Mercari… to add one with typical fees, or Add platform to type your own name and fees.'],
+    ['How are platform fees worked out?', 'The % fee applies to the order total (items minus discount, plus shipping you charged). The fixed fee is charged once per order. You can override the fee on any individual sale if your platform charged something different.'],
+    ['Fees change. What do I do?', 'Edit the platform in Settings. Old sales keep the fee they were recorded with.'],
+    ['How do I set my tax %, mileage rate or low-stock level?', 'More › Settings › Preferences & taxes.'],
+    ['How do I add expense categories and monthly budgets?', 'More › Settings › Categories & budgets. Go over a budget and an alert appears in your Inbox.'],
+    ['What goes on my invoices?', 'Your address, email, phone, tax ID and footer from Settings › Business & invoices.'],
+    ['Can I add my own payment methods or carriers?', 'Yes: Settings › Payment methods & carriers.'],
+  ]},
+  { id: 'inventory', t: 'Products, components & supplies', ic: 'package', q: [
+    ['What is the difference between a product, a component and a supply?', '• Product: what you sell.\n• Component: a part that goes INTO a product (beads, wire, fabric, a charm you make ahead).\n• Supply: an extra you use up around products (mailers, tape, labels, gift boxes).\nIf you picked the wrong one, open the item and change “This is a” to move it between tabs.'],
+    ['How do I enter a product?', 'Inventory › Products › + Product. Add a name, SKU, price and how many you have. Choose the date you got them. Optional: price tiers, sizes & colors, a listing title and description.'],
+    ['How do I enter a product I make myself?', 'Add a recipe on the product: pick the components and supplies it uses, how much the whole batch uses, and how many units the batch makes. The cost per unit is worked out for you.'],
+    ['How do I enter a product I bought ready-made?', 'Type its cost per unit. Or enter the total you paid for what you have and leave cost empty, and it is worked out.'],
+    ['How do I enter components or supplies?', 'Inventory › Components or Supplies › + button. Enter the name, unit (pcs, roll, pack…), how many you have and the cost per unit, or the total you paid and leave cost empty.'],
+    ['I got more stock. How do I add it?', 'Tap the + on the item’s card and enter how many, what you paid and the date. If you ordered it through Orders & deliveries, receive it there instead.'],
+    ['How do I get low-stock warnings?', 'Set a low-stock level on the item (or a default in Settings). At that level it shows “Low”, appears in your Inbox and in the Reorder list.'],
+    ['How is stock reduced?', 'Selling a product lowers its stock. If the product has a recipe, the components and supplies it uses are counted as used up too. Cancelled and failed orders do not take stock, and a returned order that you receive back puts it back.'],
+    ['What does “available” mean?', 'What you own, minus what your products’ recipes already use. It shows how many more you could make.'],
+    ['How is margin calculated?', 'Price minus cost, as a percentage of price. It turns amber under 20% as a hint to raise the price or lower the cost.'],
+    ['Can I add sizes and colors?', 'Yes. Use the sizes & colors option on the product.'],
+    ['Can I import many products at once?', 'Yes. Settings › Your data & backups › Import products from CSV. Download the CSV template first to see the layout.'],
+    ['How do I edit, archive or delete an item?', 'Tap the item to edit it. Archive hides it without losing history. Deleting asks you to confirm, and you get an Undo button right after. If something is still in use, the app tells you why it can’t be archived or deleted yet.'],
+    ['Should I log supplies I resell as expenses?', 'No. Their cost is counted when you sell them, so adding them as expenses too would count them twice.'],
+    ['Can I change many items at once?', 'Yes. Tap Select on the list, tick several, then change, archive or delete them together.'],
+  ]},
+  { id: 'listings', t: 'Listings', ic: 'tag', q: [
+    ['What is a listing?', 'What buyers see on a platform: title, description, price and link. One listing can sit on several platforms.'],
+    ['How do I create one?', 'Inventory › Listings › + Listing. Pick the product and tick the platforms. If you filled in a product’s title, description and price, they fill in for you. Bulk create makes many at once.'],
+    ['What does “renew” mean?', 'Some platforms need listings renewed after a while. Renewed… resets the clock. Listings that are 30+ days old (or past the platform’s renew time you set) get flagged in your Inbox.'],
+    ['How do I add a discount?', 'Open the listing and add a discount with start and end dates. The live price on the card updates by itself and you are reminded before it ends.'],
+    ['What are analytics snapshots?', 'Save numbers like views, favorites and offers for each platform over time to see what works. Choose which numbers to track in Settings › Listing analytics to track.'],
+    ['How do I copy a title or description?', 'Open the listing and tap Copy title or Copy description, then paste it into the platform.'],
+  ]},
+  { id: 'sales', t: 'Sales & tracking orders', ic: 'receipt', q: [
+    ['How do I record a sale?', 'Sales › + Sale. Pick the products and quantities (price and cost fill in from the product), choose the platform, add the customer name, date and any shipping, discount or tax. Save it.'],
+    ['How do I track an order?', 'Open the order and change its status as it moves along. The Sales page has chips, a platform menu and a search to find orders, and Home shows an Order Pipeline with a count at every step. Tap a step to see only those orders.'],
+    ['What are the order statuses?', 'The normal path is: Payment Processing, Order Received, In Preparation, Packaged, Shipped, Out for Delivery, Delivered, Customer Received, Awaiting Feedback, Awaiting Fulfillment, Fulfilled.\nProblem statuses: Cancelled, Payment Failed, Refund Requested, Return Requested, Return In Transit, Return Received, Partially Refunded, Refunded to Customer, Refunded to Owner, Dispute Open, Dispute Resolved, Lost in Transit, Damaged in Transit.'],
+    ['Can I change the date of each step?', 'Yes. Open the order and expand “Date for each step (edit any)”.'],
+    ['How do I add a tracking number?', 'Open the order and add the carrier and tracking number.'],
+    ['What is the ship-by date?', 'The day you promised to ship by. Orders still not shipped after it appear as late in your Inbox and the calendar.'],
+    ['How do I refund an order?', 'Open the order and use the refund option (full or partial). The refund is taken off your revenue and profit.'],
+    ['How do I handle a return?', 'Set the status to Return Requested, then Return In Transit, then Return Received. Receiving it puts the items back in stock.'],
+    ['What if an order is lost or damaged?', 'Set it to Lost in Transit or Damaged in Transit. If a carrier or platform pays you back, use Refunded to Owner.'],
+    ['Do cancelled orders count as sales?', 'No. Cancelled and Payment Failed orders are not counted as sales and do not take stock.'],
+    ['What is a bulk order?', 'For wholesale: volume discount, PO number, deposit and payment terms. If it is not fully paid, it shows up as an unpaid invoice under More › Bills & invoices.'],
+    ['How do I print or send an invoice?', 'Open the order and choose the invoice option. Your business details come from Settings.'],
+    ['How do I link a sale to a listing?', 'Pick the listing on the sale form.'],
+    ['Where does the money from a sale go?', 'Choose an account on the sale and that account’s balance goes up. Accounts are optional.'],
+    ['How do I find or edit an old sale?', 'Search on the Sales page or use the chips. Tap an order to edit it.'],
+    ['How is profit worked out?', 'Sales after refunds, minus platform fees, postage, cost of goods and expenses, plus other income. Shipping you charged and sales tax are not counted as yours.'],
+    ['Does a customer get saved automatically?', 'Yes. Type a name on a sale and a customer is created. Spell it the same way each time to keep their history together.'],
+  ]},
+  { id: 'purchases', t: 'Ordering stock & deliveries', ic: 'truck', q: [
+    ['How do I track something I ordered from a supplier?', 'More › Orders & deliveries › + Order. Pick a supplier (or type the store), add the items and costs, and add the carrier and tracking number. Then open the order and tap where it is now: Ordered, In Transit, Out for Delivery or Delayed. “On the way” shows only what has not arrived.'],
+    ['What happens when it arrives?', 'Tap Arrived (or Receive items) and enter how many came. You can receive in parts. Your stock goes up and a bill can be made so you remember to pay it.'],
+    ['I did not order through the app. How do I add stock?', 'Tap the + on the item and enter how many, what you paid and the date.'],
+    ['Can I order something that is not in my inventory?', 'Yes. Type a name for anything else on the order.'],
+  ]},
+  { id: 'money', t: 'Money, bills & forecast', ic: 'wallet', q: [
+    ['How do I add an expense?', 'Money › Expenses › + Expense. Enter amount, date and category, and pick an account if you track balances.'],
+    ['How do I add a repeating expense (like a subscription)?', 'Set it to repeat weekly, monthly or yearly on the expense. New copies are added on the due dates.'],
+    ['What about expenses that are not tax-deductible?', 'Untick “deductible” on the expense.'],
+    ['How do I add income that is not a sale?', 'Money › Income › + Income (grants, tips, supplier refunds). Do not enter sales there. Use Sales so fees, stock and cost are handled.'],
+    ['What are accounts for?', 'Accounts (bank, cash box, PayPal…) show running balances. Pick one on a sale, expense or income. Use Transfer to move money between accounts without counting it as income or expense.'],
+    ['What is shown on the Money overview?', 'Sales, then fees, postage and cost of goods, then expenses and other income, ending in net profit. A glance box shows what you owe and what you are owed.'],
+    ['How do I add a bill I have to pay?', 'More › Bills & invoices › + Bill. Tick it as paid and an expense is created for you. Make it repeat if it is monthly.'],
+    ['What are unpaid invoices?', 'Wholesale or bulk orders customers have not paid for yet. Record each payment as it arrives, or copy a polite reminder.'],
+    ['What is the cash flow forecast?', 'More › Cash flow forecast looks ahead 30, 60 or 90 days using your account balances, invoices owed to you, bills, supplier orders, repeating expenses and typical sales and spending. It warns you if cash could go below zero.'],
+    ['Is the forecast exact?', 'No. It is an estimate based on your recent sales and spending.'],
+  ]},
+  { id: 'taxes', t: 'Taxes & mileage', ic: 'landmark', q: [
+    ['How do taxes work in this app?', 'More › Taxes shows a planning estimate of how much to set aside: taxable profit (net profit minus mileage deduction) times your tax %. It is not tax advice. Ask an accountant for your true rate.'],
+    ['How do I log a tax payment?', 'On the Taxes page tap Log payment so “Still to set aside” stays right.'],
+    ['What about sales tax?', 'Sales tax counts only on platforms that do not collect it for you. Mark which platforms collect it in Settings › Platforms & fees.'],
+    ['Can I give my accountant a summary?', 'Yes. Taxes › Download tax summary gives a CSV.'],
+    ['How do I add tax dates to my calendar?', 'Taxes › Add to calendar.'],
+    ['How do I track mileage?', 'More › Mileage › + Trip. Add date, purpose, from, to and distance. The deduction is distance times the mileage rate set in Settings, and it reduces taxable profit.'],
+  ]},
+  { id: 'people', t: 'Customers & suppliers', ic: 'users', q: [
+    ['How do I add a customer?', 'They are created when you type a name on a sale. You can also tap + Customer. Add email, phone, address and tags.'],
+    ['What are repeat buyers?', 'Customers with more than one order. Use the Repeat buyers chip to see them.'],
+    ['How do I add a supplier?', 'More › Suppliers › + Supplier. Add a name, contact and notes such as terms. Then pick the supplier on supplies, products and orders.'],
+    ['Can I hide old customers or suppliers?', 'Yes. Archive them.'],
+  ]},
+  { id: 'plan', t: 'Plan, goals, notes & time', ic: 'list-checks', q: [
+    ['How do I add a task?', 'More › Plan › Tasks › + Task. Add a title, due date and priority. Tick the circle when done. Repeating tasks come back on their own.'],
+    ['How do I add an event?', 'More › Plan › Calendar › + Event. Choose date, time and type. Tasks with due dates and ship-by dates also show on the calendar.'],
+    ['How do I track my working hours?', 'More › Plan › Time. Clock in, take breaks, clock out. You can also add a session by hand.'],
+    ['How do I set a goal?', 'More › Goals › + Goal. Pick what to measure (revenue, profit, orders…), the target and the period. The ring shows progress and whether you are on pace. The first goal shows on Home.'],
+    ['How do I keep notes?', 'More › Notes › + Note. Pin important ones and use search to find any note.'],
+    ['What is the Business Assistant?', 'More › Business Assistant answers questions about your own numbers, suggests tasks and books short meetings. It runs on your device and nothing is sent anywhere. Suggestions only add tasks you tick.'],
+  ]},
+  { id: 'home', t: 'Home, Inbox & widgets', ic: 'info', q: [
+    ['What is on the Home page?', 'Revenue and profit for the period you choose, the order pipeline, alerts, low stock, what is coming up, quick actions and widgets.'],
+    ['How do I change the time period?', 'Use the period menu at the top of Home, Money or other report pages (Today, This Month, All Time, custom…).'],
+    ['What is the Inbox?', 'The bell at the top. It lists alerts the app works out for you: late orders, low stock, listings to renew, overdue tasks, budgets passed, backups due. Tap one to jump to the fix.'],
+    ['How do I dismiss an alert?', 'Tap the × on it. It stays hidden until something about it changes. At the bottom you can bring dismissed ones back.'],
+    ['What are widgets?', 'Small tools on Home such as a clock, timer, checklist, calculator and music player. Use Add / edit widgets.'],
+    ['Can I hide or reorder Home cards?', 'Yes. Settings › Appearance & home.'],
+    ['Is there a global search?', 'Yes. Use the search on Home to find sales, products, customers, listings and notes in one place.'],
+  ]},
+  { id: 'data', t: 'Backups, privacy & moving devices', ic: 'shield', q: [
+    ['Where is my data stored?', 'Only on this device, in this browser. There is no server and no account. The app also keeps automatic safety copies on this device.'],
+    ['How do I back up?', 'More › Settings › Your data & backups › Download backup file. Do it regularly, and always before erasing data or clearing browser data.'],
+    ['What is auto-save to a file?', 'On computers that support it, you can link a file and the app saves to it automatically. Reconnect it if the browser asks.'],
+    ['How do I restore?', 'Restore from backup file, or Copy ALL my data as text and Restore by pasting text. This is also how you move to a new phone or computer.'],
+    ['Can I get back an earlier version?', 'Yes. Settings › Your data & backups › Get back an earlier version.'],
+    ['Can I get my data into a spreadsheet?', 'Yes. Settings › Your data & backups has Export spreadsheets (CSV). Many pages also have Export this page at the bottom.'],
+    ['Can I get a readable report of my whole business?', 'Yes. Copy my whole business as text (report) in Your data & backups.'],
+    ['How do I erase everything?', 'Settings › Your data & backups › Erase everything. Download a backup first.'],
+    ['What if I clear my browser data?', 'Your data can be lost. Keep a backup file somewhere safe (Files, Drive, email).'],
+    ['Does anyone else see my data?', 'No. It stays on your device unless you choose to share a backup.'],
+    ['What does the Activity page show?', 'A log of sales, stock changes and restores. Clearing it does not change your data.'],
+  ]},
+  { id: 'look', t: 'Appearance & sounds', ic: 'sliders', q: [
+    ['How do I change colors, font or theme?', 'More › Settings › Appearance & home for themes and fonts, and Colors & looks for custom colors, shapes, backgrounds and one-tap looks.'],
+    ['What does “Surprise me” do?', 'It picks a random theme, font and style. Tap again for another, or tap Original to go back to the standard look.'],
+    ['How do I turn effects and sounds on or off?', 'Settings › Effects, animations & sounds.'],
+    ['Can I use dark mode?', 'Yes. Pick a dark theme, or use the automatic dark option in Colors & looks.'],
+  ]},
+  { id: 'fix', t: 'Problems & fixes', ic: 'alert-triangle', q: [
+    ['My numbers look wrong.', 'Check the period at the top (Today, This Month, All Time). Also remember cancelled or failed orders are not counted, and refunds, shipping you charged and sales tax are left out of revenue.'],
+    ['An item will not let me archive or delete it.', 'It is probably still being used (for example in an open order or recipe). The message says why.'],
+    ['I deleted something by mistake.', 'Tap Undo right after. Later, use Get back an earlier version in Settings › Your data & backups, or restore a backup file.'],
+    ['Stock looks too low.', 'Products in orders that are not cancelled or returned take stock, and recipes use up components and supplies. Check the item’s history, or tap + on the item to add stock you received.'],
+    ['I see a warning about storage.', 'The browser is blocking storage. Download a backup right away and check your browser’s privacy settings.'],
+    ['It looks different after I changed a look.', 'Settings › Colors & looks › Back to the original look resets theme, font and all.'],
+    ['My data disappeared.', 'Try Get back an earlier version, then restore from your latest backup file.'],
+    ['How do I report a problem or get more help?', 'Tap the ? button on the page you are on for a quick guide to that page.'],
+  ]},
+];
+
+const faqRich = a => { const ls = String(a).split('\n'), out = []; let ul = [];
+  const flush = () => { if (ul.length) { out.push(`<ul style="margin:6px 0 0;padding-left:20px">${ul.map(x => `<li style="margin-bottom:4px">${esc(x)}</li>`).join('')}</ul>`); ul = []; } };
+  ls.forEach(l => { if (l.startsWith('• ')) ul.push(l.slice(2)); else { flush(); if (l.trim()) out.push(`<p class="sm-t" style="margin:6px 0 0">${esc(l)}</p>`); } });
+  flush(); return out.join(''); };
+function faqList() {
+  const q = lc(ui.q || '').trim(), words = q.split(/\s+/).filter(Boolean);
+  const hit = it => !words.length || words.every(w => lc(it[0] + ' ' + it[1]).includes(w));
+  const secs = FAQ.map(s => [s, s.q.filter(hit)]).filter(x => x[1].length);
+  if (!secs.length) return empty('search', 'No answers found', 'Try fewer or different words, for example “order”, “stock” or “backup”.');
+  return secs.map(([s, items]) => `<div class="stack-sm" style="margin-top:14px"><h4 class="eyebrow" style="padding:0 4px;display:flex;align-items:center;gap:6px">${ic(s.ic)} ${esc(s.t)} · ${items.length}</h4>${items.map(it => `<details class="card sm faq-q" ${words.length && items.length < 6 ? 'open' : ''}><summary><b>${esc(it[0])}</b>${ic('chevron-down', 'chev')}</summary><div class="faq-a">${faqRich(it[1])}</div></details>`).join('')}</div>`).join('');
+}
+V.faq = () => {
+  const searching = !!(ui.q || '').trim();
+  return `<div class="page stack-sm fade">${searchBox('Search questions, e.g. “track an order”')}
+    <div id="faq-intro" class="stack-sm" style="display:${searching ? 'none' : 'flex'};flex-direction:column"><div class="card"><div class="row" style="gap:10px;margin-bottom:6px"><span class="ico">${ic('star')}</span><h3 style="font-size:15px;font-weight:800">Start to finish: how to use this app</h3></div>
+      <p class="sm-t sub" style="margin:0 0 10px">Follow these steps in order the first time. Tap a button to jump to that page.</p>
+      <ol class="faq-steps">${FAQ_GUIDE.map(g => `<li><b>${esc(g[0])}</b><span class="sm-t sub" style="display:block;margin-top:2px">${esc(g[1])}</span><button class="link" style="margin-top:4px" data-act="help-go" data-t="${esc(g[2])}">Open ${esc(g[3])} ${ic('chevron-right')}</button></li>`).join('')}</ol></div>
+      <div class="card sm" style="background:var(--p-soft)"><p class="eyebrow" style="margin-bottom:4px">Quick answers to the most common things</p><p class="sm-t">Track an order: Sales › open the order › change its status. Enter a product: Inventory › Products › + Product. Enter a sale: Sales › + Sale. Back up: More › Settings › Your data &amp; backups.</p></div></div>
+    <div id="list">${faqList()}</div>
+    <p class="hint" style="text-align:center;margin-top:12px">Each page also has its own <b>?</b> button at the top.</p></div>`;
+};
+HELP.faq = { title: 'Help & FAQ', purpose: 'A start-to-finish guide and answers to questions about every part of the app.', steps: ['Read the Start to finish steps the first time, tapping a button to jump to that page.', 'Type in the search box to find an answer fast.', 'Tap a question to open its answer.'], example: 'Search “track” to see how to track customer orders and supplier deliveries.', links: [['Settings', 'Backups and platforms', 's:settings']], tip: 'Every page has its own ? button for a quick guide to that page.' };
+
 const helpKey = () => {
   const v = ui.sub || ui.tab, s = ui.seg;
   if (v === 'stock') return 'stock.' + s.stock;
@@ -4714,7 +4915,7 @@ function openHelp(key) {
     ${h.example ? `<div class="card sm" style="background:var(--p-soft)"><p class="eyebrow" style="margin-bottom:4px">Example</p><p class="sm-t">${esc(h.example)}</p></div>` : ''}
     ${links ? `<div><p class="eyebrow" style="margin-bottom:6px">Connected to</p><div class="stack-sm">${links}</div></div>` : ''}
     ${h.tip ? `<p class="hint" style="margin:0"><b>Tip:</b> ${esc(h.tip)}</p>` : ''}</div>
-    <div class="sheet-foot"><button class="btn btn-primary" data-act="close-sheet">Got it</button></div>`, { noFocus: true });
+    <div class="sheet-foot">${k === 'faq' ? '' : `<button class="btn btn-line" data-act="help-go" data-t="s:faq">Full FAQ</button>`}<button class="btn btn-primary" data-act="close-sheet">Got it</button></div>`, { noFocus: true });
 }
 function helpGo(t) {
   const p = String(t || '').split(':'); closeSheet();
