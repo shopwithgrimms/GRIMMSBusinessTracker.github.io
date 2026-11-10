@@ -115,7 +115,7 @@ h1,h2,h3,h4,p{margin:0}
 .chip{flex:none;padding:6px 12px;border-radius:999px;border:1px solid var(--line);font-size:11px;font-weight:700;color:var(--sub);background:var(--card)}
 .chip.on{background:var(--p);border-color:var(--p);color:var(--on-p)}
 /* multi-select platform chips */
-.mchip-btn{padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);font-size:12px;font-weight:700;color:var(--sub);background:var(--card);cursor:pointer;font-family:inherit}.mchip-btn.on{border-color:var(--brand);color:var(--brand)}
+.mchip-btn{padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);font-size:12px;font-weight:700;color:var(--sub);background:var(--card);cursor:pointer;font-family:inherit}.mchip-btn.on{border-color:var(--p);color:var(--p-dark);background:var(--p-soft)}
 .mchips{display:flex;flex-wrap:wrap;gap:6px}
 .mchip{position:relative;cursor:pointer}
 .mchip input{position:absolute;opacity:0;pointer-events:none}
@@ -337,6 +337,49 @@ button.metric{text-align:left}
 .banner{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:20px;background:color-mix(in srgb,var(--warn) 11%,var(--card));border:1px solid color-mix(in srgb,var(--warn) 40%,transparent)}
 .banner .ic{width:20px;height:20px;color:var(--warn);flex:none}
 
+/* ---------- inbox (redesigned): summary, priority groups, list rows ---------- */
+.mail-sum{padding:18px}
+.mail-sum-top{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.mail-sum-t{font-size:16px;font-weight:800;letter-spacing:-.01em}
+.mail-sum-s{font-size:12px;color:var(--sub);margin-top:3px}
+.mail-num{font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--p);flex:none}
+.mail-meter{display:flex;gap:3px;height:8px;margin:16px 0 12px}
+.mail-meter i{display:block;height:100%;min-width:8px;border-radius:99px}
+.mail-meter .bad,.mail-dot.bad{background:var(--bad)}
+.mail-meter .warn,.mail-dot.warn{background:var(--warn)}
+.mail-meter .info,.mail-dot.info{background:var(--p)}
+.mail-legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--sub)}
+.mail-legend span{display:inline-flex;align-items:center;gap:6px}
+.mail-legend b{color:var(--text);font-weight:800}
+.mail-dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.mail-clear{display:flex;align-items:center;gap:14px}
+.mail-clear .badge{width:48px;height:48px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.mail-clear .badge .ic{width:24px;height:24px}
+.mail-sec-h{display:flex;align-items:center;gap:8px;padding:18px 4px 8px}
+.mail-sec-h h3{font-size:13px;font-weight:800}
+.mail-n{font-size:11px;font-weight:700;color:var(--sub);background:color-mix(in srgb,var(--sub) 14%,transparent);padding:1px 8px;border-radius:999px;line-height:1.5}
+.mail-group{background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;transition:background-color .3s ease,border-color .3s ease}
+.mail-row{display:flex;align-items:stretch;border-top:1px solid var(--line)}
+.mail-row:first-child{border-top:0}
+.mail-main{display:flex;align-items:center;gap:12px;flex:1;min-width:0;padding:13px 4px 13px 14px;text-align:left}
+button.mail-main:hover{background:var(--p-soft)}
+.mail-ico{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--p-soft);color:var(--p)}
+.mail-row.bad .mail-ico{background:color-mix(in srgb,var(--bad) 13%,transparent);color:var(--bad)}
+.mail-row.warn .mail-ico{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
+.mail-ico .ic{width:18px;height:18px}
+.mail-body{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.mail-t{font-size:13px;font-weight:700;line-height:1.3}
+.mail-d{font-size:12px;color:var(--sub);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mail-c{font-size:11px;font-weight:600;color:var(--sub);opacity:.75;margin-top:1px}
+.mail-main .chev{width:14px;height:14px;opacity:.4;flex:none}
+.mail-x{width:46px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--sub);opacity:.55}
+.mail-x:hover{opacity:1;background:color-mix(in srgb,var(--sub) 10%,transparent)}
+.mail-x .ic{width:15px;height:15px}
+.mail-row.gone .mail-main{opacity:.7}
+.mail-undo{align-self:center;margin-right:12px;flex:none}
+.mail-main:focus-visible,.mail-x:focus-visible{outline:2px solid var(--p);outline-offset:-2px}
+.mail-foot{font-size:11px;color:var(--sub);text-align:center;padding:14px 12px 0}
+
 .invoice{background:#fff;color:#171717;border:1px solid #e5e5e5;border-radius:14px;padding:22px;font-size:12px;line-height:1.5}
 .invoice h2{font-size:22px;letter-spacing:-.01em;margin-bottom:2px}
 .invoice table{width:100%;border-collapse:collapse;margin:14px 0}
@@ -379,12 +422,12 @@ html[data-bgs=dots] .scroll{background-image:radial-gradient(color-mix(in srgb,v
 html[data-bgs=grid] .scroll{background-image:linear-gradient(color-mix(in srgb,var(--p) 14%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--p) 14%,transparent) 1px,transparent 1px);background-size:22px 22px}
 html[data-bgs=stripes] .scroll{background-image:repeating-linear-gradient(45deg,color-mix(in srgb,var(--p) 9%,transparent) 0 10px,transparent 10px 20px)}
 /* corner shapes */
-html[data-round=sharp] :is(.card,.list-row,.tile,.alert,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox,.invoice){border-radius:4px}
+html[data-round=sharp] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox,.invoice){border-radius:4px}
 html[data-round=sharp] :is(.input,.select,.textarea,.btn,.seg,.seg button,.chip,.inline-select,.mchip span,.mchip-btn,.item .ava,.list-row .ico,.quick button,.pill){border-radius:4px}
 html[data-round=sharp] .sheet{border-radius:8px 8px 0 0}
-html[data-round=soft] :is(.card,.list-row,.tile,.alert,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox){border-radius:14px}
+html[data-round=soft] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox){border-radius:14px}
 html[data-round=soft] :is(.input,.select,.textarea,.btn,.seg,.inline-select,.item .ava,.list-row .ico,.quick button){border-radius:10px}
-html[data-round=round] :is(.card,.list-row,.tile,.alert,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox){border-radius:32px}
+html[data-round=round] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox){border-radius:32px}
 html[data-round=round] :is(.input,.select,.textarea){border-radius:22px}
 html[data-round=round] :is(.btn,.seg,.seg button,.chip,.inline-select,.mchip span){border-radius:999px}
 html[data-round=round] :is(.item .ava,.list-row .ico,.quick button){border-radius:50%}
@@ -398,16 +441,16 @@ html[data-density=spacious] .page{padding:22px 24px 34px}
 html[data-density=spacious] .card{padding:26px}
 html[data-density=spacious] .card.sm{padding:18px 20px}
 /* card looks */
-html[data-cs=flat] :is(.card,.list-row,.tile){border-color:transparent;box-shadow:none;background:color-mix(in srgb,var(--sub) 9%,var(--card))}
-html[data-cs=shadow] :is(.card,.list-row,.tile){border-color:transparent;box-shadow:0 8px 22px -10px rgba(0,0,0,.28)}
-html[data-cs=glass] :is(.card,.list-row,.tile){background:color-mix(in srgb,var(--card) 68%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-color:color-mix(in srgb,var(--p) 28%,var(--line))}
-html[data-cs=glow] :is(.card,.list-row,.tile){border-color:color-mix(in srgb,var(--p) 55%,var(--line));box-shadow:0 0 18px -5px var(--p)}
-html[data-cs=accent] :is(.card,.list-row,.tile){border-left:4px solid var(--p)}
+html[data-cs=flat] :is(.card,.list-row,.tile,.mail-group){border-color:transparent;box-shadow:none;background:color-mix(in srgb,var(--sub) 9%,var(--card))}
+html[data-cs=shadow] :is(.card,.list-row,.tile,.mail-group){border-color:transparent;box-shadow:0 8px 22px -10px rgba(0,0,0,.28)}
+html[data-cs=glass] :is(.card,.list-row,.tile,.mail-group){background:color-mix(in srgb,var(--card) 68%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-color:color-mix(in srgb,var(--p) 28%,var(--line))}
+html[data-cs=glow] :is(.card,.list-row,.tile,.mail-group){border-color:color-mix(in srgb,var(--p) 55%,var(--line));box-shadow:0 0 18px -5px var(--p)}
+html[data-cs=accent] :is(.card,.list-row,.tile,.mail-group){border-left:4px solid var(--p)}
 html[data-cs] .card.selected{background:var(--p-soft);border-color:var(--p)}
 /* borders */
-html[data-bd=none] :is(.card,.list-row,.tile,.alert,.snap,.line,.disc-row,.scrollbox,.chip,.seg){border-color:transparent}
+html[data-bd=none] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.scrollbox,.chip,.seg){border-color:transparent}
 html[data-bd=none] :is(.input,.select,.textarea){border-color:transparent;background-color:color-mix(in srgb,var(--sub) 10%,var(--card))}
-html[data-bd=thick] :is(.card,.list-row,.tile,.alert,.snap,.line,.disc-row,.scrollbox,.chip,.input,.select,.textarea){border-width:2px}
+html[data-bd=thick] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.scrollbox,.chip,.input,.select,.textarea){border-width:2px}
 /* header */
 html[data-hdr=soft] .hdr{background:var(--p-soft)}
 html[data-hdr=accent] .hdr{background:var(--p);color:var(--on-p);border-color:transparent}
@@ -530,6 +573,8 @@ html[data-motion=off] *{animation:none!important;transition:none!important}
 .cdot{display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid var(--line);flex:none}
 .vchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}.vchips .pill{gap:5px}
 .po-line{border:1px solid var(--line);border-radius:14px;padding:10px;margin-bottom:8px}.po-line>*+*{margin-top:6px}
+.icon-btn.help{font-weight:800;font-size:15px;color:var(--p);background:var(--p-soft);border-color:transparent}
+.sheet ul li{font-size:14px;line-height:1.45}
 </style>
 </head>
 <body>
@@ -537,6 +582,7 @@ html[data-motion=off] *{animation:none!important;transition:none!important}
 
   <!-- ================= WELCOME ================= -->
   <section id="screen-welcome" class="screen welcome on">
+    <button class="icon-btn help" data-act="help" data-v="welcome" aria-label="Help" title="Help" style="position:absolute;top:14px;right:14px;z-index:2">?</button>
     <div style="text-align:center;margin-top:36px">
       <div class="logo"><i data-ic="line-chart"></i></div>
       <h1 style="font-size:30px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px">GRIMMS</h1>
@@ -559,7 +605,7 @@ html[data-motion=off] *{animation:none!important;transition:none!important}
     <div class="row between" style="margin-bottom:14px">
       <button class="icon-btn" data-act="back-welcome" aria-label="Back"><i data-ic="arrow-left"></i></button>
       <h2 style="font-size:15px;font-weight:800">Initial Setup</h2>
-      <span style="width:36px"></span>
+      <button class="icon-btn help" data-act="help" data-v="setup" aria-label="Help" title="Help">?</button>
     </div>
     <div class="notice" style="margin-bottom:18px"><i data-ic="info"></i><span>You can change all of this anytime in <b>More &rsaquo; Settings</b>.</span></div>
     <form id="setup-form" autocomplete="off">
@@ -707,6 +753,7 @@ const active = x => !x.archived;
 const lc = s => String(s || '').trim().toLowerCase();
 const tidy = s => String(s || '').trim();
 /* sort helper for SKUs: PROD-2 comes before PROD-10, and items with no SKU go last */
+const skuDesc = (a, b) => { a = String(a || ''); b = String(b || ''); if (!a && b) return 1; if (a && !b) return -1; return b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' }); };
 const skuCmp = (a, b) => { a = String(a || ''); b = String(b || ''); if (!a && b) return 1; if (a && !b) return -1; return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }); };
 const pLabel = p => (p.sku ? p.sku + ' · ' : '') + p.name;
 const plainList = a => a.length <= 1 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
@@ -888,7 +935,7 @@ const METRICS = [['revenue', 'Revenue', 'money'], ['profit', 'Net profit', 'mone
 const UNITS = ['pcs', 'pack', 'box', 'roll', 'sheet', 'm', 'ft', 'yd', 'g', 'kg', 'oz', 'lb', 'ml', 'L'];
 const TERMS = ['Due on receipt', 'Net 7', 'Net 15', 'Net 30', 'Net 60'];
 const HOME_WIDGETS = [['pipeline', 'Order pipeline'], ['goals', 'Goals'], ['attention', 'Needs attention'], ['upcoming', 'Coming up'], ['lowstock', 'Low stock'], ['quick', 'Quick actions']];
-const COLL = { po: 'purchaseOrders', bill: 'bills', product: 'products', supply: 'supplies', expense: 'expenses', income: 'income', task: 'tasks', event: 'events', goal: 'goals', supplier: 'suppliers', note: 'notes', shift: 'shifts', order: 'orders', listing: 'listings', customer: 'customers', mileage: 'mileage', taxpay: 'taxPayments', account: 'accounts', transfer: 'transfers' };
+const COLL = { si: 'stockIn', po: 'purchaseOrders', bill: 'bills', product: 'products', supply: 'supplies', expense: 'expenses', income: 'income', task: 'tasks', event: 'events', goal: 'goals', supplier: 'suppliers', note: 'notes', shift: 'shifts', order: 'orders', listing: 'listings', customer: 'customers', mileage: 'mileage', taxpay: 'taxPayments', account: 'accounts', transfer: 'transfers' };
 const ARCHIVABLE = new Set(['product', 'supply', 'supplier', 'note', 'order', 'listing', 'customer', 'po', 'bill']);
 const DEFAULT_METRICS = ['Views', 'Favorites', 'Offers', 'Clicks', 'Likes', 'Watchers'];
 
@@ -931,7 +978,7 @@ const DEFAULTS = () => ({
   counters: { order: 0, listing: 0, po: 0 },
   backup: { last: 0, fileName: '' },
   dismissed: {},
-  products: [], supplies: [], orders: [], expenses: [], income: [], suppliers: [], customers: [], listings: [], mileage: [], taxPayments: [], accounts: [], transfers: [], meetings: [], bills: [], purchaseOrders: [],
+  products: [], supplies: [], orders: [], expenses: [], income: [], suppliers: [], customers: [], listings: [], mileage: [], taxPayments: [], accounts: [], transfers: [], meetings: [], bills: [], purchaseOrders: [], stockIn: [],
   tasks: [], events: [], shifts: [], activeShift: null, notes: [], goals: [], activity: [],
 });
 let state = DEFAULTS();
@@ -984,7 +1031,7 @@ function normalize(src) {
   out.counters = { ...d.counters, ...(src.counters || {}) };
   out.backup = { ...d.backup, ...(src.backup || {}) };
   if (!out.dismissed || typeof out.dismissed !== 'object' || Array.isArray(out.dismissed)) out.dismissed = {};
-  ['products', 'supplies', 'orders', 'expenses', 'income', 'suppliers', 'customers', 'listings', 'mileage', 'taxPayments', 'accounts', 'transfers', 'meetings', 'tasks', 'events', 'shifts', 'notes', 'goals', 'activity'].forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
+  ['products', 'supplies', 'orders', 'expenses', 'income', 'suppliers', 'customers', 'listings', 'mileage', 'taxPayments', 'accounts', 'transfers', 'meetings', 'tasks', 'events', 'shifts', 'notes', 'goals', 'activity', 'stockIn'].forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
   ['channels', 'expenseCats', 'stockCats', 'paymentMethods', 'carriers', 'homeHide', 'metrics'].forEach(k => { if (!Array.isArray(out.settings[k])) out.settings[k] = d.settings[k]; });
   if (!out.settings.budgets || typeof out.settings.budgets !== 'object' || Array.isArray(out.settings.budgets)) out.settings.budgets = {};
   if (!THEMES[out.settings.theme]) out.settings.theme = 'blush';
@@ -997,8 +1044,12 @@ function normalize(src) {
     if (OLD_STATUS[o.status]) o.status = OLD_STATUS[o.status];
     if (!ALL_STATUSES.includes(o.status)) o.status = 'Order Received';
     if (!Array.isArray(o.items)) o.items = [];
+    o.items = o.items.filter(l => l && typeof l === 'object');
+    o.items.forEach(l => { l.qty = Math.max(0, num(l.qty)); l.price = num(l.price); l.cost = num(l.cost); l.returned = Math.max(0, Math.min(l.qty, num(l.returned))); });
   });
-  out.supplies.forEach(s => { if (s.sku == null) s.sku = ''; });
+  out.supplies.forEach(s => { if (s.sku == null) s.sku = ''; if (s.kind !== 'component') s.kind = 'supply'; });
+  out.stockIn = out.stockIn.filter(e => e && typeof e === 'object' && e.id);
+  out.stockIn.forEach(e => { if (!['supply', 'component', 'product'].includes(e.kind)) e.kind = 'supply'; e.qty = Number(e.qty) || 0; e.paid = Number(e.paid) || 0; if (!e.date) e.date = today(); });
   /* products */
   out.products.forEach(p => {
     if (!Array.isArray(p.recipe)) p.recipe = [];
@@ -1031,6 +1082,7 @@ function normalize(src) {
   });
   /* bills, purchase orders, sizes & colors, unpaid invoices */
   ['bills', 'purchaseOrders'].forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
+  out.purchaseOrders.forEach(po => { if (po && po.ship === 'Ordered') po.ship = 'Bought'; if (po && po.ship === 'Arrived') po.ship = 'Delivered'; });
   { const sf = (src.settings || {}).forecast; out.settings.forecast = { ...d.settings.forecast, ...(sf && typeof sf === 'object' && !Array.isArray(sf) ? sf : {}) }; }
   out.products.forEach(p => { if (!Array.isArray(p.variants)) p.variants = []; });
   out.purchaseOrders.forEach(po => { if (!Array.isArray(po.items)) po.items = []; });
@@ -1044,7 +1096,7 @@ function save() { clearTimeout(saveTimer); saveTimer = setTimeout(flush, 120); }
 function flush() {
   clearTimeout(saveTimer);
   let json = '';
-  try { json = JSON.stringify(state); } catch (e) { return; }
+  try { json = JSON.stringify(state); } catch (e) { toast('Could not save the latest change. Please download a backup now (Settings > Your data).'); return; }
   try { localStorage.setItem(STORE_KEY, json); status.ls = true; }
   catch (e) { if (status.ls) { status.ls = false; toast('This browser is blocking storage. Your safety copy still works, but please download a backup now (Settings > Your data).'); } }
   clearTimeout(mirrorTimer); mirrorTimer = setTimeout(() => mirror(json), 1500);
@@ -1078,6 +1130,8 @@ async function snapshotNow(label) {
   } catch (e) { /* no second copy available; the downloadable backup still works */ }
 }
 window.addEventListener('pagehide', () => { flush(); });
+window.addEventListener('beforeunload', () => { flush(); });
+window.addEventListener('storage', e => { if (e.key === STORE_KEY && e.newValue && e.newValue !== JSON.stringify(state)) toast('Another tab changed your data. Reload this page so nothing is overwritten.'); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
 
 /* optional: keep a real file on the person's computer up to date (Chrome / Edge on desktop) */
@@ -1164,8 +1218,8 @@ function oc(o) {
   const sub = sum(items, l => l.qty * l.price);
   const bulkPct = Math.max(0, Math.min(100, num(o.bulkPct)));
   const disc = Math.min(sub, Math.max(0, num(o.discount)) + sub * bulkPct / 100);
-  /* Shipping the buyer paid is NOT your money: it is left out of sales, payout and profit.
-     It is still part of what the buyer pays (buyerTotal) and platforms still take fees on it. */
+  /* Shipping the buyer paid is not counted as a sale, but it IS money you received: it goes toward your postage,
+     so it is added into "money you made". Platforms take fees on it too, which are already in fees. */
   const gross = sub - disc;
   const shipPaid = num(o.shipCharged), buyerTotal = gross + shipPaid;
   const units = sum(items, l => Math.max(0, l.qty - (l.returned || 0)));
@@ -1178,7 +1232,7 @@ function oc(o) {
        profit = made minus cost of goods
      The optional "final" number the owner types in replaces the estimate of what they MADE only.
      Cost of goods is never overridden: it is always taken off afterwards so you can see both views. */
-  const calcMade = payout - post + reimb;
+  const calcMade = payout + shipPaid - post + reimb;
   const calcProfit = calcMade - cogs;
   const hasFinal = String(o.finalProfit ?? '').trim() !== '' && Number.isFinite(parseFloat(o.finalProfit));
   const made = hasFinal ? parseFloat(o.finalProfit) : calcMade;
@@ -1199,18 +1253,18 @@ const cashDate = o => o.paidDate || o.date;   // archived orders still count in 
 /* ----- a whole period ----- */
 function summary(r) {
   const os = live().filter(o => inR(o.date, r));
-  let gross = 0, refunds = 0, fees = 0, post = 0, cogs = 0, units = 0, disc = 0, reimb = 0, salesTax = 0, adj = 0;
-  os.forEach(o => { const c = oc(o); gross += c.gross; refunds += c.refund; fees += c.fees; post += c.post; cogs += c.cogs; units += c.units; disc += c.disc; reimb += c.reimb; if (c.hasFinal) adj += c.profit - c.calcProfit; const ch = chanByName(o.channel); if (!(ch && ch.tax)) salesTax += c.tax; });
+  let gross = 0, refunds = 0, fees = 0, post = 0, cogs = 0, units = 0, disc = 0, reimb = 0, salesTax = 0, adj = 0, ship = 0;
+  os.forEach(o => { const c = oc(o); gross += c.gross; refunds += c.refund; fees += c.fees; post += c.post; cogs += c.cogs; units += c.units; disc += c.disc; reimb += c.reimb; ship += c.shipPaid; if (c.hasFinal) adj += c.profit - c.calcProfit; const ch = chanByName(o.channel); if (!(ch && ch.tax)) salesTax += c.tax; });
   const exps = state.expenses.filter(e => inR(e.date, r) && !e.stockBuy);
   const expenses = sum(exps, e => num(e.amount));
   const deductible = sum(exps.filter(e => e.deductible !== false), e => num(e.amount));
   const income = sum(state.income.filter(e => inR(e.date, r)), e => num(e.amount));
   const miles = sum(state.mileage.filter(e => inR(e.date, r)), e => num(e.miles));
   const net = gross - refunds;
-  const gp = net - fees - post - cogs + reimb + adj;
+  const gp = net + ship - fees - post - cogs + reimb + adj;
   const profit = gp - expenses + income;
   const made = gp + cogs, profitBefore = profit + cogs;
-  return { orders: os.length, gross, refunds, net, fees, post, cogs, units, disc, reimb, adj, gp, made, profitBefore, expenses, deductible, income, miles, profit, salesTax, margin: net > 0 ? profit / net * 100 : null, aov: os.length ? gross / os.length : 0 };
+  return { orders: os.length, gross, refunds, net, ship, fees, post, cogs, units, disc, reimb, adj, gp, made, profitBefore, expenses, deductible, income, miles, profit, salesTax, margin: net > 0 ? profit / net * 100 : null, aov: os.length ? gross / os.length : 0 };
 }
 
 /* ----- chart buckets for a period ----- */
@@ -1248,6 +1302,11 @@ function chartSeries(p, kind) {
    come off again; delete the product and they are back for good.
    ===================================================================== */
 const isSupply = it => it && it.unit !== undefined;
+const kindOfItem = (it, prod) => prod ? 'product' : (it && it.kind === 'component' ? 'component' : 'supply');
+/* Stock In log: every time supplies, components or products come in (by hand, opening stock, or a purchase order) */
+function logIn(it, kind, qty, paid, via, date, extra) {
+  /* Stock In log removed: deliveries are tracked on Orders & deliveries instead (kept as a no-op for existing callers) */
+}
 const soldIds = () => { const x = new Set(); live().forEach(o => (o.items || []).forEach(l => { if (l.productId) x.add(l.productId); })); return x; };
 const allocated = sid => { const sold = soldIds(); return r2(sum(state.products.filter(p => active(p) || sold.has(p.id)), p => sum((p.recipe || []).filter(r => r.supplyId === sid), r => num(r.qty)))); };
 const avail = s => r2(num(s.qty) - allocated(s.id));
@@ -1437,7 +1496,7 @@ function nextTaxDates(n = 4) {
 }
 function taxInfo(r) {
   const s = summary(r), rate = num(state.settings.taxRate), mileDed = s.miles * num(state.settings.mileRate);
-  const taxable = Math.max(0, s.profit - mileDed), aside = taxable * rate / 100;
+  const taxable = Math.max(0, s.profit + (s.expenses - s.deductible) - mileDed), aside = taxable * rate / 100;
   const paid = sum(state.taxPayments.filter(x => inR(x.date, r) && x.kind !== 'Sales tax'), x => num(x.amount));
   const salesPaid = sum(state.taxPayments.filter(x => inR(x.date, r) && x.kind === 'Sales tax'), x => num(x.amount));
   return { s, rate, mileDed, taxable, aside, paid, salesPaid, left: Math.max(0, aside - paid), salesOwed: Math.max(0, s.salesTax - salesPaid) };
@@ -1511,7 +1570,7 @@ const visibleAlerts = () => alerts().filter(a => state.dismissed[a.key] !== a.si
 /* which inbox categories belong to which page */
 function pageCats(v) {
   if (v === 'bills' || v === 'forecast') return ['money'];
-  if (v === 'purchases') return ['stock'];
+  if (v === 'purchases' || v === 'stockin') return ['stock'];
   if (v === 'sales') return ['sales'];
   if (v === 'stock') return ['stock', 'listings'];
   if (v === 'money' || v === 'taxes') return ['money'];
@@ -1632,7 +1691,7 @@ async function copyText(text, label) {
 /* =====================================================================
    10. VIEW STATE + SMALL RENDER HELPERS
    ===================================================================== */
-const ui = { tab: 'home', sub: null, ret: null, inboxAll: false, showDismissed: false, seg: { stock: 'supplies', money: 'overview', plan: 'tasks', bills: 'bills' }, q: '', filter: 'all', sort: '', cat: '', ch: '', arch: false, selMode: false, sel: new Set(), vis: [], cal: today().slice(0, 7), calSel: today(), limit: 60, showDone: false, setOpen: { business: true } };
+const ui = { tab: 'home', sub: null, ret: null, inboxAll: false, inboxCat: 'all', showDismissed: false, seg: { stock: 'supplies', money: 'overview', plan: 'tasks', bills: 'bills' }, q: '', filter: 'all', sort: '', cat: '', ch: '', arch: false, selMode: false, sel: new Set(), vis: [], cal: today().slice(0, 7), calSel: today(), limit: 60, showDone: false, setOpen: { business: true } };
 const charts = {};
 const BULK_EDIT = new Set(['order', 'product', 'supply', 'listing', 'expense', 'task', 'note']);
 
@@ -1657,7 +1716,7 @@ const statusOptions = cur => `<optgroup label="Order steps">${FLOW.map(s => `<op
 function curType() {
   const v = ui.sub || ui.tab;
   if (v === 'sales') return 'order';
-  if (v === 'stock') return { products: 'product', supplies: 'supply', listings: 'listing' }[ui.seg.stock];
+  if (v === 'stock') return { products: 'product', supplies: 'supply', components: 'supply', listings: 'listing' }[ui.seg.stock];
   if (v === 'money') return ui.seg.money === 'expenses' ? 'expense' : ui.seg.money === 'income' ? 'income' : null;
   if (v === 'customers') return 'customer';
   if (v === 'suppliers') return 'supplier';
@@ -1736,15 +1795,15 @@ function chartHover(el, ev, leave) {
 /* =====================================================================
    11. HEADER + NAV
    ===================================================================== */
-const TITLES = { sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More', plan: 'Plan', goals: 'Goals', suppliers: 'Suppliers', customers: 'Customers', notes: 'Notes', mileage: 'Mileage', activity: 'Activity', settings: 'Settings', taxes: 'Taxes', assistant: 'Business Assistant', inbox: 'Inbox', bills: 'Bills & Invoices', forecast: 'Cash Flow Forecast', purchases: 'Purchase Orders' };
+const TITLES = { sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More', plan: 'Plan', goals: 'Goals', suppliers: 'Suppliers', customers: 'Customers', notes: 'Notes', mileage: 'Mileage', activity: 'Activity', settings: 'Settings', taxes: 'Taxes', assistant: 'Business Assistant', inbox: 'Inbox', bills: 'Bills & Invoices', forecast: 'Cash Flow Forecast', purchases: 'Orders & Deliveries', stockin: 'Stock In' };
 function addType() {
   const v = ui.sub || ui.tab, s = ui.seg;
   if (v === 'sales') return ['order', 'Sale'];
-  if (v === 'stock') return s.stock === 'products' ? ['product', 'Product'] : s.stock === 'supplies' ? ['supply', 'Supply'] : ['listing', 'Listing'];
+  if (v === 'stock') return s.stock === 'products' ? ['product', 'Product'] : s.stock === 'supplies' ? ['supply', 'Supply'] : s.stock === 'components' ? ['component', 'Component'] : ['listing', 'Listing'];
   if (v === 'money') return s.money === 'expenses' ? ['expense', 'Expense'] : s.money === 'income' ? ['income', 'Income'] : null;
   if (v === 'plan') return s.plan === 'tasks' ? ['task', 'Task'] : s.plan === 'calendar' ? ['event', 'Event'] : ['shift', 'Entry'];
   if (v === 'bills') return s.bills === 'invoices' ? ['newinvoice', 'Invoice'] : ['bill', 'Bill'];
-  if (v === 'purchases') return ['po', 'Order'];
+  if (v === 'purchases') return ['po', 'Purchase order'];
   if (v === 'goals') return ['goal', 'Goal'];
   if (v === 'suppliers') return ['supplier', 'Supplier'];
   if (v === 'customers') return ['customer', 'Customer'];
@@ -1762,16 +1821,16 @@ function renderHeader() {
   const v = ui.sub || ui.tab;
   if (v === 'home') {
     return `<div class="hdr"><h1 class="trunc">${esc(greeting())}</h1>
-      <div class="row" style="gap:8px">${periodSelect()}<button class="icon-btn" data-act="gsearch" aria-label="Search everything">${ic('search')}</button>${bellBtn('home')}</div></div>`;
+      <div class="row" style="gap:8px">${periodSelect()}<button class="icon-btn" data-act="gsearch" aria-label="Search everything">${ic('search')}</button>${helpBtn()}${bellBtn('home')}</div></div>`;
   }
   if (v === 'inbox') {
     const n = visibleAlerts().length;
-    return `<div class="hdr"><div class="row" style="gap:10px;min-width:0"><button class="icon-btn" data-act="back" aria-label="Back">${ic('arrow-left')}</button><h1 class="trunc">Inbox</h1></div>${n ? `<button class="link" data-act="dismiss-all">Dismiss all</button>` : '<span></span>'}</div>`;
+    return `<div class="hdr"><div class="row" style="gap:10px;min-width:0"><button class="icon-btn" data-act="back" aria-label="Back">${ic('arrow-left')}</button><h1 class="trunc">Inbox</h1></div><div class="row" style="gap:8px">${n ? `<button class="btn btn-line btn-sm" data-act="dismiss-all">Dismiss all</button>` : ''}${helpBtn()}</div></div>`;
   }
   const add = addType();
   const left = ui.sub ? `<button class="icon-btn" data-act="back" aria-label="Back">${ic('arrow-left')}</button>` : '';
   const extra = v === 'activity' ? `<button class="link" data-act="clear-log">Clear</button>` : '';
-  return `<div class="hdr"><div class="row" style="gap:10px;min-width:0">${left}<h1 class="trunc">${TITLES[v]}</h1></div><div class="row" style="gap:8px">${extra}${add ? `<button class="btn btn-primary btn-sm" data-act="add" data-type="${add[0]}">${ic('plus')} ${add[1]}</button>` : ''}${bellBtn(v)}</div></div>`;
+  return `<div class="hdr"><div class="row" style="gap:10px;min-width:0">${left}<h1 class="trunc">${TITLES[v]}</h1></div><div class="row" style="gap:8px">${extra}${add ? `<button class="btn btn-primary btn-sm" data-act="add" data-type="${add[0]}">${ic('plus')} ${add[1]}</button>` : ''}${helpBtn()}${bellBtn(v)}</div></div>`;
 }
 function renderNav() {
   const items = [['home', 'house', 'Home'], ['sales', 'receipt', 'Sales'], ['stock', 'package', 'Inventory'], ['money', 'wallet', 'Money'], ['more', 'more-horizontal', 'More']];
@@ -1785,24 +1844,38 @@ function renderNav() {
 const V = {};
 
 /* ---------------- INBOX ---------------- */
-function alertCard(a, dismissed) {
-  return `<div class="alert ${a.tone || ''}"><span class="ico">${ic(a.icon)}</span>
-    <div class="grow"><div class="row between" style="align-items:flex-start;gap:6px"><h4>${esc(a.title)}</h4>${dismissed ? '' : `<button class="icon-btn x" data-act="dismiss" data-k="${esc(a.key)}" aria-label="Dismiss" title="Dismiss">${ic('x')}</button>`}</div>
-      ${a.detail ? `<p class="d">${esc(a.detail)}</p>` : ''}
-      <div class="acts">${dismissed ? `<button class="btn btn-soft" data-act="undismiss" data-k="${esc(a.key)}">${ic('undo')} Bring back</button>` : `<button class="btn btn-soft" data-act="alert-go" data-k="${esc(a.key)}">View ${ic('arrow-right')}</button>`}</div></div></div>`;
+const MAIL_TIERS = [['bad', 'Urgent'], ['warn', 'Needs attention'], ['info', 'Routine']];
+const mailTier = a => a.tone === 'bad' ? 'bad' : a.tone === 'warn' ? 'warn' : 'info';
+function mailRow(a, dismissed) {
+  const k = esc(a.key);
+  const body = `<span class="mail-ico">${ic(a.icon)}</span><span class="mail-body"><span class="mail-t">${esc(a.title)}</span>${a.detail ? `<span class="mail-d">${esc(a.detail)}</span>` : ''}<span class="mail-c">${esc(MAIL_CATS[a.cat] || 'General')}</span></span>`;
+  if (dismissed) return `<div class="mail-row ${mailTier(a)} gone"><div class="mail-main">${body}</div><button class="btn btn-soft btn-sm mail-undo" data-act="undismiss" data-k="${k}">${ic('undo')} Bring back</button></div>`;
+  return `<div class="mail-row ${mailTier(a)}"><button class="mail-main" data-act="alert-go" data-k="${k}" aria-label="Open: ${esc(a.title)}">${body}${ic('chevron-right', 'chev')}</button><button class="mail-x" data-act="dismiss" data-k="${k}" aria-label="Dismiss: ${esc(a.title)}" title="Dismiss">${ic('x')}</button></div>`;
 }
 V.inbox = () => {
   const from = ui.ret ? (ui.ret.sub || ui.ret.tab) : 'home', cats = pageCats(from), all = alerts();
   const shown = all.filter(a => state.dismissed[a.key] !== a.sig), gone = all.filter(a => state.dismissed[a.key] === a.sig);
   const scoped = !ui.inboxAll && cats ? shown.filter(a => cats.includes(a.cat) || a.cat === 'system') : shown;
   const hidden = shown.length - scoped.length;
-  const order = { bad: 0, warn: 1, brand: 2, ok: 3 };
-  scoped.sort((a, b) => (order[a.tone] ?? 2) - (order[b.tone] ?? 2));
+  const present = Object.keys(MAIL_CATS).filter(k => scoped.some(a => a.cat === k));
+  const cat = present.includes(ui.inboxCat) ? ui.inboxCat : 'all';
+  const list = cat === 'all' ? scoped : scoped.filter(a => a.cat === cat);
+  const tiers = MAIL_TIERS.map(([k, label]) => [k, label, list.filter(a => mailTier(a) === k)]);
+  const n = list.length, nb = tiers[0][2].length, nw = tiers[1][2].length;
+  const headline = !n ? "You're all caught up" : n === 1 ? '1 item to review' : n + ' items to review';
+  const sub = !n ? (hidden ? `Nothing for this page. ${hidden} other alert${hidden > 1 ? 's are' : ' is'} waiting.` : 'Nothing needs your attention right now.')
+    : nb ? `${nb} urgent. Start there.` : nw ? `${nw} need${nw === 1 ? 's' : ''} attention soon.` : 'Nothing urgent. Routine items only.';
+  const summary = n ? `<div class="mail-sum-top"><div><div class="mail-sum-t">${headline}</div><div class="mail-sum-s">${esc(sub)}</div></div><div class="mail-num num">${n}</div></div>
+      <div class="mail-meter" role="img" aria-label="${tiers.map(t => t[2].length + ' ' + t[1].toLowerCase()).join(', ')}">${tiers.filter(t => t[2].length).map(t => `<i class="${t[0]}" style="flex:${t[2].length}"></i>`).join('')}</div>
+      <div class="mail-legend">${tiers.map(t => `<span><i class="mail-dot ${t[0]}"></i><b class="num">${t[2].length}</b> ${t[1].toLowerCase()}</span>`).join('')}</div>`
+    : `<div class="mail-clear"><span class="badge">${ic('check-circle')}</span><div class="grow"><div class="mail-sum-t">${headline}</div><div class="mail-sum-s">${esc(sub)}</div>${hidden ? `<button class="btn btn-soft btn-sm" style="margin-top:10px" data-act="inbox-scope" data-v="all">Show everything</button>` : ''}</div></div>`;
   return `<div class="page stack-sm fade">
     ${cats ? `<div class="seg"><button class="${!ui.inboxAll ? 'on' : ''}" data-act="inbox-scope" data-v="page">This page</button><button class="${ui.inboxAll ? 'on' : ''}" data-act="inbox-scope" data-v="all">Everything${shown.length ? ' · ' + shown.length : ''}</button></div>` : ''}
-    ${scoped.length ? scoped.map(a => alertCard(a)).join('') : `<div class="card">${empty('check-circle', "You're all caught up", hidden ? `Nothing for this page. ${hidden} other alert${hidden > 1 ? 's are' : ' is'} waiting under "Everything".` : 'Nothing needs your attention right now.')}</div>`}
-    ${gone.length ? `<button class="link" style="margin-top:8px" data-act="toggle-dismissed">${ui.showDismissed ? 'Hide' : 'Show'} ${gone.length} dismissed</button>${ui.showDismissed ? gone.map(a => alertCard(a, true)).join('') : ''}` : ''}
-    <p class="hint" style="text-align:center">Dismissed alerts stay away until something about them changes.</p></div>`;
+    <div class="card mail-sum">${summary}</div>
+    ${present.length > 1 ? chips([['all', 'All · ' + scoped.length]].concat(present.map(k => [k, MAIL_CATS[k] + ' · ' + scoped.filter(a => a.cat === k).length])), cat, 'inbox-cat') : ''}
+    ${tiers.filter(t => t[2].length).map(([k, label, items]) => `<section><div class="mail-sec-h"><i class="mail-dot ${k}"></i><h3>${label}</h3><span class="mail-n num">${items.length}</span></div><div class="mail-group">${items.map(a => mailRow(a)).join('')}</div></section>`).join('')}
+    ${gone.length ? `<button class="link" style="margin-top:14px" data-act="toggle-dismissed">${ui.showDismissed ? 'Hide' : 'Show'} ${gone.length} dismissed</button>${ui.showDismissed ? `<div class="mail-group" style="margin-top:8px">${gone.map(a => mailRow(a, true)).join('')}</div>` : ''}` : ''}
+    <p class="mail-foot">Dismissed alerts stay away until something about them changes.</p></div>`;
 };
 
 /* ---------------- HOME ---------------- */
@@ -1872,8 +1945,8 @@ function salesFiltered() {
   else if (f !== 'all') l = l.filter(o => o.status === f);
   if (ui.ch) l = l.filter(o => o.channel === ui.ch);
   if (ui.q) { const q = ui.q.toLowerCase(); l = l.filter(o => [orderNo(o), o.customer, o.channel, o.tracking, o.po, o.ref, o.status, ...(o.items || []).map(i => i.name), ...(o.items || []).map(itemSku)].join(' ').toLowerCase().includes(q)); }
-  const so = ui.sort || 'newest';
-  l.sort((a, b) => so === 'sku' ? (skuCmp(orderSku(a), orderSku(b)) || b.no - a.no) : so === 'no' ? b.no - a.no : so === 'no_a' ? a.no - b.no : so === 'oldest' ? (a.date.localeCompare(b.date) || a.no - b.no) : so === 'high' ? oc(b).gross - oc(a).gross : so === 'low' ? oc(a).gross - oc(b).gross : so === 'ship' ? (a.shipBy || '9999').localeCompare(b.shipBy || '9999') : (b.date.localeCompare(a.date) || b.no - a.no));
+  const so = ui.sort || 'sku_d';
+  l.sort((a, b) => so === 'sku_d' ? (skuDesc(orderSku(a), orderSku(b)) || b.no - a.no) : so === 'sku' ? (skuCmp(orderSku(a), orderSku(b)) || b.no - a.no) : so === 'no' ? b.no - a.no : so === 'no_a' ? a.no - b.no : so === 'oldest' ? (a.date.localeCompare(b.date) || a.no - b.no) : so === 'high' ? oc(b).gross - oc(a).gross : so === 'low' ? oc(a).gross - oc(b).gross : so === 'ship' ? (a.shipBy || '9999').localeCompare(b.shipBy || '9999') : (b.date.localeCompare(a.date) || b.no - a.no));
   return l;
 }
 function orderCard(o) {
@@ -1897,7 +1970,7 @@ function salesList() {
 V.sales = () => `<div class="page stack-sm fade">
   ${searchBox('Search customer, item, order #, PO…')}
   ${chips([['all', 'All'], ['open', 'Open']].concat(ALL_STATUSES.includes(ui.filter) ? [[ui.filter, ui.filter]] : []).concat(GROUPS.map(g => ['g:' + g[0], g[1]])), ui.filter)}
-  <div class="grid2">${optSel('ch', [['', 'All channels']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Channel')}${optSel('sort', [['newest', 'Newest first'], ['oldest', 'Oldest first'], ['high', 'Highest value'], ['low', 'Lowest value'], ['ship', 'Ship-by date'], ['sku', 'Item SKU'], ['no', 'Order # (high to low)'], ['no_a', 'Order # (low to high)']], ui.sort || 'newest', 'Sort')}</div>
+  <div class="grid2">${optSel('ch', [['', 'All channels']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Channel')}${optSel('sort', [['newest', 'Newest first'], ['oldest', 'Oldest first'], ['high', 'Highest value'], ['low', 'Lowest value'], ['ship', 'Ship-by date'], ['sku_d', 'Item SKU high to low'], ['sku', 'Item SKU low to high'], ['no', 'Order # (high to low)'], ['no_a', 'Order # (low to high)']], ui.sort || 'sku_d', 'Sort')}</div>
   <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="add-bulk">${ic('layers')} Bulk order</button><button class="btn btn-line btn-sm grow" data-act="bell">${ic('inbox')} Order alerts</button></div>
   <div id="list" class="stack-sm" style="margin-top:4px">${salesList()}</div></div>`;
 
@@ -1906,13 +1979,13 @@ const STOCK_SORTS = [['name', 'A to Z'], ['sku', 'SKU low to high'], ['sku_d', '
 const supplierName = id => (state.suppliers.find(s => s.id === id) || {}).name || '';
 function stockFiltered() {
   const prod = ui.seg.stock === 'products';
-  let l = (prod ? state.products : state.supplies).filter(x => !!x.archived === ui.arch);
+  let l = (prod ? state.products : state.supplies.filter(x => (x.kind === 'component') === (ui.seg.stock === 'components'))).filter(x => !!x.archived === ui.arch);
   if (ui.q) { const q = ui.q.toLowerCase(); l = l.filter(x => [x.name, x.title, x.sku, x.barcode, x.category, x.location, x.tags, supplierName(x.supplierId)].join(' ').toLowerCase().includes(q)); }
   if (ui.cat) l = l.filter(x => x.category === ui.cat);
   if (ui.filter === 'low') l = l.filter(x => stockState(x) === 'low'); else if (ui.filter === 'out') l = l.filter(x => stockState(x) === 'out'); else if (ui.filter === 'ok') l = l.filter(x => stockState(x) === 'ok');
-  const val = x => prod ? num(x.price) : num(x.cost), so = ui.sort || 'name';
+  const val = x => prod ? num(x.price) : num(x.cost), so = ui.sort || 'sku_d';
   const rank = x => ({ out: 0, low: 1, ok: 2 }[stockState(x)]);
-  l.sort((a, b) => so === 'sku_d' ? skuCmp(b.sku, a.sku) : so === 'sku' ? (skuCmp(a.sku, b.sku) || a.name.localeCompare(b.name)) : so === 'name_d' ? b.name.localeCompare(a.name) : so === 'need' ? rank(a) - rank(b) || a.name.localeCompare(b.name) : so === 'qty_l' ? stockQty(a) - stockQty(b) : so === 'qty_h' ? stockQty(b) - stockQty(a) : so === 'price_h' ? val(b) - val(a) : so === 'price_l' ? val(a) - val(b) : a.name.localeCompare(b.name));
+  l.sort((a, b) => so === 'sku_d' ? (skuDesc(a.sku, b.sku) || a.name.localeCompare(b.name)) : so === 'sku' ? (skuCmp(a.sku, b.sku) || a.name.localeCompare(b.name)) : so === 'name_d' ? b.name.localeCompare(a.name) : so === 'need' ? rank(a) - rank(b) || a.name.localeCompare(b.name) : so === 'qty_l' ? stockQty(a) - stockQty(b) : so === 'qty_h' ? stockQty(b) - stockQty(a) : so === 'price_h' ? val(b) - val(a) : so === 'price_l' ? val(a) - val(b) : a.name.localeCompare(b.name));
   return l;
 }
 const stockPill = it => { const s = stockState(it); return s === 'out' ? pill('Out of stock', 'bad') : s === 'low' ? pill('Low', 'warn') : pill('In stock', 'ok'); };
@@ -1926,7 +1999,7 @@ function stockCard(it, prod) {
   return `<div class="card sm item ${selCls(it.id)}" ${selAttr(it.id)}>${selMark(it.id)}
     <button class="grow" style="text-align:left;min-width:0" data-act="edit" data-type="${prod ? 'product' : 'supply'}" data-id="${it.id}">
       <h4 class="trunc">${esc(it.name)}</h4><div class="meta trunc">${meta}</div>
-      <div class="row" style="gap:6px;margin-top:4px;flex-wrap:wrap">${it.category ? pill(it.category) : ''}${margin != null ? pill(pct(margin) + ' margin', margin < 20 ? 'warn' : 'ok') : ''}${prod && (it.recipe || []).length ? pill('Uses ' + it.recipe.length + ' suppl' + (it.recipe.length > 1 ? 'ies' : 'y'), 'mute') : ''}${usedIn ? pill('In ' + usedIn + ' product' + (usedIn > 1 ? 's' : ''), 'mute') : ''}${nlive ? pill(nlive + ' live', 'ok', 'store') : ''}${it.location ? pill(it.location, 'mute', 'map-pin') : ''}</div>
+      <div class="row" style="gap:6px;margin-top:4px;flex-wrap:wrap">${it.category ? pill(it.category) : ''}${margin != null ? pill(pct(margin) + ' margin', margin < 20 ? 'warn' : 'ok') : ''}${prod && (it.recipe || []).length ? pill('Uses ' + it.recipe.length + ' suppl' + (it.recipe.length > 1 ? 'ies' : 'y'), 'mute') : ''}${usedIn ? pill('In ' + usedIn + ' product' + (usedIn > 1 ? 's' : ''), 'mute') : ''}${nlive ? pill(nlive + ' live', 'ok', 'store') : ''}${it.location ? pill(it.location, 'mute', 'map-pin') : ''}${onOrderText(it.id) ? pill(onOrderText(it.id), 'brand', 'truck') : ''}</div>
       ${prod ? variantChips(it) : ''}
       ${alloc > 0 ? `<div class="meta" style="margin-top:3px">${r2(it.qty)} owned · <b>${r2(alloc)} used in products</b></div>` : ''}</button>
     <div class="side" style="border-left:1px solid var(--line);padding-left:10px">
@@ -1934,6 +2007,7 @@ function stockCard(it, prod) {
       ${prod ? '' : '<div class="xs sub" style="margin-top:-2px">available</div>'}${stockPill(it)}
       <div class="row" style="gap:6px;justify-content:flex-end;margin-top:6px">
         <button class="icon-btn p" style="width:30px;height:30px" data-act="restock" data-type="${prod ? 'product' : 'supply'}" data-id="${it.id}" aria-label="Adjust stock" title="Adjust stock">${ic('plus')}</button>
+        <button class="icon-btn" style="width:30px;height:30px" data-act="po-reorder" data-type="${prod ? 'product' : 'supply'}" data-id="${it.id}" aria-label="Order more" title="Order more">${ic('truck')}</button>
         <button class="icon-btn" style="width:30px;height:30px" data-act="dup" data-type="${prod ? 'product' : 'supply'}" data-id="${it.id}" aria-label="Make a copy" title="Make a copy">${ic('copy')}</button>
       </div></div></div>`;
 }
@@ -1944,15 +2018,15 @@ function listingsFiltered() {
   if (ui.q) { const q = ui.q.toLowerCase(); l = l.filter(x => [x.title, x.description, x.sku, listingChans(x).join(' '), x.tags, listingProductText(x)].join(' ').toLowerCase().includes(q)); }
   if (ui.ch) l = l.filter(x => listingChans(x).includes(ui.ch));
   const f = ui.filter;
-  if (f === 'action') l = l.filter(x => x.status === 'Active' && (renewDue(x) || listingOOS(x) || listingAge(x) >= 30));
+  if (f === 'action') l = l.filter(x => !x.archived && x.status === 'Active' && (renewDue(x) || listingOOS(x) || listingAge(x) >= 30));
   else if (f === 'renew') l = l.filter(renewDue);
   else if (f === 'oos') l = l.filter(listingOOS);
   else if (f === 'old') l = l.filter(x => x.status === 'Active' && listingAge(x) >= 30);
   else if (f === 'sync') l = l.filter(x => { const s = textSync(x); return s.title !== null || s.desc !== null; });
   else if (f === 'disc') l = l.filter(x => (x.discounts || []).some(d => discActive(d) || discUpcoming(d)));
   else if (f !== 'all') l = l.filter(x => x.status === f);
-  const so = ui.sort || 'newest', pr = x => listingPrice(x);
-  l.sort((a, b) => so === 'sku_d' ? skuCmp(b.sku, a.sku) : so === 'sku' ? skuCmp(a.sku, b.sku) : so === 'oldest' ? (a.listedDate || '9999').localeCompare(b.listedDate || '9999') : so === 'title' ? a.title.localeCompare(b.title) : so === 'price_h' ? pr(b) - pr(a) : so === 'price_l' ? pr(a) - pr(b) : so === 'renew' ? (a.relistDate || '9999').localeCompare(b.relistDate || '9999') : (b.listedDate || b.createdDate || '').localeCompare(a.listedDate || a.createdDate || ''));
+  const so = ui.sort || 'sku_d', pr = x => listingPrice(x);
+  l.sort((a, b) => so === 'sku_d' ? skuDesc(a.sku, b.sku) : so === 'sku' ? skuCmp(a.sku, b.sku) : so === 'oldest' ? (a.listedDate || '9999').localeCompare(b.listedDate || '9999') : so === 'title' ? a.title.localeCompare(b.title) : so === 'price_h' ? pr(b) - pr(a) : so === 'price_l' ? pr(a) - pr(b) : so === 'renew' ? (a.relistDate || '9999').localeCompare(b.relistDate || '9999') : (b.listedDate || b.createdDate || '').localeCompare(a.listedDate || a.createdDate || ''));
   return l;
 }
 function syncBox(l) {
@@ -1985,10 +2059,11 @@ function listingsList() {
 }
 function stockList() {
   if (ui.seg.stock === 'listings') return listingsList();
-  const prod = ui.seg.stock === 'products', all = prod ? state.products : state.supplies, l = stockFiltered(); ui.vis = l.map(x => x.id);
+  const prod = ui.seg.stock === 'products', comp = ui.seg.stock === 'components', all = prod ? state.products : state.supplies.filter(x => (x.kind === 'component') === comp), l = stockFiltered(); ui.vis = l.map(x => x.id);
   if (!all.length) return prod
     ? empty('package', 'No products yet', 'Add what you sell. Pick the supplies it is made from, set a price, and margins are worked out for you.', `<div class="row" style="gap:8px;justify-content:center;margin-top:12px"><button class="btn btn-primary btn-sm" data-act="add" data-type="product">Add a product</button><button class="btn btn-soft btn-sm" data-act="csv-import">Import CSV</button></div>`)
-    : empty('box', 'No supplies yet', 'Supplies are the materials, packaging and parts you buy. Add them first, then build products from them.', emptyBtn('Add a supply', 'supply'));
+    : comp ? empty('layers', 'No components yet', 'Components are the parts that go into what you make: beads, chain, clasps, fabric, a handmade charm. Add them, then pick them in a product’s recipe.', emptyBtn('Add a component', 'component'))
+    : empty('box', 'No supplies yet', 'Supplies are what you use up around your products: packing, tape, mailers, labels, boxes. Add them, then pick them in a product’s recipe.', emptyBtn('Add a supply', 'supply'));
   const val = sum(l, x => Math.max(0, num(x.qty)) * (prod ? unitCost(x) : num(x.cost))), ret = prod ? sum(l, x => Math.max(0, x.qty) * num(x.price)) : 0;
   return `${listHead(`${l.length} ${ui.arch ? 'archived' : 'item' + (l.length === 1 ? '' : 's')} · value ${money(val, true)}${prod && !ui.arch ? ' (retail ' + money(ret, true) + ')' : ''}`)}${archNote()}
     ${l.length ? l.slice(0, ui.limit).map(x => stockCard(x, prod)).join('') : empty('search', 'No matches', 'Try a different search, category or filter.')}${l.length > ui.limit ? `<button class="btn btn-line block btn-sm" data-act="more-rows">Show more</button>` : ''}${selBar()}`;
@@ -1996,14 +2071,14 @@ function stockList() {
 V.stock = () => {
   const s = ui.seg.stock, prod = s === 'products', nsync = listingsNeedingSync().length;
   return `<div class="page stack-sm fade">
-    ${seg('stock', [['supplies', '1 · Supplies'], ['products', '2 · Products'], ['listings', '3 · Listings']], s)}
+    ${seg('stock', [['supplies', 'Supplies'], ['components', 'Components'], ['products', 'Products'], ['listings', 'Listings']], s)}
     ${searchBox('Search ' + s + '…')}
     ${s === 'listings'
-      ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted']].concat(nsync ? [['sync', 'Text changed · ' + nsync]] : []).concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${optSel('sort', [['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['renew', 'Renewal date'], ['sku', 'Listing SKU low to high'], ['sku_d', 'Listing SKU high to low'], ['title', 'Title A to Z'], ['price_h', 'Price: high to low'], ['price_l', 'Price: low to high']], ui.sort || 'newest', 'Sort')}</div>
+      ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted']].concat(nsync ? [['sync', 'Text changed · ' + nsync]] : []).concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${optSel('sort', [['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['renew', 'Renewal date'], ['sku', 'Listing SKU low to high'], ['sku_d', 'Listing SKU high to low'], ['title', 'Title A to Z'], ['price_h', 'Price: high to low'], ['price_l', 'Price: low to high']], ui.sort || 'sku_d', 'Sort')}</div>
          <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="bulk-listings">${ic('layers')} Bulk create</button></div>`
-      : chips([['all', 'All'], ['low', 'Low'], ['out', 'Out of stock'], ['ok', 'In stock']], ui.filter) + `<div class="grid2">${optSel('cat', [['', 'All categories']].concat(state.settings.stockCats.map(c => [c, c])), ui.cat, 'Category')}${optSel('sort', STOCK_SORTS, ui.sort || 'name', 'Sort')}</div>
+      : chips([['all', 'All'], ['low', 'Low'], ['out', 'Out of stock'], ['ok', 'In stock']], ui.filter) + `<div class="grid2">${optSel('cat', [['', 'All categories']].concat(state.settings.stockCats.map(c => [c, c])), ui.cat, 'Category')}${optSel('sort', STOCK_SORTS, ui.sort || 'sku_d', 'Sort')}</div>
          <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="reorder">${ic('list-checks')} Reorder list</button>${prod ? `<button class="btn btn-line btn-sm grow" data-act="csv-import">${ic('upload')} Import CSV</button>` : ''}</div>`}
-    <button class="btn btn-line btn-sm block" data-act="archive-sold">${ic('archive')} Archive all sold ${prod ? 'products' : s === 'listings' ? 'listings' : 'supplies'}</button><div id="list" class="stack-sm" style="margin-top:4px">${stockList()}</div></div>`;
+    <button class="btn btn-line btn-sm block" data-act="archive-sold">${ic('archive')} Archive all sold ${prod ? 'products' : s === 'listings' ? 'listings' : s === 'components' ? 'components' : 'supplies'}</button><div id="list" class="stack-sm" style="margin-top:4px">${stockList()}</div></div>`;
 };
 
 
@@ -2035,7 +2110,7 @@ function moneyOverview0() {
     <div class="card"><h4 class="eyebrow" style="margin-bottom:8px">Profit &amp; loss</h4>
       ${kv('Sales', s.gross + s.disc)}${s.disc ? kv('Discounts', s.disc, '', '− ') : ''}${s.refunds ? kv('Refunds', s.refunds, '', '− ') : ''}
       ${kv('Net sales', s.net, 'b')}
-      ${kv('Fees', s.fees, '', '− ')}${kv('Postage', s.post, '', '− ')}${s.reimb ? kv('Claims paid back to you', s.reimb, '', '+ ') : ''}${s.adj ? kv('Adjusted to the final amounts you entered', s.adj, '', s.adj >= 0 ? '+ ' : '− ') : ''}
+      ${s.ship ? kv('Shipping buyers paid', s.ship, '', '+ ') : ''}${kv('Fees', s.fees, '', '− ')}${kv('Postage', s.post, '', '− ')}${s.reimb ? kv('Claims paid back to you', s.reimb, '', '+ ') : ''}${s.adj ? kv('Adjusted to the final amounts you entered', s.adj, '', s.adj >= 0 ? '+ ' : '− ') : ''}
       ${kv('Money you made (before cost of goods)', s.made, 'b sec')}
       ${kv('Cost of goods', s.cogs, '', '− ')}
       ${kv('Gross profit (after cost of goods)', s.gp, 'b sec')}
@@ -2069,12 +2144,12 @@ function expenseList() {
 }
 function incomeList() {
   const r = periodRange(state.prefs.period), f = ui.filter, q = (ui.q || '').toLowerCase();
-  let sales = live().filter(o => inR(o.date, r)).map(o => ({ o, c: oc(o) }));
+  let sales = cashOrders().filter(o => inR(cashDate(o), r)).map(o => ({ o, c: oc(o) }));
   let oth = state.income.filter(e => inR(e.date, r));
   if (q) { sales = sales.filter(x => [orderNo(x.o), x.o.customer, x.o.channel, ...(x.o.items || []).map(i => i.name)].join(' ').toLowerCase().includes(q)); oth = oth.filter(e => (e.desc || '').toLowerCase().includes(q)); }
   const salesTot = sum(sales, x => x.c.made), othTot = sum(oth, e => num(e.amount));
   const showS = f !== 'other', showO = f !== 'sales';
-  const rows = [].concat(showS ? sales.map(x => ({ d: x.o.date, h: x.o.id, sale: x })) : [], showO ? oth.map(e => ({ d: e.date, h: e.id, inc: e })) : []).sort((a, b) => (b.d || '').localeCompare(a.d || ''));
+  const rows = [].concat(showS ? sales.map(x => ({ d: cashDate(x.o), h: x.o.id, sale: x })) : [], showO ? oth.map(e => ({ d: e.date, h: e.id, inc: e })) : []).sort((a, b) => (b.d || '').localeCompare(a.d || ''));
   ui.vis = oth.map(e => e.id);
   if (!state.income.length && !state.orders.length) return empty('banknote', 'No income yet', 'Every sale you record counts here automatically. Add other money (grants, interest, workshop fees) with the button above.', emptyBtn('Add income', 'income'));
   const saleRow = x => { const o = x.o, c = x.c, acct = hasAcct(o.acct) ? acctName(o.acct) : null; return `<button class="card sm item click" data-act="open-order" data-id="${o.id}"><div class="ava">${ic('receipt')}</div><div class="grow"><h4 class="trunc">${esc(orderNo(o))}${o.customer ? ' · ' + esc(o.customer) : ''}</h4><div class="meta">${fmtDate(o.date)} · Sale${o.channel ? ' · ' + esc(o.channel) : ''}${acct ? ' · into ' + esc(acct) : ''}</div>${!acct && state.accounts.length ? `<div style="margin-top:3px">${pill('Not in an account', 'warn')}</div>` : ''}</div><div class="side amt ok-t num">+ ${money(c.made)}</div></button>`; };
@@ -2621,7 +2696,7 @@ V.more = () => {
       ${row('landmark', 'Taxes', 'What to set aside, sales tax and payments', 'taxes')}
       ${row('receipt', 'Bills & invoices', billsLine(), 'bills')}
       ${row('line-chart', 'Cash flow forecast', 'Will your money cover what is coming?', 'forecast')}
-      ${row('truck', 'Purchase orders', 'Order from suppliers and receive stock', 'purchases')}
+      ${row('truck', 'Orders & deliveries', 'What you bought from suppliers: track bought, shipped, in transit, delivered', 'purchases')}
       ${row('users', 'Customers', `${nc} saved · repeat buyers and lifetime value`, 'customers')}
       ${row('contact', 'Suppliers', 'Who you buy from', 'suppliers')}
       ${row('car', 'Mileage', 'Business trips and the deduction they are worth', 'mileage')}
@@ -2932,7 +3007,7 @@ function funBody() {
 }
 function styleBody() {
   const L = state.settings.look, T = THEMES[state.settings.theme] || THEMES.blush, darks = Object.entries(THEMES).filter(([, t]) => t.dark);
-  return `<p class="eyebrow" style="margin-bottom:8px">One-tap looks</p><div class="opts"><button type="button" class="chip on" data-act="look-original">↩ Original (standard)</button>${LOOK_PRESETS.map((p, i) => `<button type="button" class="chip" data-act="look-preset" data-i="${i}">${esc(p.n)}</button>`).join('')}<button type="button" class="chip on" data-act="look-random">🎲 Surprise me</button></div>
+  return `<p class="eyebrow" style="margin-bottom:8px">One-tap looks</p><div class="opts"><button type="button" class="chip" data-act="look-original">↩ Original (standard)</button>${LOOK_PRESETS.map((p, i) => `<button type="button" class="chip" data-act="look-preset" data-i="${i}">${esc(p.n)}</button>`).join('')}<button type="button" class="chip" data-act="look-random">🎲 Surprise me</button></div>
     <p class="hint">A look sets the colors, font, shapes and styles together. You can change anything afterwards. It never touches your business data.</p>
     <p class="eyebrow" style="margin:18px 0 10px">Your own colors</p>
     ${colorRow('Main accent color', 'accent', T.p)}
@@ -3013,41 +3088,50 @@ const foot = (type, id, label = 'Save', extra = '') => {
   return `<div class="sheet-foot">${id ? `<button type="button" class="btn btn-danger ibtn" data-act="delete" data-type="${type}" data-id="${id}" aria-label="Delete" title="Delete">${ic('trash')}</button>` : ''}${id && ARCHIVABLE.has(type) ? `<button type="button" class="btn btn-line ibtn" data-act="archive" data-type="${type}" data-id="${id}" aria-label="${rec && rec.archived ? 'Restore' : 'Archive'}" title="${rec && rec.archived ? 'Restore' : 'Archive'}">${ic('archive')}</button>` : ''}${id && DUP.has(type) ? `<button type="button" class="btn btn-line ibtn" data-act="dup" data-type="${type}" data-id="${id}" aria-label="Duplicate" title="Duplicate">${ic('copy')}</button>` : ''}${extra}<button class="btn btn-primary">${label}</button></div>`;
 };
 const formWrap = (type, id, inner, f = '') => `<form data-form="${type}" data-id="${id || ''}" autocomplete="off"><div class="sheet-body">${inner}</div>${f}</form>`;
-const nextSupplySku = () => { const n = Math.max(0, ...state.supplies.map(p => parseInt(String(p.sku || '').replace(/\D/g, '')) || 0)); return 'SUP-' + String(n + 1).padStart(3, '0'); };
+const nextSupplySku = (kind) => { const comp = kind === 'component', n = Math.max(0, ...state.supplies.filter(x => (x.kind === 'component') === comp).map(p => parseInt(String(p.sku || '').replace(/\D/g, '')) || 0)); return (comp ? 'COMP-' : 'SUP-') + String(n + 1).padStart(3, '0'); };
 const nextSku = () => { const n = Math.max(0, ...state.products.map(p => parseInt(String(p.sku || '').replace(/\D/g, '')) || 0)); return 'PROD-' + String(n + 1).padStart(3, '0'); };
 const done = (msg, log) => { if (log) logAct(log[0], log[1]); closeSheet(); save(); render(); if (msg) { quietToast = msg === 'Sale recorded'; toast(msg); quietToast = false; } if (msg === 'Sale recorded') { const L = state.settings.look; if (L.confetti && L.motion !== false) confetti(); else playSound('win'); } };
 const OPEN = {}, FORMS = {};
 
-/* ---------- supply ---------- */
-OPEN.supply = id => {
-  const s = id ? find('supplies', id) : null;
-  const d = s || { name: '', sku: nextSupplySku(), unit: 'pcs', qty: 0, cost: '', low: '', category: state.settings.stockCats.includes('Materials') ? 'Materials' : state.settings.stockCats[0] || '', supplierId: '', location: '', notes: '' };
+/* ---------- supplies & components (one list underneath, two tabs on top) ---------- */
+OPEN.component = () => OPEN.supply('', 'component');
+OPEN.supply = (id, hint) => {
+  const s = id ? find('supplies', id) : null, kind = s ? (s.kind === 'component' ? 'component' : 'supply') : (hint === 'component' ? 'component' : 'supply'), comp = kind === 'component', W = comp ? 'component' : 'supply';
+  const cats = state.settings.stockCats, pickCat = re => cats.find(c => re.test(c)) || cats[0] || '';
+  const d = s || { name: '', sku: nextSupplySku(kind), unit: 'pcs', qty: 0, cost: '', low: '', category: comp ? pickCat(/component|material|part/i) : pickCat(/packag|suppl/i), supplierId: '', location: '', notes: '' };
   const used = s ? state.products.filter(p => active(p) && (p.recipe || []).some(r => r.supplyId === s.id)) : [], alloc = s ? allocated(s.id) : 0;
-  openSheet(s ? 'Edit supply' : 'New supply', formWrap('supply', id, `
-    <p class="hint" style="margin:0 0 12px">Step 1 of 3: supplies are what you buy. Next you build <b>products</b> from them, then make <b>listings</b>.</p>
-    ${used.length ? `<div class="preview" style="margin-bottom:12px"><div class="kv"><span>You own</span><b class="num">${r2(s.qty)} ${esc(s.unit)}</b></div><div class="kv"><span>Used in products</span><b class="num">${r2(alloc)}</b></div><div class="kv"><span>Available</span><b class="num">${r2(avail(s))}</b></div><p class="hint" style="margin:6px 0 0">In: ${esc(plainList(used.map(p => p.name)))}. Archive a product and its supplies come back; delete it and they are back for good.</p></div>` : ''}
-    ${fText('Name *', 'name', d.name, 'required maxlength="80" placeholder="e.g. Bubble mailers"')}
+  openSheet((s ? 'Edit ' : 'New ') + W, formWrap('supply', id, `
+    <p class="hint" style="margin:0 0 12px">${comp ? 'Components are the parts that go into what you make: beads, chain, clasps, fabric, a handmade charm. Pick them in a product’s recipe.' : 'Supplies are what you use up around your products: packing, tape, mailers, labels, boxes. Pick them in a product’s recipe too.'}</p>
+    ${s && onOrderText(s.id) ? `<div class="notice" style="margin-bottom:12px">${ic('truck')}<span>${esc(onOrderText(s.id))} (${esc(onOrderInfo(s.id).no)}). It is added to your stock when you receive the order.</span></div>` : ''}
+    ${used.length ? `<div class="preview" style="margin-bottom:12px"><div class="kv"><span>You own</span><b class="num">${r2(s.qty)} ${esc(s.unit)}</b></div><div class="kv"><span>Used in products</span><b class="num">${r2(alloc)}</b></div><div class="kv"><span>Available</span><b class="num">${r2(avail(s))}</b></div><p class="hint" style="margin:6px 0 0">In: ${esc(plainList(used.map(p => p.name)))}. Archive a product and its ${W}s come back; delete it and they are back for good.</p></div>` : ''}
+    ${fText('Name *', 'name', d.name, 'required maxlength="80" placeholder="' + (comp ? 'e.g. Glass beads' : 'e.g. Bubble mailers') + '"')}
+    ${fSel('This is a', 'kind', [['supply', 'Supply (packing, tape, mailers…)'], ['component', 'Component (parts that go into products)']], kind)}
     <div class="grid2">${fNum(s ? 'Total you own' : 'How many you have', 'qty', d.qty, '0')}${fSel('Counted in', 'unit', UNITS.includes(d.unit) ? UNITS : UNITS.concat([d.unit]), d.unit)}</div>
     <div class="grid2">${fNum('Cost per unit', 'cost', d.cost, '0.00', 'min="0"')}${fNum('Low-stock alert', 'low', d.low, 'Default ' + state.settings.lowStock, 'min="0"')}</div>
+    ${!s ? `${fNum('Total paid for what you have now (optional)', 'paid', '', '0.00', 'min="0"')}${fDate('Date you got them', 'recvDate', today(), false)}<p class="hint" style="margin-top:-4px">Skip this if it came in on a purchase order. Leave “Cost per unit” empty and it is worked out from what you paid.</p>` : `<p class="hint" style="margin:-2px 0 10px">To add more later, use the + button on the card. That saves the date and what you paid in Stock In.</p>`}
     <div class="grid2">${fCat('Category', 'category', 'stockCats', d.category)}${fSupplier(d.supplierId)}</div>
     <div class="grid2">${fText('SKU', 'sku', d.sku, 'maxlength="30"')}${fText('Location', 'location', d.location, 'maxlength="40"')}</div>
     ${fArea('Notes', 'notes', d.notes, 'Reorder links, sizes, storage…')}`, foot('supply', id)));
 };
 FORMS.supply = (f, fd, id) => {
   const name = tidy(fd.get('name')); if (!name) return toast('Please enter a name');
-  const rec = { name, sku: tidy(fd.get('sku')), unit: fd.get('unit'), qty: r2(num(fd.get('qty'))), cost: num(fd.get('cost')), low: fd.get('low') === '' ? '' : Math.max(0, num(fd.get('low'))), category: fd.get('category') || '', supplierId: fd.get('supplierId') || '', location: tidy(fd.get('location')), notes: tidy(fd.get('notes')) };
+  const kind = fd.get('kind') === 'component' ? 'component' : 'supply', qty = r2(num(fd.get('qty'))), paid = Math.max(0, num(fd.get('paid')));
+  let cost = fd.get('cost') === '' ? 0 : num(fd.get('cost'));
+  if (!id && paid > 0 && qty > 0 && !(cost > 0)) cost = Math.round(paid / qty * 1e4) / 1e4;
+  const rec = { name, kind, sku: tidy(fd.get('sku')), unit: fd.get('unit'), qty, cost, low: fd.get('low') === '' ? '' : Math.max(0, num(fd.get('low'))), category: fd.get('category') || '', supplierId: fd.get('supplierId') || '', location: tidy(fd.get('location')), notes: tidy(fd.get('notes')) };
   if (id && rec.qty < allocated(id) - 1e-9) return toast(`${allocated(id)} of this are already used in products, so you must own at least that many`);
-  if (id) Object.assign(find('supplies', id), rec); else state.supplies.push({ id: uid('u'), ...rec });
-  done('Supply saved', [(id ? 'Updated supply ' : 'Added supply ') + name, 'box']);
+  if (id) Object.assign(find('supplies', id), rec);
+  else { const item = { id: uid('u'), ...rec }; state.supplies.push(item); if (qty > 0) logIn(item, kind, qty, paid > 0 ? paid : qty * cost, 'start', fd.get('recvDate'), { est: !(paid > 0) }); }
+  done((kind === 'component' ? 'Component' : 'Supply') + ' saved', [(id ? 'Updated ' : 'Added ') + kind + ' ' + name, 'box']);
 };
 
 /* ---------- product ---------- */
 let curPid = '';
 const freeFor = (sid, exceptPid) => { const s = find('supplies', sid); if (!s) return 0; return r2(num(s.qty) - sum(state.products.filter(p => active(p) && p.id !== exceptPid), p => sum((p.recipe || []).filter(r => r.supplyId === sid), r => num(r.qty)))); };
-const supLabel = (s, free) => `${s.sku ? s.sku + ' · ' : ''}${s.name} · ${free} ${s.unit || ''} free${free <= 0 ? ' (none free)' : ''}`;
+const supLabel = (s, free) => `${s.kind === 'component' ? 'Component' : 'Supply'} · ${s.sku ? s.sku + ' · ' : ''}${s.name} · ${free} ${s.unit || ''} free${free <= 0 ? ' (none free)' : ''}`;
 const recRow = r => {
-  const opts = state.supplies.filter(s => active(s) || s.id === r.supplyId).sort((a, b) => a.name.localeCompare(b.name)).map(s => [s.id, supLabel(s, freeFor(s.id, curPid)), lc([s.name, s.sku, s.category, s.location].join(' '))]);
-  return `<div class="rec-wrap"><input class="input sm" data-selfilter placeholder="Search supplies by name or SKU…" aria-label="Search supplies" autocomplete="off" style="margin-bottom:6px"><div class="rec-row"><select class="select sm" name="rs" data-opts="${esc(JSON.stringify(opts))}">${opts.map(o => `<option value="${esc(o[0])}" ${o[0] === r.supplyId ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select><input class="input sm" type="number" step="any" min="0" name="rq" value="${r.qty ?? ''}" placeholder="Used" aria-label="Amount used"><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove">${ic('x')}</button></div></div>`;
+  const opts = state.supplies.filter(s => active(s) || s.id === r.supplyId).sort((a, b) => a.name.localeCompare(b.name)).map(s => [s.id, supLabel(s, freeFor(s.id, curPid)), lc([s.name, s.sku, s.category, s.location, s.kind].join(' '))]);
+  return `<div class="rec-wrap"><input class="input sm" data-selfilter placeholder="Search components and supplies…" aria-label="Search components and supplies" autocomplete="off" style="margin-bottom:6px"><div class="rec-row"><select class="select sm" name="rs" data-opts="${esc(JSON.stringify(opts))}">${opts.map(o => `<option value="${esc(o[0])}" ${o[0] === r.supplyId ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select><input class="input sm" type="number" step="any" min="0" name="rq" value="${r.qty ?? ''}" placeholder="Used" aria-label="Amount used"><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove">${ic('x')}</button></div></div>`;
 };
 const tierRow = t => `<div class="tier-row"><input class="input sm" type="number" min="2" step="1" name="tm" value="${t.minQty ?? ''}" placeholder="Buy at least (qty)" aria-label="Minimum quantity"><input class="input sm" type="number" min="0" step="any" name="tp" value="${t.price ?? ''}" placeholder="Price each" aria-label="Price each"><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove">${ic('x')}</button></div>`;
 const readRecipe = f => {
@@ -3066,7 +3150,8 @@ OPEN.product = id => {
   const d = p || { name: '', title: '', description: '', sku: nextSku(), barcode: '', category: state.settings.stockCats[0] || '', price: '', cost: '', qty: 0, low: '', location: '', supplierId: '', tags: '', notes: '', recipe: [], batch: 1, tiers: [] };
   const st = p ? productStats(p.id) : null, nl = p ? state.listings.filter(l => listingProducts(l).includes(p.id) && active(l)).length : 0;
   openSheet(p ? 'Edit product' : 'New product', formWrap('product', id, `
-    ${!state.supplies.length && !p ? `<p class="hint" style="margin:0 0 12px">Tip: add your supplies first (Inventory &rsaquo; Supplies) so you can build this product from them.</p>` : `<p class="hint" style="margin:0 0 12px">Step 2 of 3: products are what you sell. Listings come next.</p>`}
+    ${!state.supplies.length && !p ? `<p class="hint" style="margin:0 0 12px">Tip: add your components and supplies first (Inventory &rsaquo; Components / Supplies) so you can build this product from them.</p>` : `<p class="hint" style="margin:0 0 12px">Products are what you sell. Build them from components and supplies, then make listings.</p>`}
+    ${p && onOrderText(p.id) ? `<div class="notice" style="margin-bottom:12px">${ic('truck')}<span>${esc(onOrderText(p.id))} (${esc(onOrderInfo(p.id).no)}). It is added to your stock when you receive the order.</span></div>` : ''}
     ${p && p.archived ? `<div class="notice warn" style="margin-bottom:12px">${ic('archive')}<span>This product is archived, so its supplies are back in your supply stock.</span></div>` : ''}
     ${st && (st.units || nl) ? `<p class="hint" style="margin:0 0 12px">Sold ${st.units} · revenue ${money(st.rev)} · profit before fees ${money(st.profit)}${nl ? ` · ${nl} listing${nl > 1 ? 's' : ''}` : ''}</p>` : ''}
     ${fText('Name *', 'name', d.name, 'required maxlength="80" placeholder="Your own name for it"')}
@@ -3077,9 +3162,10 @@ OPEN.product = id => {
     <div class="grid2">${fNum('Selling price', 'price', d.price, '0.00', 'min="0"')}${fNum('Other cost / unit', 'cost', d.cost, '0.00', 'min="0"')}</div>
     <div class="grid2">${fNum('In stock', 'qty', d.qty, '0', 'step="1"')}${fNum('Low-stock alert', 'low', d.low, 'Default ' + state.settings.lowStock, 'min="0" step="1"')}</div>
     ${fSupplier(d.supplierId)}
-    <div class="fld"><span class="lbl">Supplies used in this product <small style="text-transform:none;letter-spacing:0;font-weight:600">optional</small></span>
+    ${!p ? `${fNum('Total paid for the stock you have (optional)', 'paid', '', '0.00', 'min="0"')}${fDate('Date you got it', 'recvDate', today(), false)}<p class="hint" style="margin-top:-4px">For ready-made items you bought. Skip it if you made it yourself. It fills in “Other cost / unit” if that is empty.</p>` : ''}
+    <div class="fld"><span class="lbl">Components &amp; supplies used in this product <small style="text-transform:none;letter-spacing:0;font-weight:600">optional</small></span>
       <div id="rec-rows">${(d.recipe || []).map(recRow).join('')}</div>
-      ${state.supplies.length ? `<div class="row" style="gap:16px"><button type="button" class="link" data-act="rec-add">${ic('plus')} Add supply</button><button type="button" class="link" data-act="rec-multi">${ic('layers')} Add several supplies</button></div>` : `<p class="hint">Add items under Inventory &rsaquo; Supplies first.</p>`}
+      ${state.supplies.length ? `<div class="row" style="gap:16px"><button type="button" class="link" data-act="rec-add">${ic('plus')} Add component or supply</button><button type="button" class="link" data-act="rec-multi">${ic('layers')} Add several</button></div>` : `<p class="hint">Add items under Inventory &rsaquo; Components or Supplies first.</p>`}
       <p class="hint">Enter the <b>total</b> you used. It comes off that supply's available count. Archive the product and it returns; unarchive and it comes off again; delete the product and it is back for good.</p></div>
     <div id="batch-wrap" ${(d.recipe || []).length ? '' : 'hidden'}>${fNum('Those supplies make how many units?', 'batch', d.batch || 1, '1', 'min="1" step="1"')}</div>
     <div class="fld"><span class="lbl">Bulk prices <small style="text-transform:none;letter-spacing:0;font-weight:600">optional</small></span>
@@ -3103,7 +3189,8 @@ FORMS.product = (f, fd, id) => {
   { const vs = readVariants(f), seen = new Set();
     for (const v of vs) { const k = lc(v.size) + '|' + lc(v.color); if (seen.has(k)) return toast('Two rows have the same size and color'); seen.add(k); }
     rec.variants = vs; if (vs.length) rec.qty = sum(vs, v => num(v.qty)); }
-  if (id) Object.assign(old, rec); else state.products.push({ id: uid('p'), ...rec });
+  if (id) Object.assign(old, rec);
+  else { const np = { id: uid('p'), ...rec }, pd = Math.max(0, num(fd.get('paid'))); if (pd > 0 && !recipe.length && !(num(np.cost) > 0) && np.qty > 0) np.cost = Math.round(pd / np.qty * 1e4) / 1e4; state.products.push(np); if (np.qty > 0) logIn(np, 'product', np.qty, pd > 0 ? pd : unitCost(np) * np.qty, 'start', fd.get('recvDate'), { est: !(pd > 0) }); }
   done('Product saved', [(id ? 'Updated product ' : 'Added product ') + name, 'tag']);
 };
 
@@ -3114,9 +3201,9 @@ OPEN.restock = (type, id) => {
   openSheet('Adjust stock', formWrap('restock', id, `
     <input type="hidden" name="type" value="${type}">
     <p class="b" style="margin-bottom:12px">${esc(it.name)} <span class="sub" style="font-weight:600">· ${stockQty(it)} ${sup ? 'available' : 'in stock'}${sup && allocated(id) ? ' · ' + r2(allocated(id)) + ' used in products' : ''}</span></p>
-    ${fSel('What happened?', 'mode', [['add', 'Received / restocked'], ['remove', 'Remove (damaged, lost, gifted)'], ['set', sup ? 'Set exact count (what you can see on the shelf)' : 'Set exact count (stocktake)']], 'add')}
+    ${fSel('What happened?', 'mode', [['add', 'Received / restocked'], ['remove', 'Remove (used up, damaged, lost, gifted)'], ['set', sup ? 'Set exact count (what you can see on the shelf)' : 'Set exact count (stocktake)']], 'add')}
     ${fNum('Quantity *', 'amt', '', '0', 'required min="0" step="any"')}
-    <div id="paid-wrap">${showCost ? fNum('Total paid (optional)', 'paid', '', '0.00', 'min="0"') + `<p class="hint" style="margin-top:-4px">If you enter what you paid, the average cost per unit updates for you.</p>` : ''}</div>
+    <div id="paid-wrap">${showCost ? fNum('Total paid (optional)', 'paid', '', '0.00', 'min="0"') + `<p class="hint" style="margin-top:-4px">If you enter what you paid, the average cost per unit updates for you.</p>` : ''}${fDate('Date received', 'recvDate', today(), false)}</div>
     <div class="preview" id="pv"></div>`, foot('', '', 'Update stock')));
   formLive($('form[data-form=restock]'));
 };
@@ -3124,8 +3211,8 @@ FORMS.restock = (f, fd, id) => {
   const type = fd.get('type'), sup = type === 'supply', it = find(sup ? 'supplies' : 'products', id), mode = fd.get('mode'), amt = num(fd.get('amt')), paid = num(fd.get('paid'));
   if (!it || !(amt >= 0) || fd.get('amt') === '') return toast('Enter a quantity');
   const before = stockQty(it), alloc = sup ? allocated(id) : 0;
-  if (mode === 'add') { if (amt <= 0) return toast('Enter a quantity'); if (paid > 0) { const have = Math.max(0, num(it.qty)); it.cost = r2((have * num(it.cost) + paid) / (have + amt)); } it.qty = r2(num(it.qty) + amt); }
-  else if (mode === 'remove') { if (sup && amt > before + 1e-9) return toast(`Only ${before} available. The rest is used in products`); it.qty = r2(num(it.qty) - amt); }
+  if (mode === 'add') { if (amt <= 0) return toast('Enter a quantity'); if (!sup && (it.recipe || []).length) { const bt = Math.max(1, num(it.batch)); const short = it.recipe.map(r => { const sp = find('supplies', r.supplyId), need = r2(num(r.qty) * amt / bt); return sp && avail(sp) < need - 1e-9 ? `${sp.name} (needs ${need}, only ${avail(sp)} free)` : null; }).filter(Boolean); if (short.length) return toast('Not enough supplies: ' + short.join('; ')); it.recipe.forEach(r => { r.qty = r2(num(r.qty) * (bt + amt) / bt); }); it.batch = bt + amt; } const estV = sup || !(it.recipe && it.recipe.length) ? num(it.cost) * amt : unitCost(it) * amt; logIn(it, kindOfItem(it, !sup), amt, paid > 0 ? paid : estV, 'manual', fd.get('recvDate'), { est: !(paid > 0) }); if (paid > 0) { const have = Math.max(0, num(it.qty)); it.cost = r2((have * num(it.cost) + paid) / (have + amt)); } it.qty = r2(num(it.qty) + amt); }
+  else if (mode === 'remove') { if (sup && amt > before + 1e-9) return toast(`Only ${before} available. The rest is used in products`); it.qty = r2(num(it.qty) - amt); const val = r2(amt * (sup ? num(it.cost) : unitCost(it))); if (val > 0) state.expenses.push({ id: uid('e'), desc: 'Written off: ' + it.name + ' (' + amt + (it.unit ? ' ' + it.unit : '') + ')', amount: val, date: today(), cat: state.settings.expenseCats.includes('Other') ? 'Other' : (state.settings.expenseCats[0] || ''), vendor: '', deductible: true, acct: '', stockBuy: false, notes: 'Stock removed (used up, damaged, lost or gifted)' }); }
   else it.qty = r2(amt + alloc);
   const after = stockQty(it);
   done(`${it.name}: ${before} → ${after}`, [`Stock for ${it.name}: ${before} → ${after}`, 'package']);
@@ -3220,7 +3307,7 @@ OPEN.orderDetail = id => {
     <p class="sm-t sub">${fmtDateLong(o.date)}${o.customer ? ' · <b style="color:var(--text)">' + esc(o.customer) + '</b>' : ''}${o.channel ? ' · ' + esc(o.channel) : ''}${o.payment ? ' · paid by ' + esc(o.payment) : ''}${o.ref ? ' · #' + esc(o.ref) : ''}</p>
     ${STATUS_HELP[o.status] ? `<div class="notice warn">${ic('info')}<span>${esc(STATUS_HELP[o.status])}.</span></div>` : ''}
     <div class="card sm">${o.items.map(l => `<div class="kv"><span>${l.qty}× ${esc(lineName(l))}${l.returned ? ` <span class="warn-t xs">(${l.returned} returned)</span>` : ''}</span><span class="num">${money(l.qty * l.price)}</span></div>`).join('')}</div>
-    <div class="card sm">${kv('Items', c.sub)}${c.disc ? kv('Discount', c.disc, '', 1) : ''}${num(o.shipCharged) ? kv('Shipping buyer paid (not counted as your income)', num(o.shipCharged)) : ''}${c.tax ? kv('Sales tax collected (not income)', c.tax) : ''}${c.refund ? kv('Refunded', c.refund, '', 1) : ''}${kv('Fees' + (o.feesManual ? '' : ' (auto)'), c.fees, '', 1)}<div class="kv b"><span>You receive after fees</span><span class="num">${money(c.payout)}</span></div>${kv('Postage', c.post, '', 1)}${c.reimb ? kv('Claim paid back to you', c.reimb) : ''}
+    <div class="card sm">${kv('Items', c.sub)}${c.disc ? kv('Discount', c.disc, '', 1) : ''}${num(o.shipCharged) ? kv('Shipping buyer paid (goes toward your postage)', num(o.shipCharged)) : ''}${c.tax ? kv('Sales tax collected (not income)', c.tax) : ''}${c.refund ? kv('Refunded', c.refund, '', 1) : ''}${kv('Fees' + (o.feesManual ? '' : ' (auto)'), c.fees, '', 1)}<div class="kv b"><span>You receive after fees</span><span class="num">${money(c.payout)}</span></div>${c.shipPaid ? kv('Shipping buyer paid', c.shipPaid) : ''}${kv('Postage', c.post, '', 1)}${c.reimb ? kv('Claim paid back to you', c.reimb) : ''}
       ${c.hasFinal ? kv('Estimated amount made (not used)', c.calcMade) : ''}<div class="kv b sec"><span>${c.hasFinal ? 'Money you made (actual)' : 'Money you made'} <span class="xs sub">before cost of goods</span></span><span class="num ${c.made < 0 ? 'bad-t' : 'ok-t'}">${c.made < 0 ? '− ' : ''}${money(Math.abs(c.made))}</span></div>
       ${kv('Cost of goods', c.cogs, '', 1)}<div class="kv total sec"><span>Profit after cost of goods</span><span class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${c.profit < 0 ? '− ' : ''}${money(Math.abs(c.profit))}</span></div>${c.margin != null ? `<p class="hint">${pct(c.margin)} margin after cost of goods · cost of goods is what the materials or stock cost you. It is shown separately so you can see what you made with and without it.</p>` : ''}</div>
     <div class="card sm"><h4 class="eyebrow" style="margin-bottom:6px">Dates</h4><div class="kv"><span>Ordered</span><span class="num">${fmtDate(o.date)}</span></div>${FLOW.map(st => `<div class="kv" style="align-items:center;${o.status === st ? 'font-weight:800' : ''}"><span>${st}</span><input class="input sm" type="date" style="width:auto;flex:none" data-order-date="${o.id}" data-step="${esc(st)}" value="${esc((o.stepDates || {})[st] || '')}" aria-label="${esc(st)} date"></div>`).join('')}</div>
@@ -3250,7 +3337,7 @@ FORMS.refund = (f, fd, id) => {
 OPEN.invoice = id => {
   const o = find('orders', id); if (!o) return;
   const c = oc(o), b = state.settings.business, cust = state.customers.find(x => lc(x.name) === lc(o.customer));
-  const nl = s => esc(s).replace(/\n/g, '<br>'), paid = isOwed(o) ? false : (closedOrder(o) || c.owed <= 0);
+  const nl = s => esc(s).replace(/\n/g, '<br>'), paid = !isOwed(o) && !(num(o.deposit) > 0 && c.owed > 0.004 && !closedOrder(o));
   openSheet('Invoice', `<div class="sheet-body"><div class="invoice" id="invoice">
     <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><h2>${esc(state.settings.name || 'Invoice')}</h2><div style="color:#525252">${b.address ? nl(b.address) + '<br>' : ''}${[b.email, b.phone].filter(Boolean).map(esc).join(' · ')}${b.taxId ? '<br>ID: ' + esc(b.taxId) : ''}</div></div>
       <div style="text-align:right"><div style="font-size:10px;letter-spacing:.08em;color:#737373;font-weight:700">INVOICE</div><div style="font-weight:800;font-size:16px">${orderNo(o)}</div><div style="color:#525252">${fmtDateLong(o.date)}</div>${o.po ? `<div style="color:#525252">PO: ${esc(o.po)}</div>` : ''}${o.terms ? `<div style="color:#525252">Terms: ${esc(o.terms)}</div>` : ''}</div></div>
@@ -3681,7 +3768,7 @@ function formLive0(f, target) {
     });
     $('#pv-total', f).textContent = money(c.buyerTotal); $('#pv-payout', f).textContent = money(c.payout); $('#pv-made', f).textContent = money(c.made); const pp = $('#pv-profit', f); pp.textContent = money(c.profit); pp.className = 'num ' + (c.profit < 0 ? 'bad-t' : 'ok-t');
     const kv = (l, v, neg) => `<div class="kv"><span>${l}</span><b class="num">${neg ? '− ' : ''}${money(v)}</b></div>`;
-    pv.innerHTML = kv('Items', c.sub) + (c.disc ? kv('Discount', c.disc, 1) : '') + `<div class="kv b"><span>Your sales (after discount)</span><b class="num">${money(c.gross)}</b></div>` + (o.shipCharged ? kv('Shipping buyer paid (not your income)', o.shipCharged) : '') + `<div class="kv"><span>Buyer paid in total (before sales tax)</span><b class="num">${money(c.buyerTotal)}</b></div>` + kv(o.feesManual ? 'Platform fees (entered)' : 'Platform fees (auto from platform)', c.fees, 1) + `<div class="kv b"><span>You receive (est.)</span><b class="num">${money(c.payout)}</b></div>` + kv('Your postage', c.post, 1) + (c.reimb ? kv('Claim paid back to you', c.reimb) : '') + (c.hasFinal ? kv('Estimated amount made (not used)', c.calcMade) : '') + `<div class="kv b"><span>${c.hasFinal ? 'Money you made (actual)' : 'Money you made (est.)'} <small class="sub">before cost of goods</small></span><b class="num ${c.made < 0 ? 'bad-t' : ''}">${money(c.made)}</b></div>` + kv('Cost of goods', c.cogs, 1) + `<div class="kv"><span><b>Profit after cost of goods</b></span><b class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${money(c.profit)}${c.margin != null ? ' · ' + pct(c.margin) : ''}</b></div>` + (num(o.deposit) > 0 ? `<div class="kv"><span>Balance still due</span><b class="num">${money(c.owed)}</b></div>` : '');
+    pv.innerHTML = kv('Items', c.sub) + (c.disc ? kv('Discount', c.disc, 1) : '') + `<div class="kv b"><span>Your sales (after discount)</span><b class="num">${money(c.gross)}</b></div>` + (o.shipCharged ? kv('Shipping buyer paid (goes toward your postage)', o.shipCharged) : '') + `<div class="kv"><span>Buyer paid in total (before sales tax)</span><b class="num">${money(c.buyerTotal)}</b></div>` + kv(o.feesManual ? 'Platform fees (entered)' : 'Platform fees (auto from platform)', c.fees, 1) + `<div class="kv b"><span>You receive (est.)</span><b class="num">${money(c.payout)}</b></div>` + (c.shipPaid ? kv('Shipping buyer paid', c.shipPaid) : '') + kv('Your postage', c.post, 1) + (c.reimb ? kv('Claim paid back to you', c.reimb) : '') + (c.hasFinal ? kv('Estimated amount made (not used)', c.calcMade) : '') + `<div class="kv b"><span>${c.hasFinal ? 'Money you made (actual)' : 'Money you made (est.)'} <small class="sub">before cost of goods</small></span><b class="num ${c.made < 0 ? 'bad-t' : ''}">${money(c.made)}</b></div>` + kv('Cost of goods', c.cogs, 1) + `<div class="kv"><span><b>Profit after cost of goods</b></span><b class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${money(c.profit)}${c.margin != null ? ' · ' + pct(c.margin) : ''}</b></div>` + (num(o.deposit) > 0 ? `<div class="kv"><span>Balance still due</span><b class="num">${money(c.owed)}</b></div>` : '');
   }
 }
 const price_ = r => num(r.price);
@@ -3690,7 +3777,7 @@ const price_ = r => num(r.price);
 /* =====================================================================
    10. RECORD OPERATIONS: delete, archive, duplicate, bulk edit, bulk listings, CSV, search
    ===================================================================== */
-const TYPE_NAME = { po: 'purchase order', bill: 'bill', order: 'sale', product: 'product', supply: 'supply', listing: 'listing', expense: 'expense', income: 'income entry', task: 'task', event: 'event', goal: 'goal', supplier: 'supplier', note: 'note', shift: 'time entry', customer: 'customer', mileage: 'trip', taxpay: 'tax payment', account: 'account', transfer: 'transfer' };
+const TYPE_NAME = { si: 'stock-in entry', po: 'purchase order', bill: 'bill', order: 'sale', product: 'product', supply: 'supply', listing: 'listing', expense: 'expense', income: 'income entry', task: 'task', event: 'event', goal: 'goal', supplier: 'supplier', note: 'note', shift: 'time entry', customer: 'customer', mileage: 'trip', taxpay: 'tax payment', account: 'account', transfer: 'transfer' };
 const plural = (type, n) => n === 1 ? TYPE_NAME[type] : (type === 'supply' ? 'supplies' : TYPE_NAME[type] + 's');
 
 /* Deleting a product frees its supplies for good (they are only ever "counted as used" while the product exists). */
@@ -3711,6 +3798,7 @@ async function confirmDelete(type, ids) {
     msg = 'Past sales keep their records. Listings for it stay but are unlinked.' + (used ? ' The supplies it was using go back to your supplies for good.' : '');
   }
   else if (type === 'po') msg = 'Stock you already received stays in your inventory. A bill made from it is kept. Archive or cancel it instead to keep a record.';
+  else if (type === 'si') msg = 'Only this log entry is removed. Your stock count and costs do not change.';
   else if (type === 'bill') msg = 'If it was already paid, the expense it made stays in your expenses.';
   else if (type === 'supply') msg = 'It is also taken out of any product recipe that uses it, which makes those products cheaper to make on paper. Archive it instead if you only want it out of the way.';
   else if (type === 'expense' && ids.some(i => (find('expenses', i) || {}).repeat)) msg = 'Repeating expenses stop repeating; past entries are kept.';
@@ -3754,13 +3842,13 @@ function dupRecord(type, id) {
     c.recipe = (c.recipe || []).filter(r => { const s = find('supplies', r.supplyId); return s && avail(s) >= num(r.qty) - 1e-9; });
     state.products.push(c);
   }
-  else if (type === 'supply') { c.name += ' (copy)'; c.sku = nextSupplySku(); c.qty = 0; state.supplies.push(c); }
+  else if (type === 'supply') { c.name += ' (copy)'; c.sku = nextSupplySku(c.kind); c.qty = 0; state.supplies.push(c); }
   else if (type === 'listing') { c.title += ' (copy)'; c.sku = nextListingSku(); c.status = 'Draft'; c.listedDate = ''; c.relistDate = ''; c.createdDate = today(); c.snaps = []; state.listings.push(c); }
-  else if (type === 'order') { state.counters.order++; c.no = state.counters.order; c.date = today(); c.status = 'Order Received'; c.tracking = ''; c.refund = 0; c.reimb = 0; c.deposit = 0; c.finalProfit = ''; c.createdAt = Date.now(); c.items.forEach(l => { l.returned = 0; }); putOrder(c); }
+  else if (type === 'order') { state.counters.order++; c.no = state.counters.order; c.date = today(); c.status = 'Order Received'; c.tracking = ''; c.refund = 0; c.reimb = 0; c.deposit = 0; c.finalProfit = ''; c.unpaid = false; delete c.paidDate; delete c.stepDates; delete c.payments; delete c.invDue; delete c.ref; c.createdAt = Date.now(); c.items.forEach(l => { l.returned = 0; }); putOrder(c); }
   else if (type === 'expense') { c.date = today(); delete c.repeat; delete c.from; c.stockBuy = false; state.expenses.push(c); }
-  else if (type === 'task') { c.done = false; delete c.doneAt; state.tasks.push(c); }
+  else if (type === 'task') { c.done = false; delete c.doneAt; delete c.nextMade; state.tasks.push(c); }
   else if (type === 'bill') { c.paid = false; c.paidDate = ''; delete c.expenseId; delete c.nextId; delete c.paidAmt; delete c.poId; c.due = today(); state.bills.push(c); }
-  else if (type === 'po') { state.counters.po = (state.counters.po || 0) + 1; c.no = state.counters.po; c.status = 'Draft'; c.date = today(); c.expected = ''; c.receivedDate = ''; delete c.billId; delete c.payDue; (c.items || []).forEach(l => { l.received = 0; }); state.purchaseOrders.push(c); }
+  else if (type === 'po') { state.counters.po = (state.counters.po || 0) + 1; c.no = state.counters.po; c.status = 'Draft'; c.ship = ''; c.arrivedDate = ''; c.date = today(); c.expected = ''; c.receivedDate = ''; delete c.billId; delete c.payDue; (c.items || []).forEach(l => { l.received = 0; }); state.purchaseOrders.push(c); }
   else return null;
   return c.id;
 }
@@ -4017,6 +4105,7 @@ function render() {
   ROUND_NC = !!(state.settings.look && state.settings.look.wholeHome) && v === 'home';
   try { sc.innerHTML = V[v](); } finally { ROUND_NC = false; }
   if (lastView === v) $$('.fade', sc).forEach(x => x.classList.remove('fade'));
+  if (xpSets(v).length) { const pg = $('.page', sc); if (pg) pg.insertAdjacentHTML('beforeend', `<button class="btn btn-line btn-sm block" style="margin-top:12px" data-act="export-page">${ic('download')} Export this page</button>`); }
   sc.scrollTop = keep; if (lastView !== v && state.settings.look && state.settings.look.pageAnim !== 'none') pageIn(sc); lastView = v;
 }
 function refreshList() {
@@ -4055,8 +4144,72 @@ function enterApp() {
 const STEP = { daily: d => addDays(d, 1), weekly: d => addDays(d, 7), monthly: d => addMonths(d, 1) };
 const LIST_TITLES = { expenseCats: 'expense category', stockCats: 'inventory category', paymentMethods: 'payment method', carriers: 'carrier', metrics: 'thing to track' };
 const formOf = el => el.closest('form');
-const openInbox = () => { if (ui.sub === 'inbox') return; closeSheet(); ui.ret = { tab: ui.tab, sub: ui.sub }; ui.inboxAll = false; ui.sub = 'inbox'; render(); const s = $('#scroll'); if (s) s.scrollTop = 0; };
+const openInbox = () => { if (ui.sub === 'inbox') return; closeSheet(); ui.ret = { tab: ui.tab, sub: ui.sub }; ui.inboxAll = false; ui.inboxCat = 'all'; ui.sub = 'inbox'; render(); const s = $('#scroll'); if (s) s.scrollTop = 0; };
 const nextStatus = o => { const i = FLOW.indexOf(o.status); return i >= 0 ? FLOW[i + 1] : null; };
+/* ---------- export any page: text (copy), .txt, .csv, .json; unarchived, archived or both ---------- */
+const XP_PAGES = {
+  sales: ['orders'], stock: ['products', 'supplies', 'listings'], money: ['expenses', 'income', 'accounts', 'transfers'],
+  customers: ['customers'], suppliers: ['suppliers'], notes: ['notes'], mileage: ['mileage'], plan: ['tasks', 'events'],
+  goals: ['goals'], bills: ['bills'], taxes: ['taxPayments', 'income', 'expenses'], activity: ['activity']
+};
+const XP_NAMES = { orders: 'Sales', products: 'Products', supplies: 'Supplies', listings: 'Listings', expenses: 'Expenses', income: 'Income', accounts: 'Accounts', transfers: 'Transfers', customers: 'Customers', suppliers: 'Suppliers', notes: 'Notes', mileage: 'Mileage', tasks: 'Tasks', events: 'Events', goals: 'Goals', bills: 'Bills', taxPayments: 'Tax payments', activity: 'Activity' };
+const xpSets = v => (XP_PAGES[v] || []).filter(k => Array.isArray(state[k]));
+const xpLabel = k => String(k).replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').replace(/ Id$/, '').replace(/\bSku\b/i, 'SKU').replace(/^./, c => c.toUpperCase());
+function xpIdMap() {
+  const m = {}; ['products', 'supplies', 'orders', 'customers', 'suppliers', 'listings', 'accounts', 'expenses', 'income', 'goals'].forEach(k => (state[k] || []).forEach(r => { if (r && r.id) m[r.id] = r.name || r.title || (r.no ? 'Order #' + r.no : '') || r.description || r.id; }));
+  (state.settings.channels || []).forEach(c => { m[c.id] = c.name; }); return m;
+}
+function xpVal(v, ids, depth) {
+  if (v == null || v === '' || (Array.isArray(v) && !v.length)) return '';
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'string') return ids[v] && ids[v] !== v ? ids[v] : v;
+  if (typeof v !== 'object') return String(v);
+  if (Array.isArray(v)) return v.map(x => xpVal(x, ids, depth + 1)).filter(Boolean).join(depth ? ', ' : '; ');
+  return Object.keys(v).map(k => { const t = xpVal(v[k], ids, depth + 1); return t === '' ? '' : xpLabel(k) + ': ' + t; }).filter(Boolean).join(depth ? ', ' : '; ');
+}
+function xpRecords(k, scope) { return state[k].filter(r => scope === 'both' || (scope === 'archived') === !!(r && r.archived)); }
+function xpText(sets, scope) {
+  const ids = xpIdMap(), out = [`${state.settings.name || 'Grimms Business Tracker'} export, ${today()}`];
+  sets.forEach(k => {
+    const rows = xpRecords(k, scope); out.push('', `=== ${XP_NAMES[k] || xpLabel(k)} (${rows.length}) ===`);
+    if (!rows.length) out.push('(nothing here)');
+    rows.forEach((r, i) => {
+      const head = r.name || r.title || (r.no ? 'Order #' + r.no : '') || r.description || r.text || r.id || 'Item ' + (i + 1);
+      out.push('', `${i + 1}. ${head}${r.archived ? ' [archived]' : ''}`);
+      Object.keys(r).forEach(f => { if (f === 'id' || f === 'archived') return; const t = xpVal(r[f], ids, 0); if (t !== '') out.push(`   ${xpLabel(f)}: ${t}`); });
+    });
+  });
+  return out.join('\n');
+}
+function xpCsv(k, scope) {
+  const ids = xpIdMap(), rows = xpRecords(k, scope), cols = [...new Set(rows.flatMap(r => Object.keys(r)))].filter(c => c !== 'id');
+  return csvText(cols.map(xpLabel), rows.map(r => cols.map(c => xpVal(r[c], ids, 0))));
+}
+function xpOut(text, title) {
+  const done = ok => { if (ok) toast('Copied. Paste it anywhere'); else openSheet(title, `<div class="sheet-body"><p class="hint" style="margin:0 0 10px">Your browser blocked automatic copying. Tap inside the box, select all, and copy.</p><textarea class="textarea" id="copy-box" readonly style="min-height:260px">${esc(text)}</textarea></div>`); };
+  (navigator.clipboard ? navigator.clipboard.writeText(text).then(() => true, () => false) : Promise.resolve(false)).then(done);
+}
+function xpOpen() {
+  const v = ui.sub || ui.tab, sets = xpSets(v); if (!sets.length) return;
+  const cur = ((ui.seg && ui.seg[v]) || '');
+  openSheet('Export this page', `<div class="sheet-body stack-sm">
+    <p class="hint" style="margin:0">Includes every detail of each item.</p>
+    <label class="lbl">What to export</label><select class="select" id="xp-set">${sets.length > 1 ? '<option value="all">Everything on this page</option>' : ''}${sets.map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${XP_NAMES[k] || xpLabel(k)}</option>`).join('')}</select>
+    <label class="lbl">Which items</label><select class="select" id="xp-scope"><option value="both">Archived and unarchived</option><option value="unarchived">Unarchived only</option><option value="archived">Archived only</option></select>
+    <button class="btn btn-primary block" data-act="xp-run" data-m="copy">${ic('copy')} Copy as text</button>
+    <div class="grid2"><button class="btn btn-line btn-sm" data-act="xp-run" data-m="txt">Download .txt</button><button class="btn btn-line btn-sm" data-act="xp-run" data-m="csv">Download .csv</button></div>
+    <button class="btn btn-line btn-sm block" data-act="xp-run" data-m="json">Download .json</button></div>`);
+}
+function xpRun(m) {
+  const v = ui.sub || ui.tab, all = xpSets(v), pick = $('#xp-set').value, sets = pick === 'all' ? all : [pick], scope = $('#xp-scope').value;
+  const base = `grimms-${v}-${scope}-${today()}`;
+  if (m === 'copy') return xpOut(xpText(sets, scope), 'Copy your export');
+  if (m === 'txt') download(base + '.txt', 'text/plain', xpText(sets, scope));
+  else if (m === 'json') download(base + '.json', 'application/json', JSON.stringify(Object.fromEntries(sets.map(k => [k, xpRecords(k, scope)])), null, 2));
+  else sets.forEach((k, i) => setTimeout(() => download(`${base}${sets.length > 1 ? '-' + k : ''}.csv`, 'text/csv', xpCsv(k, scope)), i * 350));
+  toast('Export downloaded');
+}
+
 const ACT = {
   tab: el => go(el.dataset.tab),
   sub: el => go('more', el.dataset.sub),
@@ -4124,7 +4277,7 @@ const ACT = {
     ids.forEach(id => { const p = find('products', id); if (p) $('#lines', f).insertAdjacentHTML('beforeend', lineRow({ productId: p.id, name: p.name, qty: 1, price: tierPrice(p, 1), cost: r2(unitCost(p)), listingId: pickListing(p.id, ch) })); });
     formLive(f);
   },
-  'rec-add': el => { const f = formOf(el), ss = state.supplies.filter(active), s = ss.find(x => freeFor(x.id, curPid) > 0) || ss[0]; if (!s) return toast('Add a supply first (Inventory › Supplies)'); $('#rec-rows', f).insertAdjacentHTML('beforeend', recRow({ supplyId: s.id, qty: 1 })); formLive(f); },
+  'rec-add': el => { const f = formOf(el), ss = state.supplies.filter(active), s = ss.find(x => freeFor(x.id, curPid) > 0) || ss[0]; if (!s) return toast('Add a component or supply first (Inventory)'); $('#rec-rows', f).insertAdjacentHTML('beforeend', recRow({ supplyId: s.id, qty: 1 })); formLive(f); },
   look: el => { state.settings.look[el.dataset.k] = el.dataset.v; applyLook(); save(); render(); },
   'look-set': el => { state.settings.look[el.dataset.k] = el.dataset.v; applyTheme(state.settings.theme, state.settings.font); save(); render(); },
   'look-clear': el => { state.settings.look[el.dataset.k] = ''; applyTheme(state.settings.theme, state.settings.font); save(); render(); },
@@ -4141,7 +4294,7 @@ const ACT = {
     const pk = a => a[Math.floor(Math.random() * a.length)], L = state.settings.look, keys = Object.keys(THEMES);
     state.settings.theme = pk(keys); state.settings.font = pk(FONTS)[0];
     L.accent = ''; L.bg = ''; L.card = '';
-    ['round', 'cardStyle', 'bgStyle', 'header', 'btn', 'border'].forEach(k => { const o = k === 'round' ? LOOK_OPTS.round : LOOK_OPTS[k]; L[k] = pk(o)[0]; });
+    ['round', 'cardStyle', 'bgStyle', 'header', 'btn', 'border'].forEach(k => { const o = (k === 'round' ? LOOK_OPTS.round : LOOK_OPTS[k]).filter(x => k !== 'bgStyle' || (x[0] !== 'image' && x[0] !== 'gradient')); L[k] = pk(o)[0]; });
     L.headFont = Math.random() < .4 ? pk(FONTS)[0] : '';
     applyTheme(state.settings.theme, state.settings.font); save(); render(); toast('Surprise! Not feeling it? Tap again');
   },
@@ -4165,8 +4318,8 @@ const ACT = {
   'fx-reset': () => { const L = state.settings.look, D = LOOK_DEFAULTS(); FXKEYS.forEach(k => L[k] = D[k]); applyLook(); save(); render(); },
   'rec-multi': async el => {
     const f = formOf(el), ss = state.supplies.filter(active).sort((a, b) => a.name.localeCompare(b.name));
-    if (!ss.length) return toast('Add a supply first (Inventory › Supplies)');
-    const v = await dialog(`<form data-dlgform><div class="sheet-head"><h3>Add several supplies</h3></div>${pickFilterBox('Search name or SKU…')}<div class="scrollbox" style="margin-bottom:12px">${ss.map(s => { const fr = freeFor(s.id, curPid); return `<label class="pick"><input type="checkbox" class="chk" name="sid" value="${s.id}"><span class="grow" style="min-width:0"><span class="trunc b" style="display:block">${esc(s.name)}</span><small>${s.sku ? esc(s.sku) : 'No SKU'} · ${fr} ${esc(s.unit || '')} free</small></span></label>`; }).join('')}</div>
+    if (!ss.length) return toast('Add a component or supply first (Inventory)');
+    const v = await dialog(`<form data-dlgform><div class="sheet-head"><h3>Add several components or supplies</h3></div>${pickFilterBox('Search name or SKU…')}<div class="scrollbox" style="margin-bottom:12px">${ss.map(s => { const fr = freeFor(s.id, curPid); return `<label class="pick"><input type="checkbox" class="chk" name="sid" value="${s.id}"><span class="grow" style="min-width:0"><span class="trunc b" style="display:block">${esc(s.name)}</span><small>${s.kind === 'component' ? 'Component' : 'Supply'} · ${s.sku ? esc(s.sku) : 'No SKU'} · ${fr} ${esc(s.unit || '')} free</small></span></label>`; }).join('')}</div>
       <div class="sheet-foot" style="padding-top:0"><button type="button" class="btn btn-line" data-dlg="no">Cancel</button><button class="btn btn-primary">Add</button></div></form>`);
     if (!v || !v.fd || !f.isConnected) return;
     v.fd.getAll('sid').forEach(id => $('#rec-rows', f).insertAdjacentHTML('beforeend', recRow({ supplyId: id, qty: 1 })));
@@ -4197,7 +4350,7 @@ const ACT = {
   delete: el => confirmDelete(el.dataset.type, [el.dataset.id]),
   'archive-sold': async () => {
     const seg_ = ui.seg.stock, type = seg_ === 'products' ? 'product' : seg_ === 'listings' ? 'listing' : 'supply';
-    const items = state[COLL[type]].filter(r => !r.archived && (type === 'listing' ? /sold/i.test(r.status || '') : stockQty(r) <= 0));
+    const items = state[COLL[type]].filter(r => !r.archived && (type !== 'supply' || (r.kind === 'component') === (seg_ === 'components')) && (type === 'listing' ? /sold/i.test(r.status || '') : stockQty(r) <= 0));
     const all_ = items.slice(); items.length = 0; const skipped = [];
     all_.forEach(r => { const why = archiveBlock(type, r); why ? skipped.push(r) : items.push(r); });
     if (!all_.length) return toast('Nothing sold out to archive. Items that still have stock are never archived');
@@ -4259,9 +4412,10 @@ const ACT = {
   /* inbox */
   bell: () => openInbox(),
   'inbox-scope': el => { ui.inboxAll = el.dataset.v === 'all'; render(); },
-  dismiss: el => { const a = alerts().find(x => x.key === el.dataset.k); if (a) { state.dismissed[a.key] = a.sig; save(); render(); } },
+  'inbox-cat': el => { ui.inboxCat = el.dataset.v; render(); },
+  dismiss: el => { const a = alerts().find(x => x.key === el.dataset.k); if (a) undoable('Dismissed', () => { state.dismissed[a.key] = a.sig; }); },
   undismiss: el => { delete state.dismissed[el.dataset.k]; save(); render(); },
-  'dismiss-all': () => { alerts().forEach(a => { state.dismissed[a.key] = a.sig; }); save(); render(); toast('All dismissed. They come back if something new happens'); },
+  'dismiss-all': () => undoable('All dismissed. They return if something changes', () => { alerts().forEach(a => { state.dismissed[a.key] = a.sig; }); }),
   'toggle-dismissed': () => { ui.showDismissed = !ui.showDismissed; render(); },
   'alert-go': el => { const a = alerts().find(x => x.key === el.dataset.k); if (a && a.go) { ui.ret = null; navTo(a.go); } },
   gsearch: () => OPEN.search(),
@@ -4270,9 +4424,10 @@ const ACT = {
   'toggle-task': el => {
     const t = find('tasks', el.dataset.id); t.done = !t.done; t.doneAt = t.done ? new Date().toISOString() : '';
     let msg = '';
-    if (t.done && t.repeat && STEP[t.repeat]) {
+    if (t.done && t.repeat && STEP[t.repeat] && !t.nextMade) {
+      t.nextMade = true;
       let due = t.due || today(), g = 0; do { due = STEP[t.repeat](due); } while (due < today() && ++g < 400);
-      state.tasks.push({ ...clone(t), id: uid('t'), done: false, doneAt: '', due }); msg = 'Done. Next one is due ' + fmtDate(due);
+      state.tasks.push({ ...clone(t), id: uid('t'), done: false, doneAt: '', nextMade: false, due }); msg = 'Done. Next one is due ' + fmtDate(due);
     }
     save(); render(); if (msg) toast(msg);
   },
@@ -4296,6 +4451,8 @@ const ACT = {
     save(); render(); toast(n ? `Added ${n} dates to your calendar` : 'Already on your calendar');
   },
   'export-tax': () => exportTax(),
+  'export-page': () => xpOpen(),
+  'xp-run': el => xpRun(el.dataset.m),
 
   /* reorder + csv */
   reorder: () => OPEN.reorder(),
@@ -4400,7 +4557,7 @@ const ACT = {
   reset: async () => {
     if (!await confirmBox('Erase everything?', 'All sales, products, listings, expenses and settings on this device will be deleted. Download a backup first if you might need it. A safety copy stays for 14 days.', 'Erase everything')) return;
     await snapshotNow('Before erasing everything');
-    try { localStorage.removeItem(STORE_KEY); } catch (e) { }
+    try { localStorage.removeItem(STORE_KEY); localStorage.removeItem('gbt-widgets:v1'); } catch (e) { }
     state = DEFAULTS(); applyTheme('blush', FONTS[0][0]); initSetup(); closeSheet(); showScreen('welcome');
   },
   'start-setup': () => showScreen('setup'),
@@ -4415,8 +4572,200 @@ const ACT = {
     if (blank) blank.outerHTML = html; else $('#su-channels').insertAdjacentHTML('beforeend', html);
     el.classList.add('on');
   },
-  'su-del': el => el.closest('.row').remove(),
+  'su-del': el => { el.closest('.row').remove(); const have = $$('#su-channels .su-ch').map(i => lc(i.value)); $$('#su-presets [data-n]').forEach(b => b.classList.toggle('on', have.includes(lc(b.dataset.n)))); },
 };
+
+
+/* =====================================================================
+   HELP  (the "?" button on every page: what the page is for, how to use it,
+   an example, and which other pages it is connected to)
+   ===================================================================== */
+const HELP = {
+  welcome: { title: 'Welcome', purpose: 'Grimms Business Tracker keeps your sales, stock, money, goals and plans in one place. Everything is saved on this device only. There is no account and no sign-in.',
+    steps: ['Get Started walks you through a one-minute setup (business name, currency, where you sell).', 'Explore with sample data fills the app with a pretend shop so you can click around safely. You can erase it later in More › Settings › Your data.', 'Restore from a backup file or Restore by pasting copied text brings back data you saved earlier, or moves it from another device.'],
+    example: 'First time here? Tap Explore with sample data, look around for five minutes, then erase it and run Get Started with your real details.', links: [], tip: 'Your data lives in this browser. Download a backup from Settings once you have real data.' },
+  setup: { title: 'Initial setup', purpose: 'Sets the basics the whole app uses: your currency, the platforms you sell on (so fees are worked out for you), your expense categories, and a monthly revenue goal.',
+    steps: ['Fill in your business name. Everything else is optional.', 'Under Where you sell, tap a platform to add it with typical fees, or type your own with its fee %. Fees are taken off every sale automatically.', 'Keep or edit the expense categories. These are used on the Expenses page and for budgets.', 'Enter a monthly revenue goal if you want a progress ring on Home.'],
+    example: 'Selling on Etsy and at markets: tap Etsy (adds 9.5%), then add “Markets” with 0%.', links: [], tip: 'Nothing here is final. Change it any time in More › Settings.' },
+  home: { title: 'Home', purpose: 'Your dashboard. It shows how the business is doing for the period you pick (Today, This Month, All Time…) and what needs doing next.',
+    steps: ['Use the period menu at the top to change the time range. The big number is revenue after refunds (shipping you charged and sales tax are not counted as yours).', 'Tap Total Orders or Net Profit to jump to Sales or Money.', 'The Order Pipeline tiles count orders at each step. Tap one to see just those orders.', 'Needs your attention, Low stock and Coming up pull from your Inbox, Inventory and Plan. Quick Actions add things in one tap.', 'Under Widgets you can add a clock, timer, checklist, calculator, music player and more with Add / edit widgets.'],
+    example: 'Net Profit = sales after refunds − platform fees − postage − cost of goods − expenses + other income.',
+    links: [['Sales', 'Orders feed revenue and the pipeline', 't:sales'], ['Money', 'Expenses and income feed profit', 't:money:overview'], ['Goals', 'The ring shows your first goal', 's:goals'], ['Inbox', 'Alerts shown under Needs your attention', 'i'], ['Settings', 'Choose what shows on Home', 's:settings:look']], tip: 'Hide or reorder Home cards in Settings › Appearance & home.' },
+  inbox: { title: 'Inbox', purpose: 'Your to-do alerts, worked out automatically: late orders, low stock, listings to renew, overdue tasks, budgets passed, backups due. You never have to create these.',
+    steps: ['Urgent items are at the top, then Needs attention, then Routine.', 'Tap an alert to jump to the page where you fix it.', 'Tap the × to dismiss an alert. It stays hidden until something about it changes, then it comes back by itself.', 'This page / Everything switches between alerts for the page you came from and all alerts.', 'At the bottom, “Show N dismissed” lets you bring one back.'],
+    example: '“3 orders past the ship-by date” opens Sales filtered to the orders that are late.',
+    links: [['Sales', 'Late orders, payments, returns', 't:sales'], ['Inventory', 'Low or out of stock, listings to renew', 't:stock'], ['Plan', 'Overdue tasks and events', 's:plan'], ['Money', 'Budgets and tax dates', 't:money:overview']], tip: 'The red number on the bell is how many alerts are waiting.' },
+  sales: { title: 'Sales', purpose: 'Every order you take, from “Order Received” through to “Fulfilled”, including returns, refunds and problems. Profit and stock are worked out for you.',
+    steps: ['Tap + Sale. Pick the products sold; price and cost fill in from the product, and the platform fee is calculated from Settings.', 'Move an order along with its status (Order Received → In Preparation → Packaged → Shipped → Delivered → Fulfilled).', 'Use the chips, channel menu and search to find orders. Select lets you change, archive or delete several at once.', 'Bulk order is for wholesale: volume discount, PO number, deposit and payment terms. Unpaid ones become invoices.', 'Open an order to refund it, mark a return, print an invoice or add tracking.'],
+    example: 'Sell 2 Beaded Bracelets at $24 on Etsy: 2 come off the product’s stock, Etsy’s fee is subtracted, and the cost of the supplies is counted, so you see the real profit.',
+    links: [['Products', 'Sold products lose stock automatically', 't:stock:products'], ['Listings', 'Link a sale to the listing it came from', 't:stock:listings'], ['Customers', 'Customers are created from sales', 's:customers'], ['Money › Accounts', 'Choose which account the cash lands in', 't:money:accounts'], ['Bills & invoices', 'Unpaid sales show up as invoices', 's:bills:invoices'], ['Settings › Platforms & fees', 'Where fees come from', 's:settings:channels:channels']], tip: 'Cancelled and failed orders do not count as sales and do not take stock.' },
+  'stock.supplies': { title: 'Inventory › Supplies', purpose: 'The extras you use up around your products: packing, tape, mailers, labels, gift boxes, ink. These are not the parts of the product itself. Those go in Components.',
+    steps: ['Tap + Supply. Enter the name, the unit (pcs, roll, pack…), how many you have, and what one unit costs.', 'Don’t know the cost per unit? Type what you paid in total for what you have and leave cost empty. It’s worked out for you.', 'Set a low-stock level. When you drop to it, the item shows “Low” and appears in your Inbox and the Reorder list.', 'Tap the + on a card when more arrives. Enter how many, what you paid and the date.', 'Pick a supply in a product’s recipe if each product uses some (for example 1 mailer and 0.2 m of tape).', 'Mixed something up? Open the item and change “This is a” to Supply or Component to move it between tabs.'],
+    example: 'Bubble mailers · 120 pcs · $0.20 each · low at 25. A bracelet recipe that uses 1 mailer adds $0.20 to its cost.',
+    links: [['Components', 'The parts that go into products', 't:stock:components'], ['Products', 'Recipes can use supplies', 't:stock:products'], ['Orders & deliveries', 'Order more and track it until it arrives', 's:purchases'], ['Suppliers', 'Who you buy each supply from', 's:suppliers']], tip: 'Don’t log supplies you resell as expenses. Their cost is counted when sold, so it would count twice.' },
+  'stock.components': { title: 'Inventory › Components', purpose: 'The parts that go INTO what you sell: beads, chain, clasps, wire, fabric, or a handmade charm you make ahead of time. Supplies (packing, tape) stay on the Supplies tab.',
+    steps: ['Tap + Component. Name it, choose the unit, and enter how many you have.', 'Enter the cost per unit, or just the total you paid for what you have and leave cost empty. It is worked out for you.', 'Set the date you got them. ', 'When you make or buy more, tap the + on the card. Enter how many, what you paid and the date.', 'In a product’s recipe, pick components and supplies together. Cost per unit is worked out from them.'],
+    example: 'Glass beads · 18 packs · $3.50 per pack. A bracelet uses 1 pack for every 2 bracelets, so each bracelet carries $1.75 in beads.',
+    links: [['Supplies', 'Packing, tape and other extras', 't:stock:supplies'], ['Products', 'Recipes use components', 't:stock:products'], ['Orders & deliveries', 'Track components you ordered', 's:purchases'], ['Suppliers', 'Who you buy from', 's:suppliers']], tip: 'Components and supplies are counted the same way: what you own, minus what products already use, is what is available.' },
+  'stock.products': { title: 'Inventory › Products', purpose: 'What you actually sell. A product has a price, a quantity in stock and a cost. The cost comes from the components and supplies in its recipe, or you type it in if you buy it ready-made.',
+    steps: ['Tap + Product. Add a name, SKU and price.', 'Made it yourself? Add a recipe: pick components and supplies together and how much of each the whole batch uses, plus how many units the batch makes. Unit cost is calculated.', 'Bought it ready-made? Type its cost, or enter the total you paid for what you have and leave cost empty.', 'When you add a product with stock, set the date you got it.', 'More arrives later? Tap the + on the card and enter how many, what you paid and the date.', 'Optional extras: price tiers (cheaper in bulk), sizes & colors, a listing title and description.'],
+    example: 'Wire Ring · batch of 22 uses 13.2 m of wire ($0.90/m) → cost $0.54 each. Price $18 → margin about 97%.',
+    links: [['Components', 'Parts that go into the recipe', 't:stock:components'], ['Supplies', 'Packing and extras in the recipe', 't:stock:supplies'], ['Listings', 'Create listings for a product', 't:stock:listings'], ['Sales', 'Selling a product lowers its stock', 't:sales']], tip: 'Margin turns amber under 20%, a hint to raise the price or lower the cost.' },
+  'stock.listings': { title: 'Inventory › Listings (step 3)', purpose: 'What buyers see on each platform: title, description, price and link. One listing can sit on several platforms at once, and the app tracks renewals, discounts and analytics.',
+    steps: ['Tap + Listing, pick the product, then tick the platforms it is on.', 'Bulk create makes many listings at once from your products.', 'Renewed… resets the renewal clock. Listings 30+ days old get flagged.', 'Add discounts with start and end dates. The live price on the card updates by itself.', 'Analytics lets you save snapshots of views, favorites and offers per platform to see what works.', 'Copy title / Copy description puts the text on your clipboard to paste into the platform.'],
+    example: 'Bracelet on eBay + Etsy + Mercari, 15% off from Friday to the 20th. The card shows the sale price and the app reminds you before the discount ends.',
+    links: [['Products', 'A listing is built from a product', 't:stock:products'], ['Sales', 'Pick the listing on a sale to link them', 't:sales'], ['Platforms & fees', 'Platforms and renewal times', 's:settings:channels:channels'], ['Inbox', 'Renewals, sold-out listings, ending discounts', 'i']], tip: 'If you change a product’s title or description, listings offer to update to match.' },
+  'money.overview': { title: 'Money › Overview', purpose: 'The full picture of what came in and what went out for the period you choose, plus what you owe and are owed.',
+    steps: ['Pick the period at the top.', 'Read from the top down: sales, then fees, postage and cost of goods, then expenses and other income, ending in net profit.', 'The glance box shows bills you owe and unpaid invoices customers owe you.', 'Tap Expenses, Income or Accounts above to see the detail.'],
+    example: '$1,000 sales − $120 fees − $60 postage − $250 cost of goods − $200 expenses + $50 other income = $420 profit.',
+    links: [['Sales', 'Where revenue comes from', 't:sales'], ['Taxes', 'Turns profit into an amount to set aside', 's:taxes'], ['Bills & invoices', 'What you owe and are owed', 's:bills'], ['Cash flow forecast', 'Where the cash is heading', 's:forecast']], tip: 'Sales tax and shipping you charged are not counted as your income.' },
+  'money.accounts': { title: 'Money › Accounts', purpose: 'Where your money actually sits: bank, cash box, PayPal, a platform balance. Each account shows a running balance.',
+    steps: ['Add an account with its opening balance.', 'Choose the account on a sale, expense or income entry so it moves that balance.', 'Use Transfer to record moving money between accounts (for example PayPal to bank). It does not count as income or an expense.', 'Tap an account to see every movement.'],
+    example: 'Bank $1,200 opening, a $60 expense and a $24 sale paid into it → balance reflects both automatically.',
+    links: [['Sales', 'Pick an account when you record a sale', 't:sales'], ['Expenses', 'Pay expenses from an account', 't:money:expenses'], ['Cash flow forecast', 'Starts from your account balances', 's:forecast']], tip: 'Accounts are optional. Skip them if you only care about profit.' },
+  'money.expenses': { title: 'Money › Expenses', purpose: 'Money you spend running the business: software, ads, rent, equipment, packaging you do not track as supplies.',
+    steps: ['Tap + Expense. Enter amount, date and category.', 'Make it repeat (weekly, monthly, yearly) for subscriptions. New copies are added automatically on the due dates.', 'Untick deductible if it is not tax-deductible.', 'Set monthly budgets per category in Settings. Go over and an alert appears in the Inbox.'],
+    example: 'Meta ads $35 in Marketing. With a $150 Marketing budget, the Inbox warns you once the month passes $150.',
+    links: [['Taxes', 'Deductible expenses feed the tax summary', 's:taxes'], ['Settings › Categories & budgets', 'Edit categories and budgets', 's:settings:cats:cats'], ['Bills & invoices', 'Paying a bill creates an expense', 's:bills'], ['Overview', 'Expenses reduce profit', 't:money:overview']], tip: 'Stock you resell is costed when sold, so keep it out of expenses.' },
+  'money.income': { title: 'Money › Income', purpose: 'Money you earned that is not an order: workshop fees, grants, tips, a refund from a supplier.',
+    steps: ['Tap + Income, enter the amount, date and a description.', 'Choose an account if you track balances.', 'It is added to net profit for the period it falls in.'],
+    example: 'Small business grant $250 on the 3rd → Net profit rises by $250 that month.',
+    links: [['Overview', 'Other income is added to profit', 't:money:overview'], ['Accounts', 'Money lands in the account you choose', 't:money:accounts'], ['Sales', 'Orders are recorded there, not here', 't:sales']], tip: 'Do not enter sales here. Use Sales so fees, stock and cost are handled.' },
+  more: { title: 'More', purpose: 'The menu for everything outside the five main tabs: planning, taxes, bills, people, mileage, notes, activity and settings.',
+    steps: ['Tap any row to open that page. Each has its own ? button explaining it.', 'Inbox at the top shows how many alerts are waiting.', 'Orders & deliveries tracks what you ordered.'], example: 'Need to see what you owe this month? More › Bills & invoices.', links: [['Settings', 'Backup, platforms, look and feel', 's:settings']], tip: 'Back up your data from Settings › Your data.' },
+  assistant: { title: 'Business Assistant', purpose: 'A built-in helper you can type to or tap. It answers questions about your own numbers, suggests tasks, and plans and books short meetings.',
+    steps: ['Type a question or tap a suggestion chip, for example about sales, stock, profit, tax or what to do today.', 'Suggestions with tick boxes only add tasks you tick. Nothing is added otherwise.', 'Booking a meeting puts it in your calendar and runs a simple meeting timer with notes.', 'Clear wipes the chat (not your data).'],
+    example: 'Ask “what should I do today?” and tick the two tasks you like to add them to Plan › Tasks.',
+    links: [['Plan › Calendar', 'Meetings it books appear here', 's:plan:calendar'], ['Plan › Tasks', 'Tasks it adds appear here', 's:plan:tasks']], tip: 'It runs on your device using your data. Nothing is sent anywhere.' },
+  'plan.tasks': { title: 'Plan › Tasks', purpose: 'Your to-do list with due dates, priorities and repeats.',
+    steps: ['Tap + Task, add a title, due date and priority.', 'Tick the circle when it is done. Repeating tasks come back on their own.', 'Overdue and due-today tasks appear in the Inbox and on Home.', '“Show N completed” at the bottom reveals finished tasks.'],
+    example: '“Reorder thank-you cards”, due tomorrow, High priority.',
+    links: [['Calendar', 'Events and meetings', 's:plan:calendar'], ['Home', 'Tasks due soon show under Coming up', 'h'], ['Inbox', 'Overdue tasks alert', 'i']], tip: 'Use Select to complete or delete many at once.' },
+  'plan.calendar': { title: 'Plan › Calendar', purpose: 'Dates that matter: markets, deadlines, launches, payment due dates and meetings.',
+    steps: ['Tap + Event, choose a date, time and type.', 'Tap a day to see what is on it.', 'Tasks with due dates and bills show here too.', 'Events today or tomorrow appear in your Inbox.'],
+    example: 'Craft market on the 14th at 9:00 → alert the day before.',
+    links: [['Tasks', 'Due dates', 's:plan:tasks'], ['Business Assistant', 'Books quick meetings', 's:assistant'], ['Taxes', 'Add tax dates to the calendar', 's:taxes']], tip: 'Add tax dates from Taxes › Add to calendar.' },
+  'plan.time': { title: 'Plan › Time', purpose: 'A work timer. Start when you begin, stop when you finish, and see how many hours the business takes.',
+    steps: ['Tap Start to begin a shift and Stop to end it. Add breaks if you take them.', 'Add an entry by hand for time you forgot to track.', 'Totals show hours by day and week.'],
+    example: 'Packed orders from 9:00 to 11:30 with a 15 min break → 2h 15m logged.',
+    links: [['Home', 'Quick action: Time', 'h']], tip: 'Divide your profit by your hours to see what you are really earning per hour.' },
+  goals: { title: 'Goals', purpose: 'Targets such as monthly revenue, profit, orders, items sold or listings added, with live progress.',
+    steps: ['Tap + Goal. Pick what to measure, the target number and the period (this month, or custom dates).', 'The ring shows progress. It says whether you are on pace or behind and projects where you will finish.', 'The first goal in the list shows on Home.'],
+    example: 'Goal: revenue $3,000 this month. $1,200 earned by day 10 → “On pace for $3,600”.',
+    links: [['Home', 'The first goal shows there', 'h'], ['Sales', 'Revenue, profit and orders come from sales', 't:sales']], tip: 'Revenue means sales after refunds, the same as the Home number.' },
+  taxes: { title: 'Taxes', purpose: 'A planning estimate of how much to set aside for income tax and how much sales tax you owe. It is not tax advice.',
+    steps: ['Set your tax % (the button appears if it is empty). Pick a period at the top.', 'Estimated taxable profit = net profit − mileage deduction. The amount to set aside is that × your %.', 'Log each payment you make with Log payment so “Still to set aside” stays right.', 'Sales tax counts only on platforms that do not collect it for you (set per platform in Settings).', 'Download tax summary gives a CSV for your accountant.'],
+    example: 'Profit $4,000, mileage deduction $200, tax 20% → set aside $760.',
+    links: [['Money', 'Profit comes from here', 't:money:overview'], ['Mileage', 'Trips reduce taxable profit', 's:mileage'], ['Settings', 'Tax %, mileage rate, quarterly dates', 's:settings:prefs:prefs'], ['Platforms & fees', 'Mark platforms that collect sales tax', 's:settings:channels:channels']], tip: 'Ask an accountant for your true rate. This ignores self-employment tax and credits.' },
+  bills: { title: 'Bills & invoices', purpose: 'Two sides of the same money: bills YOU need to pay (rent, suppliers) and unpaid invoices your customers owe YOU.',
+    steps: ['Bills to pay: tap + Bill with a due date. Tick it as paid and an expense is created for you.', 'Make a bill repeat each month if it is regular.', 'Unpaid invoices: wholesale or bulk orders you have not been paid for. Record each payment as it arrives, or copy a polite reminder.', 'Overdue items show in red and in your Inbox.'],
+    example: 'Studio rent $450 due on the 1st, monthly → paid on the 1st, expense recorded, next one scheduled.',
+    links: [['Cash flow forecast', 'Both lists feed the forecast', 's:forecast'], ['Sales', 'Invoices come from unpaid sales', 't:sales'], ['Purchase orders', 'Receiving stock makes a bill', 's:purchases'], ['Expenses', 'Paid bills become expenses', 't:money:expenses']], tip: 'Archive paid bills to keep the list tidy.' },
+  forecast: { title: 'Cash flow forecast', purpose: 'Looks ahead 30, 60 or 90 days and shows whether your cash will cover what is coming.',
+    steps: ['Choose 30, 60 or 90 days.', 'It starts from your account balances (or the amount you type in) and adds invoices owed to you and expected sales.', 'It subtracts bills, supplier orders, repeating expenses and typical spending.', 'A warning appears if cash could dip below zero, and when.'],
+    example: 'Start $800 + $300 invoices − $450 rent − $180 supplier order → about $470 in 30 days.',
+    links: [['Accounts', 'Starting cash', 't:money:accounts'], ['Bills & invoices', 'Money in and out', 's:bills'], ['Purchase orders', 'Supplier payments', 's:purchases']], tip: 'It is an estimate based on your last weeks of sales and spending.' },
+  purchases: { title: 'Orders & deliveries', purpose: 'Everything you bought from suppliers. Tap where it is now (bought, shipped, in transit, out for delivery, delayed, delivered) and the dates are kept. When it is delivered, receiving it adds the items to your stock.',
+    steps: ['Tap + Order. Pick a saved supplier, or type the store or website (Amazon, a craft fair seller…).', 'Add the items: pick a supply, component or product, or type a name for anything else. Enter the quantity and what each costs.', 'Add the carrier and tracking number if you have them. Open the order to tap Track package.', 'Open an order and tap where it is now: Ordered, In Transit, Out for Delivery or Delayed. The On the way filter shows only what has not arrived.', 'When it shows up, tap Arrived (or Receive items). Enter how many came. You can receive in parts. Stock goes up and a bill can be made so you remember to pay.'],
+    example: '200 mailers from PackRight, USPS 9400… → In Transit → Arrived: Mailers +200, a bill for the invoice, and the delivery dates on the order.',
+    links: [['Supplies', 'Supplies increase here', 't:stock:supplies'], ['Components', 'Components increase here', 't:stock:components'], ['Products', 'Ready-made products increase here', 't:stock:products'], ['Suppliers', 'Who the order is with', 's:suppliers'], ['Bills & invoices', 'The bill it creates', 's:bills']], tip: 'Didn’t order through here? Add the stock with the + on the item instead and enter what you paid.' },
+  stockin: { title: 'Stock in', purpose: 'A dated log of everything that came in: supplies, components and products are tracked separately. It shows when each arrived, how many, and what you paid.',
+    steps: ['Entries are added for you when you receive an order, tap the + on an item, or add an item that already has stock.', 'Use the period menu and the Supplies / Components / Products chips to look at one thing at a time.', 'Log items that arrived picks an item and takes you to the quantity, price and date.', 'Tap an entry to fix its date, price or add a note. Changing the log never changes your stock count.', '“est. value” means you didn’t enter a price, so the value is the cost per unit times how many.'],
+    example: 'Beads +6 packs on the 3rd, $21 paid. Mailers +200 on the 9th from PO-002, $40 paid.',
+    links: [['Orders & deliveries', 'Receiving an order adds entries here', 's:purchases'], ['Supplies', 'Packing, tape, extras', 't:stock:supplies'], ['Components', 'Parts that go into products', 't:stock:components'], ['Products', 'What you sell', 't:stock:products']], tip: 'The value here is what stock cost you. It does not change your profit. Costs are counted when you sell.' },
+  customers: { title: 'Customers', purpose: 'Everyone who buys from you, with their order history, lifetime spend and contact details.',
+    steps: ['Customers are created automatically when you type a name on a sale. You can also tap + Customer.', 'Open one to see orders, total spent and profit, and to start a new sale for them.', 'Add email, phone, address and tags such as vip.'],
+    example: 'Maya R. has 6 orders and $210 spent, which makes her a repeat buyer.',
+    links: [['Sales', 'Orders build the history', 't:sales']], tip: 'Spelling a name the same way keeps their history together.' },
+  suppliers: { title: 'Suppliers', purpose: 'The people and shops you buy from, with contact details and notes such as terms.',
+    steps: ['Tap + Supplier and add a name and contact.', 'Pick a supplier on supplies and products so you know who to reorder from.', 'Purchase orders use this list.'],
+    example: 'PackRight, free shipping over $75, supplies mailers and boxes.',
+    links: [['Supplies', 'Link each supply to a supplier', 't:stock:supplies'], ['Purchase orders', 'Order from them', 's:purchases']], tip: 'Archive suppliers you no longer use.' },
+  mileage: { title: 'Mileage', purpose: 'Business trips and the tax deduction they are worth.',
+    steps: ['Tap + Trip, add date, purpose, from, to and distance.', 'The deduction = distance × your mileage rate (Settings).', 'Totals feed the Taxes page.'],
+    example: '22.5 mi supplier pickup × $0.70 = $15.75 deduction.',
+    links: [['Taxes', 'Mileage reduces taxable profit', 's:taxes'], ['Settings', 'Mileage rate and unit', 's:settings:prefs:prefs']], tip: 'Use your local rate. Keep a record of each trip’s purpose.' },
+  notes: { title: 'Notes', purpose: 'A notepad for ideas, research and reminders.',
+    steps: ['Tap + Note, add a title and text.', 'Pin the important ones to keep them on top.', 'Search to find any note.'],
+    example: 'Product ideas: stackable rings, birthstone charms, holiday bundles.', links: [['Plan', 'Turn a note into a task', 's:plan:tasks']], tip: 'Archive notes you are done with.' },
+  activity: { title: 'Activity', purpose: 'A log of what happened and when: sales added, stock changed, data loaded or restored.',
+    steps: ['Scroll to see recent changes, newest first.', 'Clear erases the log only, not your data.'], example: '“Loaded sample data” stays in the log.', links: [['Settings', 'Backups and restore', 's:settings:data']], tip: 'The last 400 entries are kept.' },
+  settings: { title: 'Settings', purpose: 'Controls for the whole app. What you change here affects every other page.',
+    steps: ['Your data & backups: download a backup, restore, copy all data, or link a file. Do this regularly.', 'Business & invoices: your details printed on invoices.', 'Platforms & fees: each platform’s fee % and fixed fee. Used on every sale and listing.', 'Categories & budgets: expense and inventory categories with monthly budgets.', 'Preferences & taxes: low-stock level, tax %, mileage rate, week start.', 'Appearance, colors, effects, sounds and Home cards make it yours.'],
+    example: 'Set Etsy at 9.5% + $0.45: every Etsy sale now subtracts that fee automatically.',
+    links: [['Sales', 'Fees apply to sales', 't:sales'], ['Taxes', 'Uses your tax %', 's:taxes'], ['Home', 'Choose Home cards', 'h']], tip: 'Fees change often. Check your platform’s current rates.' },
+};
+const helpKey = () => {
+  const v = ui.sub || ui.tab, s = ui.seg;
+  if (v === 'stock') return 'stock.' + s.stock;
+  if (v === 'money') return 'money.' + s.money;
+  if (v === 'plan') return 'plan.' + s.plan;
+  return v;
+};
+const helpBtn = key => `<button class="icon-btn help" data-act="help" ${key ? `data-v="${key}"` : ''} aria-label="Help for this page" title="Help">?</button>`;
+function openHelp(key) {
+  const k = key || helpKey(), h = HELP[k] || HELP[(k || '').split('.')[0]];
+  if (!h) return toast('No help for this page yet');
+  const li = a => `<ul style="margin:6px 0 0;padding-left:20px">${a.map(x => `<li style="margin-bottom:6px">${esc(x)}</li>`).join('')}</ul>`;
+  const links = (h.links || []).map(l => `<button class="list-row" data-act="help-go" data-t="${esc(l[2])}"><span class="grow"><b style="display:block;font-size:13px">${esc(l[0])}</b><span class="xs sub">${esc(l[1])}</span></span>${ic('chevron-right', 'chev')}</button>`).join('');
+  openSheet('Help: ' + esc(h.title), `<div class="sheet-body stack-sm">
+    <div class="notice">${ic('info')}<span>${esc(h.purpose)}</span></div>
+    <div><p class="eyebrow">How to use it</p>${li(h.steps || [])}</div>
+    ${h.example ? `<div class="card sm" style="background:var(--p-soft)"><p class="eyebrow" style="margin-bottom:4px">Example</p><p class="sm-t">${esc(h.example)}</p></div>` : ''}
+    ${links ? `<div><p class="eyebrow" style="margin-bottom:6px">Connected to</p><div class="stack-sm">${links}</div></div>` : ''}
+    ${h.tip ? `<p class="hint" style="margin:0"><b>Tip:</b> ${esc(h.tip)}</p>` : ''}</div>
+    <div class="sheet-foot"><button class="btn btn-primary" data-act="close-sheet">Got it</button></div>`, { noFocus: true });
+}
+function helpGo(t) {
+  const p = String(t || '').split(':'); closeSheet();
+  if (p[0] === 'i') return openInbox();
+  if (p[0] === 'h') return go('home');
+  if (p[0] === 't') { if (p[2]) ui.seg[p[1]] = p[2]; return go(p[1]); }
+  if (p[0] === 's') { if (p[2] && ['plan', 'bills'].includes(p[1])) ui.seg[p[1]] = p[2]; if (p[2] && !['plan', 'bills'].includes(p[1])) ui.setOpen[p[2]] = true; if (p[3]) ui.setOpen[p[3]] = true; return go('more', p[1]); }
+}
+
+
+/* =====================================================================
+   STOCK IN: a dated log of supplies, components and products coming in
+   ===================================================================== */
+const SI_KINDS = [['supply', 'Supplies', 'box', 'Supply'], ['component', 'Components', 'layers', 'Component'], ['product', 'Products', 'package', 'Product']];
+const siVia = e => e.via === 'po' ? (e.note || 'Purchase order') : e.via === 'start' ? 'Opening stock' : 'Added by hand';
+const siCard = e => { const k = SI_KINDS.find(x => x[0] === e.kind) || SI_KINDS[0]; return `<button class="card sm item click" data-act="si-open" data-id="${e.id}"><div class="ava">${ic(k[2])}</div><div class="grow" style="min-width:0"><h4 class="trunc">${esc(e.name)}</h4><div class="meta trunc">${fD(e.date)} · ${esc(siVia(e))}${e.memo ? ' · ' + esc(e.memo) : ''}</div><div class="row" style="gap:6px;margin-top:4px">${pill(k[3], 'mute')}${e.est ? pill('est. value', 'mute') : ''}</div></div><div class="side"><div class="amt num t">+${r2(e.qty)}${e.unit ? ' ' + esc(e.unit) : ''}</div><div class="xs sub num">${money(e.paid)}</div></div></button>`; };
+V.stockin = () => {
+  const p = state.prefs.period, r = periodRange(p), f = ui.filter;
+  const all = state.stockIn.filter(e => inR(e.date, r)), list = all.filter(e => f === 'all' || e.kind === f).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.at || 0) - (a.at || 0));
+  return `<div class="page stack-sm fade">
+    <div class="row between"><span class="eyebrow">Showing</span>${periodSelect()}</div>
+    <div class="card"><span class="eyebrow">Value that came in · ${esc(periodLabel(p))}</span><h2 class="rev num" style="margin:6px 0 10px">${money(sum(all, e => num(e.paid)))}</h2>
+      ${SI_KINDS.map(k => { const a = all.filter(e => e.kind === k[0]); return `<div class="kv"><span>${k[1]} <span class="xs sub">· ${r2(sum(a, e => num(e.qty)))} units</span></span><span class="num">${money(sum(a, e => num(e.paid)))}</span></div>`; }).join('')}
+      <p class="hint">“est. value” means no price was entered, so it is the cost per unit times how many.</p></div>
+    ${chips([['all', 'All']].concat(SI_KINDS.map(k => [k[0], k[1]])), f)}
+    <button class="btn btn-soft btn-sm block" data-act="si-add">${ic('plus')} Log items that arrived</button>
+    ${list.length ? list.slice(0, 200).map(siCard).join('') : empty('package', 'Nothing logged in this period', 'When supplies, components or products come in, they show up here with the date and what you paid. Use Log items that arrived, the + on an item, or receive a purchase order.')}</div>`;
+};
+OPEN.si = id => {
+  const e = find('stockIn', id); if (!e) return;
+  openSheet('Stock in entry', formWrap('si', id, `<p class="b" style="margin-bottom:4px">${esc(e.name)} <span class="sub" style="font-weight:600">· +${r2(e.qty)} ${esc(e.unit || '')}</span></p>
+    <p class="hint" style="margin:0 0 12px">${esc(siVia(e))}. Changing this only edits the log. Your stock count stays the same. To change stock, use the + on the item.</p>
+    ${fDate('Date it arrived', 'date', e.date)}${fNum('Total paid', 'paid', e.paid, '0.00', 'min="0"')}${fText('Note', 'memo', e.memo || '', 'maxlength="100" placeholder="Receipt number, where from…"')}`, foot('si', id)));
+};
+FORMS.si = (f, fd, id) => {
+  const e = find('stockIn', id); if (!e) return;
+  const paid = fd.get('paid') === '' ? 0 : Math.max(0, num(fd.get('paid')));
+  e.date = fd.get('date') || e.date; if (r2(paid) !== r2(e.paid)) e.est = false; e.paid = r2(paid); e.memo = tidy(fd.get('memo'));
+  done('Entry saved');
+};
+ACT['si-open'] = el => OPEN.si(el.dataset.id);
+ACT['si-add'] = () => {
+  const act = state.supplies.filter(active), grp = (label, a, pre) => a.length ? `<optgroup label="${label}">${a.slice().sort((x, y) => x.name.localeCompare(y.name)).map(x => `<option value="${pre}:${x.id}">${esc(x.name)}</option>`).join('')}</optgroup>` : '';
+  const opts = grp('Supplies', act.filter(x => x.kind !== 'component'), 's') + grp('Components', act.filter(x => x.kind === 'component'), 's') + grp('Products', state.products.filter(active), 'p');
+  if (!opts) return toast('Add an item in Inventory first');
+  openSheet('Log items that arrived', `<div class="sheet-body stack-sm"><p class="hint" style="margin:0">Pick what arrived. Next you enter how many, what you paid and the date.</p><select class="select" id="si-item">${opts}</select><button class="btn btn-primary block" data-act="si-pick">Continue</button></div>`);
+};
+ACT['si-pick'] = () => { const v = ($('#si-item') || {}).value || ''; if (!v) return; const [k, id] = v.split(':'); closeSheet(); OPEN.restock(k === 'p' ? 'product' : 'supply', id); };
+
+ACT.help = el => openHelp(el.dataset.v);
+ACT['help-go'] = el => helpGo(el.dataset.t);
 
 async function importData(data) {
   try {
@@ -4711,14 +5060,46 @@ V.forecast = () => {
 /* ---------- PURCHASE ORDERS ---------- */
 const PO_STATUS = ['Draft', 'Sent', 'Partially Received', 'Received', 'Cancelled'];
 const PO_TONE = { Draft: 'mute', Sent: 'brand', 'Partially Received': 'warn', Received: 'ok', Cancelled: 'bad' };
+const SHIP = ['Bought', 'Shipped', 'In Transit', 'Out for Delivery', 'Delayed', 'Delivered'], SHIP_FORM = SHIP.slice(0, 5);
+const shipNorm = v => v === 'Ordered' ? 'Bought' : v === 'Arrived' ? 'Delivered' : (v || '');
+function shipSet(po, v) { po.ship = v; if (!v) return; po.shipLog = po.shipLog || []; const l = po.shipLog[po.shipLog.length - 1]; if (!l || l.v !== v) po.shipLog.push({ v, date: today() }); }
+const shipTrail = po => (po.shipLog || []).length ? `<div class="xs sub" style="margin-top:8px">${po.shipLog.map(e => esc(e.v) + ' · ' + fD(e.date)).join(' → ')}</div>` : '';
+const SHIP_TONE = { Bought: 'mute', Shipped: 'brand', 'In Transit': 'brand', 'Out for Delivery': 'brand', Delayed: 'warn', Delivered: 'ok' };
+const poShip = po => po.status === 'Received' ? 'Delivered' : (po.status === 'Draft' || po.status === 'Cancelled') ? '' : (shipNorm(po.ship) || 'Bought');
+const shipPill = po => { const v = poShip(po); return v && poOpen(po) ? `<div style="margin-top:4px">${pill(v, SHIP_TONE[v] || 'mute', 'truck')}</div>` : ''; };
+function trackUrl(po) {
+  const n = encodeURIComponent(String(po.tracking || '').replace(/\s+/g, '')), c = String(po.carrier || '');
+  if (/usps/i.test(c)) return 'https://tools.usps.com/go/TrackConfirmAction?tLabels=' + n;
+  if (/ups/i.test(c)) return 'https://www.ups.com/track?tracknum=' + n;
+  if (/fedex/i.test(c)) return 'https://www.fedex.com/fedextrack/?trknbr=' + n;
+  if (/dhl/i.test(c)) return 'https://www.dhl.com/en/express/tracking.html?AWB=' + n;
+  return 'https://www.google.com/search?q=' + n + '+package+tracking';
+}
 const poNo = po => 'PO-' + String(po.no || 0).padStart(3, '0');
 const poSub = po => sum(po.items || [], l => num(l.qty) * num(l.cost));
 const poTotal = po => r2(poSub(po) + num(po.shipping) + num(po.tax));
-const poSupplier = po => supplierName(po.supplierId) || 'No supplier';
+const poSupplier = po => supplierName(po.supplierId) || po.vendor || 'No supplier';
 const poRecv = po => sum(po.items || [], l => Math.min(num(l.qty), num(l.received)));
+const poLanded = po => poSub(po) > 0 ? 1 + (num(po.shipping) + num(po.tax)) / poSub(po) : 1;
+const poRecvValue = po => r2(sum(po.items || [], l => Math.min(num(l.qty), num(l.received)) * num(l.cost)) * poLanded(po));
 const poLeft = po => sum(po.items || [], l => Math.max(0, num(l.qty) - num(l.received)));
 const poOpen = po => ['Draft', 'Sent', 'Partially Received'].includes(po.status);
 const poBill = po => po.billId ? find('bills', po.billId) : null;
+/* what is still on its way for one item, across open purchase orders */
+function onOrderInfo(id) {
+  let qty = 0, next = '', no = '';
+  state.purchaseOrders.forEach(po => {
+    if (po.archived || !['Sent', 'Partially Received'].includes(po.status)) return;
+    (po.items || []).forEach(l => {
+      if (l.refId !== id) return;
+      const left = Math.max(0, num(l.qty) - num(l.received)); if (!(left > 0)) return;
+      qty += left; if (!no) no = poNo(po);
+      if (po.expected && (!next || po.expected < next)) next = po.expected;
+    });
+  });
+  return { qty: r2(qty), next, no };
+}
+const onOrderText = id => { const o = onOrderInfo(id); return o.qty > 0 ? `${o.qty} on order${o.next ? ' · due ' + fD(o.next) : ''}` : ''; };
 const poLineText = l => `${l.name}${l.variantLabel ? ' (' + l.variantLabel + ')' : ''}`;
 
 const poLineRow = (l = {}) => {
@@ -4727,7 +5108,7 @@ const poLineRow = (l = {}) => {
   const gone = l.refId && !sups.some(s => 's:' + s.id === key) && !prods.some(p => 'p:' + p.id === key);
   const p = l.kind === 'product' && find('products', l.refId), hasV = p && (p.variants || []).length;
   return `<div class="po-line" data-recv="${num(l.received)}"><div class="row"><select class="select sm" name="pi"><option value="">Something else (type a name)</option>${gone ? `<option value="${esc(key)}" selected>${esc(l.name)}</option>` : ''}
-    ${sups.length ? `<optgroup label="Supplies">${sups.map(s => `<option value="s:${s.id}" ${key === 's:' + s.id ? 'selected' : ''}>${esc(s.sku ? s.sku + ' · ' : '')}${esc(s.name)}</option>`).join('')}</optgroup>` : ''}
+    ${['supply', 'component'].map(k => { const a = sups.filter(x => (x.kind === 'component' ? 'component' : 'supply') === k); return a.length ? `<optgroup label="${k === 'component' ? 'Components' : 'Supplies'}">${a.map(x => `<option value="s:${x.id}" ${key === 's:' + x.id ? 'selected' : ''}>${esc(x.sku ? x.sku + ' · ' : '')}${esc(x.name)}</option>`).join('')}</optgroup>` : ''; }).join('')}
     ${prods.length ? `<optgroup label="Products">${prods.map(x => `<option value="p:${x.id}" ${key === 'p:' + x.id ? 'selected' : ''}>${esc(x.sku ? x.sku + ' · ' : '')}${esc(x.name)}</option>`).join('')}</optgroup>` : ''}</select>
     <button type="button" class="icon-btn" data-act="po-line-del" aria-label="Remove item">${ic('x')}</button></div>
     <input class="input sm" name="pn" maxlength="100" placeholder="Item name" value="${esc(l.name || '')}" ${l.refId ? 'hidden' : ''}>
@@ -4755,13 +5136,16 @@ const readPoLines = f => $$('.po-line', f).map(r => {
   return { kind: item ? kind : 'custom', refId: item ? refId : '', name: item ? item.name : tidy($('[name=pn]', r).value), variantId: v ? v.id : '', variantLabel: v ? varLabel(v) : '', qty: Math.max(0, num($('[name=pq]', r).value)), cost: Math.max(0, num($('[name=pc]', r).value)), received: num(r.dataset.recv) };
 }).filter(l => l.qty > 0 && l.name);
 
-OPEN.po = id => {
+OPEN.po = (id, pre) => {
   const po = id ? find('purchaseOrders', id) : null;
-  const d = po ? clone(po) : { supplierId: '', date: today(), expected: addDays(today(), 7), terms: '', items: [{}], shipping: '', tax: '', notes: '', status: 'Sent' };
+  const d = po ? clone(po) : { supplierId: (pre && pre.supplierId) || '', vendor: '', carrier: '', tracking: '', ship: 'Bought', date: today(), expected: addDays(today(), 7), terms: '', items: (pre && pre.items && pre.items.length) ? pre.items : [{}], shipping: '', tax: '', notes: '', status: 'Sent' };
   const locked = po && poRecv(po) > 0, canStatus = !po || ['Draft', 'Sent', 'Cancelled'].includes(po.status);
   openSheet(po ? 'Edit ' + poNo(po) : 'New purchase order', formWrap('po', id, `
     ${fSupplier(d.supplierId, 'Choose a supplier')}
+    ${fText('Ordered from (store or website, if not a saved supplier)', 'vendor', d.vendor || '', 'maxlength="80" placeholder="e.g. Amazon, a craft fair seller"')}
     <div class="grid2">${fDate('Order date', 'date', d.date)}${fDate('Expected by', 'expected', d.expected, false)}</div>
+    <div class="grid2">${fSel('Carrier', 'carrier', [['', 'Not set']].concat((state.settings.carriers.includes(d.carrier) || !d.carrier ? state.settings.carriers : state.settings.carriers.concat([d.carrier])).map(c => [c, c])), d.carrier || '')}${fText('Tracking number', 'tracking', d.tracking || '', 'maxlength="60"')}</div>
+    ${!po || (poOpen(po) && po.status !== 'Draft') ? fSel('Delivery status', 'ship', SHIP_FORM, SHIP_FORM.includes(shipNorm(d.ship)) ? shipNorm(d.ship) : 'Bought') : ''}
     ${fSel('Payment terms', 'terms', [['', 'Not set']].concat(TERMS.map(x => [x, x])), d.terms || '')}
     <div class="fld"><span class="lbl">Items</span>
       ${locked ? `<div class="card sm">${d.items.map(l => `<div class="kv"><span>${num(l.qty)}× ${esc(poLineText(l))}</span><span class="num">${money(num(l.qty) * num(l.cost))}</span></div>`).join('')}</div><p class="hint">Some of this order has arrived, so its items are locked. Cancel it and start a new order for changes.</p>`
@@ -4778,23 +5162,25 @@ FORMS.po = (f, fd, id) => {
   if (!items.length) return toast('Add at least one item with a quantity');
   const bad = items.find(l => { const p = l.kind === 'product' && find('products', l.refId); return p && (p.variants || []).length && !l.variantId; });
   if (bad) return toast(`Pick a size / color for ${bad.name}`);
-  const rec = { supplierId: fd.get('supplierId') || '', date: fd.get('date') || today(), expected: fd.get('expected') || '', terms: fd.get('terms') || '', items, shipping: Math.max(0, num(fd.get('shipping'))), tax: Math.max(0, num(fd.get('tax'))), notes: tidy(fd.get('notes')) };
+  const rec = { supplierId: fd.get('supplierId') || '', date: fd.get('date') || today(), expected: fd.get('expected') || '', terms: fd.get('terms') || '', items, shipping: Math.max(0, num(fd.get('shipping'))), tax: Math.max(0, num(fd.get('tax'))), notes: tidy(fd.get('notes')), vendor: tidy(fd.get('vendor')), carrier: fd.get('carrier') || '', tracking: tidy(fd.get('tracking')) };
   if (fd.get('status')) rec.status = fd.get('status');
+  { const stNow = rec.status || (old && old.status) || 'Sent'; if (stNow === 'Draft' || stNow === 'Cancelled') rec.ship = ''; else if (fd.get('ship')) rec.ship = fd.get('ship'); else if (!old) rec.ship = 'Bought'; }
   let po;
   if (old) { Object.assign(old, rec); po = old; }
   else { state.counters.po = (state.counters.po || 0) + 1; po = { id: uid('po'), no: state.counters.po, status: rec.status || 'Sent', receivedDate: '', ...rec }; state.purchaseOrders.push(po); }
+  if (po.ship) shipSet(po, po.ship);
   done('Purchase order saved', [`${old ? 'Updated' : 'New'} ${poNo(po)} · ${poSupplier(po)} · ${money(poTotal(po))}`, 'truck']);
 };
 const poCard = po => {
   const late = poOpen(po) && po.status !== 'Draft' && po.expected && po.expected < today();
-  return `<button class="card sm item click ${po.status === 'Cancelled' ? 'done' : ''}" data-act="open-po" data-id="${po.id}"><div class="ava">${ic('truck')}</div><div class="grow" style="min-width:0"><h4 class="trunc t">${esc(poSupplier(po))}</h4><div class="meta trunc">${poNo(po)} · ${fD(po.date)}${po.expected ? ' · expected ' + fD(po.expected) : ''}</div><div class="meta trunc">${esc((po.items || []).map(l => `${l.qty}× ${poLineText(l)}`).join(', '))}</div>${late ? '<div class="meta bad-t b">Late</div>' : ''}</div><div class="side"><div class="amt num t">${money(poTotal(po))}</div>${pill(po.status, PO_TONE[po.status] || 'mute')}</div></button>`;
+  return `<button class="card sm item click ${po.status === 'Cancelled' ? 'done' : ''}" data-act="open-po" data-id="${po.id}"><div class="ava">${ic('truck')}</div><div class="grow" style="min-width:0"><h4 class="trunc t">${esc(poSupplier(po))}</h4><div class="meta trunc">${poNo(po)} · ${fD(po.date)}${po.expected ? ' · expected ' + fD(po.expected) : ''}</div><div class="meta trunc">${esc((po.items || []).map(l => `${l.qty}× ${poLineText(l)}`).join(', '))}</div>${po.tracking ? `<div class="meta trunc">${esc(po.carrier || 'Tracking')} · ${esc(po.tracking)}</div>` : ''}${late ? '<div class="meta bad-t b">Late</div>' : ''}</div><div class="side"><div class="amt num t">${money(poTotal(po))}</div>${pill(po.status, PO_TONE[po.status] || 'mute')}${shipPill(po)}</div></button>`;
 };
 V.purchases = () => {
-  const list = state.purchaseOrders.filter(p => !!p.archived === ui.arch && (ui.filter === 'all' || (ui.filter === 'open' ? poOpen(p) : p.status === ui.filter))).sort((a, b) => (b.no || 0) - (a.no || 0));
+  const list = state.purchaseOrders.filter(p => !!p.archived === ui.arch && (ui.filter === 'all' || (ui.filter === 'open' ? poOpen(p) : ui.filter === 'transit' ? (poOpen(p) && ['Shipped', 'In Transit', 'Out for Delivery', 'Delayed'].includes(poShip(p))) : p.status === ui.filter))).sort((a, b) => (b.no || 0) - (a.no || 0));
   const openVal = sum(state.purchaseOrders.filter(p => !p.archived && ['Sent', 'Partially Received'].includes(p.status)), poTotal);
-  return `<div class="page stack-sm fade">${chips([['all', 'All'], ['open', 'Open'], ['Draft', 'Draft'], ['Sent', 'Sent'], ['Partially Received', 'Partial'], ['Received', 'Received'], ['Cancelled', 'Cancelled']], ui.filter)}
+  return `<div class="page stack-sm fade">${chips([['all', 'All'], ['open', 'Open'], ['transit', 'On the way'], ['Draft', 'Draft'], ['Sent', 'Sent'], ['Partially Received', 'Partial'], ['Received', 'Received'], ['Cancelled', 'Cancelled']], ui.filter)}
     <div class="row between xs sub b" style="padding:0 4px;min-height:26px"><span>${list.length} ${ui.arch ? 'archived' : 'order' + (list.length === 1 ? '' : 's')}${!ui.arch && openVal ? ' · ' + money(openVal) + ' on order' : ''}</span><button class="link" data-act="arch-toggle">${ui.arch ? 'Show active' : 'Archived'}</button></div>${ui.arch ? archNote() : ''}
-    ${!state.purchaseOrders.length ? empty('truck', 'No purchase orders yet', 'Order supplies or stock from a supplier, mark what arrives, and your inventory updates by itself.', emptyBtn('New purchase order', 'po')) : list.length ? list.map(poCard).join('') : empty('search', 'No matches', ui.arch ? 'No archived orders.' : 'Try a different filter.')}</div>`;
+    ${!state.purchaseOrders.length ? empty('truck', 'No purchase orders yet', 'Log what you order, follow it from ordered to in transit to arrived, and your inventory updates when you receive it.', emptyBtn('New purchase order', 'po')) : list.length ? list.map(poCard).join('') : empty('search', 'No matches', ui.arch ? 'No archived orders.' : 'Try a different filter.')}</div>`;
 };
 OPEN.poDetail = id => {
   const po = find('purchaseOrders', id); if (!po) return;
@@ -4802,11 +5188,13 @@ OPEN.poDetail = id => {
   openSheet(`${poNo(po)} ${pill(po.status, PO_TONE[po.status] || 'mute')}${po.archived ? ' ' + pill('Archived', 'mute') : ''}`, `<div class="sheet-body stack-sm">
     <p class="sm-t sub"><b style="color:var(--text)">${esc(poSupplier(po))}</b> · ordered ${fD(po.date)}${po.expected ? ' · expected ' + fD(po.expected) : ''}${po.terms ? ' · ' + esc(po.terms) : ''}${late ? ' · <span class="bad-t b">late</span>' : ''}</p>
     <div class="card sm">${(po.items || []).map(l => `<div class="kv"><span>${num(l.qty)}× ${esc(poLineText(l))} <span class="xs sub">· ${money(l.cost)} each</span>${num(l.received) ? ` <span class="${num(l.received) >= num(l.qty) ? 'ok-t' : 'warn-t'} xs b">(${num(l.received)} received)</span>` : ''}</span><span class="num">${money(num(l.qty) * num(l.cost))}</span></div>`).join('')}</div>
+    ${poOpen(po) && po.status !== 'Draft' ? `<div class="card sm"><div class="row between" style="margin-bottom:8px"><h4 class="eyebrow">Delivery</h4>${pill(poShip(po), SHIP_TONE[poShip(po)] || 'mute', 'truck')}</div>${po.tracking ? `<div class="kv"><span>${esc(po.carrier || 'Tracking')} ${esc(po.tracking)}</span><a class="link" href="${esc(trackUrl(po))}" target="_blank" rel="noopener noreferrer">Track package</a></div>` : ''}<p class="xs sub" style="margin:6px 0">Tap where it is now. “Delivered” opens Receive items so your stock goes up.</p><div class="chips" style="flex-wrap:wrap;overflow:visible">${SHIP.map(v => `<button class="chip ${poShip(po) === v ? 'on' : ''}" data-act="po-ship" data-id="${po.id}" data-v="${v}">${v}</button>`).join('')}</div>${shipTrail(po)}</div>` : ''}
     <div class="card sm">${kv('Items', poSub(po))}${num(po.shipping) ? kv('Shipping', num(po.shipping)) : ''}${num(po.tax) ? kv('Tax', num(po.tax)) : ''}${kv('Order total', poTotal(po), 'total sec')}</div>
     ${bill ? `<div class="card sm"><h4 class="eyebrow" style="margin-bottom:6px">Bill</h4><div class="kv"><span>${bill.paid ? 'Paid ' + fD(bill.paidDate) : 'Due ' + fD(bill.due)}</span><button class="link" data-act="edit" data-type="bill" data-id="${bill.id}">${bill.paid ? 'View' : 'Open bill'}</button></div></div>` : ''}
-    ${po.receivedDate ? `<p class="xs sub">Last delivery logged ${fD(po.receivedDate)}</p>` : ''}${po.notes ? `<p class="sm-t sub" style="white-space:pre-line">${esc(po.notes)}</p>` : ''}
+    ${!poOpen(po) ? shipTrail(po) : ''}
+    ${po.receivedDate ? `<p class="xs sub">${po.status === 'Received' ? 'Delivered' : 'Last delivery logged'} ${fD(po.arrivedDate || po.receivedDate)}</p>` : ''}${po.notes ? `<p class="sm-t sub" style="white-space:pre-line">${esc(po.notes)}</p>` : ''}
     ${po.status === 'Draft' ? `<button class="btn btn-primary block" data-act="po-sent" data-id="${po.id}">Mark as sent to supplier</button>` : ''}
-    ${['Sent', 'Partially Received'].includes(po.status) ? `<button class="btn btn-primary block" data-act="po-recv" data-id="${po.id}">${ic('package')} Receive items</button>` : ''}
+    ${['Sent', 'Partially Received'].includes(po.status) ? `<button class="btn btn-primary block" data-act="po-recv" data-id="${po.id}">${ic('package')} Receive items</button><button class="btn btn-line block" data-act="po-recv-all" data-id="${po.id}">${ic('check')} Everything arrived</button>` : ''}
     <div class="grid3"><button class="btn btn-line btn-sm" data-act="po-copy" data-id="${po.id}">${ic('copy')} Copy text</button>${!bill && po.status !== 'Cancelled' ? `<button class="btn btn-line btn-sm" data-act="po-bill" data-id="${po.id}">${ic('receipt')} Make bill</button>` : '<span></span>'}<button class="btn btn-line btn-sm" data-act="dup" data-type="po" data-id="${po.id}">${ic('copy')} Duplicate</button></div>
     <div class="grid2"><button class="btn btn-line btn-sm" data-act="archive" data-type="po" data-id="${po.id}">${ic('archive')} ${po.archived ? 'Restore' : 'Archive'}</button>${poOpen(po) ? `<button class="btn btn-danger btn-sm" data-act="po-cancel" data-id="${po.id}">Cancel order</button>` : '<span></span>'}</div></div>
     <div class="sheet-foot"><button class="btn btn-danger ibtn" data-act="delete" data-type="po" data-id="${po.id}" aria-label="Delete">${ic('trash')}</button><button class="btn btn-primary" data-act="edit" data-type="po" data-id="${po.id}">${ic('pencil')} Edit</button></div>`);
@@ -4817,32 +5205,36 @@ OPEN.porecv = id => {
     <p class="b" style="margin-bottom:4px">${poNo(po)} <span class="sub" style="font-weight:600">· ${esc(poSupplier(po))}</span></p>
     <p class="hint" style="margin:0 0 12px">Enter how many of each arrived. Stock goes up by itself. You can receive in parts.</p>
     ${(po.items || []).map((l, i) => { const left = Math.max(0, num(l.qty) - num(l.received)); return left > 0 ? `<div class="row" style="margin-bottom:8px"><span class="grow sm-t b">${esc(poLineText(l))}</span><span class="xs sub">${num(l.received)}/${num(l.qty)}</span><input class="input sm" style="width:84px" type="number" step="any" min="0" max="${left}" name="rc${i}" value="${left}" aria-label="Received"></div>` : `<div class="row sm-t sub" style="margin-bottom:8px"><span class="grow">${esc(poLineText(l))}</span><span class="ok-t b">All ${num(l.qty)} received</span></div>`; }).join('')}
-    ${poBill(po) ? '' : fCheck(`Also make a bill for ${money(poTotal(po))} so I remember to pay`, 'mkbill', true)}`, foot('', '', 'Add to stock')));
+    ${poBill(po) ? '' : fCheck(`Also make a bill for what has arrived so I remember to pay`, 'mkbill', true)}`, foot('', '', 'Add to stock')));
 };
-function applyReceive(l, r) {
+function applyReceive(l, r, po) {
+  /* the unit cost includes this order's share of shipping and tax, so it reaches profit when sold */
+  const c = num(l.cost) * (po ? poLanded(po) : 1);
   if (l.kind === 'supply') {
     const s = find('supplies', l.refId); if (!s) return;
-    if (num(l.cost) > 0) { const have = Math.max(0, num(s.qty)); s.cost = Math.round((have * num(s.cost) + r * num(l.cost)) / (have + r) * 1e4) / 1e4; }
+    if (c > 0) { const have = Math.max(0, num(s.qty)); s.cost = Math.round((have * num(s.cost) + r * c) / (have + r) * 1e4) / 1e4; }
     s.qty = r2(num(s.qty) + r);
   } else if (l.kind === 'product') {
     const p = find('products', l.refId); if (!p) return;
-    if (!(p.recipe || []).length && num(l.cost) > 0) { const have = Math.max(0, num(p.qty)); p.cost = Math.round((have * num(p.cost) + r * num(l.cost)) / (have + r) * 1e4) / 1e4; }
+    if (!(p.recipe || []).length && c > 0) { const have = Math.max(0, num(p.qty)); p.cost = Math.round((have * num(p.cost) + r * c) / (have + r) * 1e4) / 1e4; }
     const v = l.variantId && (p.variants || []).find(x => x.id === l.variantId); if (v) v.qty = r2(num(v.qty) + r);
     p.qty = r2(num(p.qty) + r);
   }
 }
-function makePoBill(po) {
+function makePoBill(po, amt) {
+  amt = amt == null ? poTotal(po) : amt;
   const cat = state.settings.expenseCats.find(c => /suppl|stock|inventory|material|packag/i.test(c)) || (state.settings.expenseCats.includes('Other') ? 'Other' : state.settings.expenseCats[0] || '');
-  const b = { id: uid('b'), name: `${poNo(po)} · ${poSupplier(po)}`, vendor: supplierName(po.supplierId) || '', amount: poTotal(po), due: po.payDue || addDays(po.receivedDate || po.date, termDays(po.terms)), cat, repeat: '', acct: defaultAcct('expenses') || '', stockBuy: true, notes: 'Made from ' + poNo(po), paid: false, paidDate: '', poId: po.id };
+  const b = { id: uid('b'), name: `${poNo(po)} · ${poSupplier(po)}`, vendor: supplierName(po.supplierId) || '', amount: amt, due: po.payDue || addDays(po.receivedDate || po.date, termDays(po.terms)), cat, repeat: '', acct: defaultAcct('expenses') || '', stockBuy: true, notes: 'Made from ' + poNo(po), paid: false, paidDate: '', poId: po.id };
   state.bills.push(b); po.billId = b.id; logAct(`Made a bill for ${poNo(po)} · ${money(b.amount)}`, 'receipt');
 }
 FORMS.porecv = (f, fd, id) => {
   const po = find('purchaseOrders', id); if (!po) return;
   let any = false;
-  po.items.forEach((l, i) => { const left = Math.max(0, num(l.qty) - num(l.received)), r = Math.max(0, Math.min(left, num(fd.get('rc' + i)))); if (!(r > 0)) return; any = true; applyReceive(l, r); l.received = r2(num(l.received) + r); });
+  po.items.forEach((l, i) => { const left = Math.max(0, num(l.qty) - num(l.received)), r = Math.max(0, Math.min(left, num(fd.get('rc' + i)))); if (!(r > 0)) return; any = true; applyReceive(l, r, po); l.received = r2(num(l.received) + r); });
   if (!any) return toast('Enter how many arrived');
   po.receivedDate = today(); po.status = poLeft(po) <= 1e-9 ? 'Received' : 'Partially Received';
-  if (fd.get('mkbill') === 'on' && !poBill(po)) makePoBill(po);
+  shipSet(po, po.status === 'Received' ? 'Delivered' : 'In Transit'); if (po.status === 'Received') po.arrivedDate = today();
+  { const val = po.status === 'Received' ? poTotal(po) : poRecvValue(po), bl = poBill(po); if (fd.get('mkbill') === 'on' && !bl) { makePoBill(po, val); po.billAuto = true; } else if (bl && !bl.paid && po.billAuto) bl.amount = val; }
   done(`${poNo(po)}: stock updated`, [`Received items on ${poNo(po)} (${po.status})`, 'package']);
 };
 const poText = po => {
@@ -4946,7 +5338,6 @@ function bizReport(o) {
 }
 OPEN.bizText = () => {
   ui.bz = ui.bz || { on: BZ_SECTIONS.map(s => s[0]).filter(k => k !== 'plan'), scope: 'all' };
-  const txt = bizReport(ui.bz);
   openSheet('Copy my whole business as text', `<div class="sheet-body">
     <p class="hint" style="margin:0 0 10px">A readable list of your whole business: what you have, what is archived, what has sold, who owes you and who you owe. This is for reading or sharing. To move to another device, use <b>Copy ALL my data as text</b> instead.</p>
     <label class="fld"><span>Include</span><select class="select" data-bzscope><option value="all" ${ui.bz.scope === 'all' ? 'selected' : ''}>Everything (active + archived)</option><option value="active" ${ui.bz.scope === 'active' ? 'selected' : ''}>Active only</option><option value="archived" ${ui.bz.scope === 'archived' ? 'selected' : ''}>Archived only</option></select></label>
@@ -5004,12 +5395,26 @@ Object.assign(ACT, {
     add.forEach(l => $('#po-lines', f).insertAdjacentHTML('beforeend', poLineRow(l))); poPreview(f);
     toast(add.length ? `Added ${add.length} low-stock item${add.length > 1 ? 's' : ''}. Adjust the amounts` : 'Those are already on the order');
   },
-  'po-sent': el => { const po = find('purchaseOrders', el.dataset.id); if (!po) return; po.status = 'Sent'; logAct(`${poNo(po)} marked sent`, 'truck'); save(); render(); OPEN.poDetail(po.id); toast('Marked as sent'); },
+  'po-sent': el => { const po = find('purchaseOrders', el.dataset.id); if (!po) return; po.status = 'Sent'; shipSet(po, shipNorm(po.ship) || 'Bought'); logAct(`${poNo(po)} marked sent`, 'truck'); save(); render(); OPEN.poDetail(po.id); toast('Marked as sent'); },
   'po-recv': el => { closeSheet(); OPEN.porecv(el.dataset.id); },
+  /* one tap: everything still outstanding has arrived */
+  'po-recv-all': el => {
+    const po = find('purchaseOrders', el.dataset.id); if (!po) return;
+    FORMS.porecv(null, { get: k => { if (k === 'mkbill') return 'on'; if (!k.startsWith('rc')) return ''; const l = po.items[+k.slice(2)]; return l ? String(Math.max(0, num(l.qty) - num(l.received))) : ''; } }, po.id);
+  },
+  /* one tap: start a purchase order for an item you are running low on */
+  'po-reorder': el => {
+    const prod = el.dataset.type === 'product', it = find(prod ? 'products' : 'supplies', el.dataset.id); if (!it) return;
+    const have = num(stockQty(it)), want = num(it.low) > 0 ? Math.max(1, Math.ceil(num(it.low) * 2 - have)) : 1;
+    const cost = prod ? num(it.cost) : num(it.cost);
+    OPEN.po(null, { supplierId: it.supplierId || '', items: [{ kind: prod ? 'product' : 'supply', refId: it.id, name: it.name, qty: want, cost: cost > 0 ? cost : '' }] });
+  },
+  'po-ship': el => { const po = find('purchaseOrders', el.dataset.id); if (!po) return; const v = el.dataset.v; if (v === 'Delivered') { closeSheet(); OPEN.porecv(po.id); return; } shipSet(po, v); logAct(`${poNo(po)} is ${v.toLowerCase()}`, 'truck'); save(); render(); OPEN.poDetail(po.id); },
   'po-bill': el => { const po = find('purchaseOrders', el.dataset.id); if (!po || poBill(po)) return; makePoBill(po); save(); render(); OPEN.poDetail(po.id); toast('Bill made. Find it under Bills & invoices'); },
   'po-cancel': async el => {
     const po = find('purchaseOrders', el.dataset.id); if (!po) return;
-    if (!await confirmBox('Cancel this order?', 'Anything that already arrived stays in your stock. The order is kept so you have a record.', 'Cancel order', true)) return;
+    if (!await confirmBox('Cancel this order?', 'Anything that already arrived stays in your stock. An unpaid bill is removed, or lowered to what already arrived. The order is kept so you have a record.', 'Cancel order', true)) return;
+    { const b = poBill(po); if (b && !b.paid) { const v = poRecvValue(po); if (v > 0) b.amount = v; else { state.bills = state.bills.filter(x => x.id !== b.id); delete po.billId; } } }
     po.status = 'Cancelled'; logAct(`${poNo(po)} cancelled`, 'x'); save(); render(); OPEN.poDetail(po.id); toast('Order cancelled');
   },
   'po-copy': el => { const po = find('purchaseOrders', el.dataset.id); if (po) copyText(poText(po), 'Purchase order'); },
@@ -5217,12 +5622,12 @@ function genSample() {
     channels: [{ id: 'ch1', name: 'eBay', pct: 13.6, fixed: 0.4, renew: 30, tax: true }, { id: 'ch2', name: 'Etsy', pct: 9.5, fixed: 0.45, renew: 120, tax: true }, { id: 'ch3', name: 'Mercari', pct: 10, fixed: 0.5, renew: 0, tax: true }, { id: 'ch4', name: 'Vinted', pct: 0, fixed: 0, renew: 0, tax: false }, { id: 'ch5', name: 'In person', pct: 0, fixed: 0, renew: 0, tax: false }] };
   d.suppliers = [{ id: 's1', name: 'Northside Supply Co.', contact: 'orders@example.com', website: '', notes: 'Net 30 terms' }, { id: 's2', name: 'PackRight', contact: '(555) 010-2211', website: '', notes: 'Free shipping over $75' }, { id: 's3', name: 'Bead & Wire Wholesale', contact: 'hello@example.com', website: '', notes: '' }];
   d.supplies = [
-    { id: 'u1', name: 'Silver wire', unit: 'm', qty: 42, cost: 0.9, low: 10, category: 'Materials', supplierId: 's3', location: 'Drawer 2', notes: '' },
-    { id: 'u2', name: 'Glass beads', unit: 'pack', qty: 18, cost: 3.5, low: 6, category: 'Materials', supplierId: 's3', location: 'Drawer 1', notes: '' },
-    { id: 'u3', name: 'Chain (18 in)', unit: 'pcs', qty: 36, cost: 0.85, low: 10, category: 'Materials', supplierId: 's1', location: 'Drawer 2', notes: '' },
-    { id: 'u4', name: 'Gift boxes', unit: 'pcs', qty: 14, cost: 0.6, low: 10, category: 'Packaging', supplierId: 's2', location: 'Shelf C', notes: '' },
-    { id: 'u5', name: 'Mailers', unit: 'pcs', qty: 120, cost: 0.2, low: 25, category: 'Packaging', supplierId: 's2', location: 'Shelf C', notes: '' },
-    { id: 'u6', name: 'Thank-you cards', unit: 'pcs', qty: 0, cost: 0.08, low: 20, category: 'Packaging', supplierId: 's2', location: 'Shelf C', notes: '' }];
+    { id: 'u1', kind: 'component', name: 'Silver wire', unit: 'm', qty: 42, cost: 0.9, low: 10, category: 'Materials', supplierId: 's3', location: 'Drawer 2', notes: '' },
+    { id: 'u2', kind: 'component', name: 'Glass beads', unit: 'pack', qty: 18, cost: 3.5, low: 6, category: 'Materials', supplierId: 's3', location: 'Drawer 1', notes: '' },
+    { id: 'u3', kind: 'component', name: 'Chain (18 in)', unit: 'pcs', qty: 36, cost: 0.85, low: 10, category: 'Materials', supplierId: 's1', location: 'Drawer 2', notes: '' },
+    { id: 'u4', kind: 'supply', name: 'Gift boxes', unit: 'pcs', qty: 14, cost: 0.6, low: 10, category: 'Packaging', supplierId: 's2', location: 'Shelf C', notes: '' },
+    { id: 'u5', kind: 'supply', name: 'Mailers', unit: 'pcs', qty: 120, cost: 0.2, low: 25, category: 'Packaging', supplierId: 's2', location: 'Shelf C', notes: '' },
+    { id: 'u6', kind: 'supply', name: 'Thank-you cards', unit: 'pcs', qty: 0, cost: 0.08, low: 20, category: 'Packaging', supplierId: 's2', location: 'Shelf C', notes: '' }];
   /* recipe quantity = the total of that supply used up in making the batch; batch = how many units it made */
   const P = (id, name, sku, price, qty, extra) => ({ id, name, sku, barcode: '', category: 'General', price, cost: 0, qty, low: '', location: '', supplierId: '', tags: '', notes: '', title: '', description: '', recipe: [], batch: 1, tiers: [], ...extra });
   d.products = [
@@ -5306,7 +5711,8 @@ function genSample() {
     const hb = d.orders.find(o => o.customer === 'Harbor Gift Shop'); if (hb) { hb.unpaid = true; hb.invTerms = 'Net 15'; }
     const od = d.orders.find(o => o.customer && o.customer !== 'Harbor Gift Shop' && !o.bulk && o.date <= addDays(t, -15) && o.status === 'Fulfilled'); if (od) { od.unpaid = true; od.invTerms = 'Net 7'; }
     const s0 = d.supplies[0], s1 = d.supplies[1];
-    if (s0 && s1) { d.counters.po = 1; d.purchaseOrders = [{ id: uid('po'), no: 1, status: 'Sent', date: addDays(t, -3), expected: addDays(t, 4), terms: 'Net 30', supplierId: s0.supplierId || 's1', shipping: 12, tax: 0, notes: 'Please include a packing slip.', receivedDate: '', items: [{ kind: 'supply', refId: s0.id, name: s0.name, variantId: '', variantLabel: '', qty: 40, cost: num(s0.cost) || 1, received: 0 }, { kind: 'supply', refId: s1.id, name: s1.name, variantId: '', variantLabel: '', qty: 25, cost: num(s1.cost) || 1, received: 0 }] }]; } }
+    if (s0 && s1) { d.counters.po = 1; d.purchaseOrders = [{ id: uid('po'), no: 1, status: 'Sent', date: addDays(t, -3), expected: addDays(t, 4), terms: 'Net 30', supplierId: s0.supplierId || 's1', shipping: 12, tax: 0, notes: 'Please include a packing slip.', ship: 'In Transit', carrier: 'USPS', tracking: '9400 1118 9922 3856 9284 99', receivedDate: '', items: [{ kind: 'supply', refId: s0.id, name: s0.name, variantId: '', variantLabel: '', qty: 40, cost: num(s0.cost) || 1, received: 0 }, { kind: 'supply', refId: s1.id, name: s1.name, variantId: '', variantLabel: '', qty: 25, cost: num(s1.cost) || 1, received: 0 }] }]; } }
+  d.stockIn = d.supplies.map((u, i) => ({ id: uid('si'), at: Date.now() - i, date: addDays(t, -24 + i * 4), kind: u.kind, refId: u.id, name: u.name, unit: u.unit, qty: Math.round(num(u.qty)) || 10, paid: Math.round((num(u.qty) || 10) * num(u.cost) * 100) / 100, via: i % 2 ? 'manual' : 'start', est: i % 3 === 0 }));
   state = d;
   d.orders.forEach(o => ensureCustomer(o.customer));
   const c0 = d.customers.find(c => c.name === 'Maya R.'); if (c0) { c0.email = 'maya@example.com'; c0.phone = '(555) 010-3322'; c0.address = '48 Oak Avenue\nSeattle, WA 98101'; c0.tags = 'vip'; }
@@ -5340,9 +5746,7 @@ if (state.setup) enterApp(); else applyTheme('blush', FONTS[0][0]);
 
 })();
 </script>
-   <!-- ===== GRIMMS WIDGETS ADD-ON =====
-Paste this whole block into your index.html, right BEFORE the closing </body> tag (after the big </script>).
-No keys, no accounts, nothing paid. -->
+   <!-- ===== Home widgets ===== -->
 <style>
 #gw-dock{position:absolute;left:8px;right:8px;bottom:76px;z-index:7;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.25);overflow:hidden}
 #gw-dock .gw-bar{display:flex;align-items:center;gap:8px;width:100%;padding:9px 14px;font-weight:700;font-size:12px}
@@ -5404,9 +5808,10 @@ async function wx(el, w) {
     let g = w.d.geo;
     if (!g || g.q !== w.d.city) { const r = await (await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name=' + encodeURIComponent(w.d.city))).json(); if (!r.results) throw 0; const x = r.results[0]; g = w.d.geo = { q: w.d.city, lat: x.latitude, lon: x.longitude, name: x.name + (x.country ? ', ' + x.country : '') }; save(); }
     const j = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${g.lat}&longitude=${g.lon}&current=temperature_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&temperature_unit=${w.d.u === 'c' ? 'celsius' : 'fahrenheit'}&timezone=auto&forecast_days=1`)).json();
+    if (!out.isConnected) return;
     const u = w.d.u === 'c' ? '°C' : '°F';
     out.innerHTML = `<div class="row"><span class="gw-big">${wc(j.current.weather_code)} ${Math.round(j.current.temperature_2m)}${u}</span><div class="grow xs sub">${esc(g.name)}<br>High ${Math.round(j.daily.temperature_2m_max[0])}° · Low ${Math.round(j.daily.temperature_2m_min[0])}° · Wind ${Math.round(j.current.wind_speed_10m)}</div></div>`;
-  } catch (e) { out.textContent = 'Couldn’t load the weather. Check the city name or your connection.'; }
+  } catch (e) { if (!out.isConnected) return; out.textContent = 'Couldn’t load the weather. Check the city name or your connection.'; }
 }
 const CAT = {
   stats: { n: 'Today at a glance', i: '📊', desc: 'Sales, profit and open orders',
