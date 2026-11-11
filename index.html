@@ -313,6 +313,11 @@ button.metric{text-align:left}
 .lcard .lacts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .lcard .lacts.two{margin-top:8px}
 .lcard .lacts .btn{padding:9px 10px;font-size:12px;border-radius:12px}
+.syncbox{margin-top:10px;border-radius:14px;background:color-mix(in srgb,var(--warn) 11%,var(--card));border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);padding:10px 12px;font-size:12px}
+.syncbox b{display:block;margin-bottom:2px}
+.syncbox .new{display:block;margin:4px 0 8px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.syncbox .btns{display:flex;gap:8px}
+.syncbox .btns .btn{flex:1;padding:7px 10px;font-size:12px;border-radius:11px}
 .mini-metrics{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:11px;color:var(--sub)}
 .mini-metrics b{color:var(--text)}
 
@@ -430,12 +435,12 @@ html[data-bgs=dots] .scroll{background-image:radial-gradient(color-mix(in srgb,v
 html[data-bgs=grid] .scroll{background-image:linear-gradient(color-mix(in srgb,var(--p) 14%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--p) 14%,transparent) 1px,transparent 1px);background-size:22px 22px}
 html[data-bgs=stripes] .scroll{background-image:repeating-linear-gradient(45deg,color-mix(in srgb,var(--p) 9%,transparent) 0 10px,transparent 10px 20px)}
 /* corner shapes */
-html[data-round=sharp] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.scrollbox,.invoice){border-radius:4px}
+html[data-round=sharp] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox,.invoice){border-radius:4px}
 html[data-round=sharp] :is(.input,.select,.textarea,.btn,.seg,.seg button,.chip,.inline-select,.mchip span,.mchip-btn,.item .ava,.list-row .ico,.quick button,.pill){border-radius:4px}
 html[data-round=sharp] .sheet{border-radius:8px 8px 0 0}
-html[data-round=soft] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.scrollbox){border-radius:14px}
+html[data-round=soft] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox){border-radius:14px}
 html[data-round=soft] :is(.input,.select,.textarea,.btn,.seg,.inline-select,.item .ava,.list-row .ico,.quick button){border-radius:10px}
-html[data-round=round] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.scrollbox){border-radius:32px}
+html[data-round=round] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox){border-radius:32px}
 html[data-round=round] :is(.input,.select,.textarea){border-radius:22px}
 html[data-round=round] :is(.btn,.seg,.seg button,.chip,.inline-select,.mchip span){border-radius:999px}
 html[data-round=round] :is(.item .ava,.list-row .ico,.quick button){border-radius:50%}
@@ -1069,11 +1074,14 @@ function normalize(src) {
   /* products */
   out.products.forEach(p => {
     if (!Array.isArray(p.recipe)) p.recipe = [];
+    if (p.title == null) p.title = ''; if (p.description == null) p.description = '';
     if (!(num(p.batch) >= 1)) p.batch = 1;
     if (!Array.isArray(p.tiers)) p.tiers = [];
     if (p.oneOff === undefined) p.oneOff = Math.round(num(p.qty)) === 1 && (p.low === '' || p.low == null);
   });
   /* listings: one listing can now sit on several platforms, with analytics snapshots and several discounts */
+  const pName = id => { const p = out.products.find(x => x.id === id); return p ? (p.title || p.name) : ''; };
+  const pDesc = id => { const p = out.products.find(x => x.id === id); return p ? p.description : ''; };
   out.listings.forEach(l => {
     if (!Array.isArray(l.channels)) l.channels = l.channel ? [l.channel] : [];
     delete l.channel;
@@ -1091,7 +1099,8 @@ function normalize(src) {
     delete l.views; delete l.favorites; delete l.offers;
     if (l.description == null) l.description = '';
     if (!Array.isArray(l.bundle)) l.bundle = [];
-    delete l.pTitleSeen; delete l.pDescSeen;
+    if (l.pTitleSeen == null) l.pTitleSeen = pName(l.productId);
+    if (l.pDescSeen == null) l.pDescSeen = pDesc(l.productId);
   });
   /* bills, purchase orders, sizes & colors, unpaid invoices */
   ['bills', 'purchaseOrders'].forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
@@ -1336,6 +1345,7 @@ const valBasisPicker = () => `<div class="row between" style="gap:10px"><span cl
 const unitCost = p => num(p.cost) + sum(p.recipe || [], r => { const s = state.supplies.find(x => x.id === r.supplyId); return num(r.qty) * (s ? num(s.cost) : 0); }) / Math.max(1, num(p.batch));
 const lowOf = it => (it.low === '' || it.low == null) ? num(state.settings.lowStock) : num(it.low);
 const stockState = it => { const q = stockQty(it); return q <= 0 ? 'out' : (!it.oneOff && q <= lowOf(it)) ? 'low' : 'ok'; };
+const productTitle = p => p ? (p.title || p.name) : '';
 const tierPrice = (p, qty) => { const t = (p.tiers || []).filter(x => num(x.minQty) > 0 && qty >= num(x.minQty) && num(x.price) >= 0 && x.price !== '').sort((a, b) => num(b.minQty) - num(a.minQty))[0]; if (t) return num(t.price); if (num(p.price) > 0) return num(p.price); const ls = state.listings.filter(l => l.productId === p.id && !(Array.isArray(l.bundle) && l.bundle.length) && active(l) && num(l.price) > 0); return ls.length ? listingPrice(ls[0]) : 0; };
 
 function stockEffect(o) {
@@ -1421,6 +1431,18 @@ function latestByPlatform(l) {
 }
 function listingTotals(l) { const t = {}; Object.values(latestByPlatform(l)).forEach(o => Object.entries(o.m).forEach(([k, v]) => { t[k] = (t[k] || 0) + v; })); return t; }
 
+/* keeping listing text in step with the product */
+function textSync(l) {
+  if ((l.bundle || []).length) return { title: null, desc: null };
+  const p = state.products.find(x => x.id === l.productId);
+  if (!p) return { title: null, desc: null };
+  const pt = productTitle(p), pd = p.description || '';
+  return {
+    title: pt !== (l.pTitleSeen || '') && tidy(l.title) !== tidy(pt) ? pt : null,
+    desc: pd !== (l.pDescSeen || '') && tidy(l.description) !== tidy(pd) ? pd : null,
+  };
+}
+const listingsNeedingSync = () => state.listings.filter(l => active(l) && l.status !== 'Sold' && (() => { const s = textSync(l); return s.title !== null || s.desc !== null; })());
 
 /* ----- archive rules ----- */
 const listingReleased = l => l.status === 'Sold' || l.status === 'Expired' || state.orders.some(o => o.status === 'Fulfilled' && o.items.some(i => i.listingId === l.id));
@@ -1547,6 +1569,7 @@ function alerts0() {
     if (n) add({ key: 'archsold', cat: 'listings', icon: 'archive', tone: 'warn', title: `${n} sold-out item${n > 1 ? 's' : ''} can be archived`, detail: 'Open Stock and tap "Archive all sold". You can bring them back anytime.', sig: fp.concat(fl).map(x => x.id).join(), go: ['listings'] }); }
   if (oos.length) add({ key: 'oos', cat: 'listings', icon: 'alert-triangle', tone: 'bad', title: `${oos.length} live listing${oos.length > 1 ? 's' : ''} for sold-out items`, detail: 'Pause or end them so nobody buys what you do not have.', sig: oos.map(l => l.id).join(), go: ['listings', 'oos'] });
   if (old.length) add({ key: 'old', cat: 'listings', icon: 'clock', tone: 'warn', title: `${old.length} listing${old.length > 1 ? 's' : ''} live for 30+ days`, detail: 'Consider a discount, new photos or a fresh title.', sig: old.map(l => l.id).join(), go: ['listings', 'old'] });
+  const sy = listingsNeedingSync(); if (sy.length) add({ key: 'sync', cat: 'listings', icon: 'copy', tone: 'warn', title: `${sy.length} listing${sy.length > 1 ? 's' : ''} have a changed product title or description`, detail: 'Update them to match, or keep your own wording.', sig: sy.map(l => l.id + (textSync(l).title || '') + (textSync(l).desc || '')).join('|'), go: ['listings', 'sync'] });
   const ending = ls.filter(l => (l.discounts || []).some(d => discActive(d) && !d.noEnd && d.end && daysBetween(t, d.end) <= 3));
   if (ending.length) add({ key: 'dend', cat: 'listings', icon: 'percent', tone: 'brand', title: `${ending.length} discount${ending.length > 1 ? 's' : ''} ending within 3 days`, detail: plainList(ending.slice(0, 2).map(l => l.title)), sig: ending.map(l => l.id + l.discounts.map(d => d.end).join()).join(), go: ['listings', 'all'] });
   const open = ls.filter(l => (l.discounts || []).some(d => discActive(d) && (d.noEnd || !d.end)));
@@ -1989,7 +2012,7 @@ const supplierName = id => (state.suppliers.find(s => s.id === id) || {}).name |
 function stockFiltered() {
   const prod = ui.seg.stock === 'products';
   let l = (prod ? state.products : state.supplies.filter(x => (x.kind === 'component') === (ui.seg.stock === 'components'))).filter(x => !!x.archived === ui.arch);
-  if (ui.q) { const q = ui.q.toLowerCase(); l = l.filter(x => [x.name, x.sku, x.barcode, x.category, x.location, x.tags, supplierName(x.supplierId)].join(' ').toLowerCase().includes(q)); }
+  if (ui.q) { const q = ui.q.toLowerCase(); l = l.filter(x => [x.name, x.title, x.sku, x.barcode, x.category, x.location, x.tags, supplierName(x.supplierId)].join(' ').toLowerCase().includes(q)); }
   if (ui.cat) l = l.filter(x => x.category === ui.cat);
   if (ui.filter === 'low') l = l.filter(x => stockState(x) === 'low'); else if (ui.filter === 'out') l = l.filter(x => stockState(x) === 'out'); else if (ui.filter === 'ok') l = l.filter(x => stockState(x) === 'ok');
   const val = x => unitVal(x, prod), so = ui.sort || 'sku_d';
@@ -2031,11 +2054,17 @@ function listingsFiltered() {
   else if (f === 'renew') l = l.filter(renewDue);
   else if (f === 'oos') l = l.filter(listingOOS);
   else if (f === 'old') l = l.filter(x => x.status === 'Active' && listingAge(x) >= 30);
+  else if (f === 'sync') l = l.filter(x => { const s = textSync(x); return s.title !== null || s.desc !== null; });
   else if (f === 'disc') l = l.filter(x => (x.discounts || []).some(d => discActive(d) || discUpcoming(d)));
   else if (f !== 'all') l = l.filter(x => x.status === f);
   const so = ui.sort || 'sku_d', pr = x => listingPrice(x);
   l.sort((a, b) => so === 'sku_d' ? skuDesc(a.sku, b.sku) : so === 'sku' ? skuCmp(a.sku, b.sku) : so === 'oldest' ? (a.listedDate || '9999').localeCompare(b.listedDate || '9999') : so === 'title' ? a.title.localeCompare(b.title) : so === 'price_h' ? pr(b) - pr(a) : so === 'price_l' ? pr(a) - pr(b) : so === 'renew' ? (a.relistDate || '9999').localeCompare(b.relistDate || '9999') : (b.listedDate || b.createdDate || '').localeCompare(a.listedDate || a.createdDate || ''));
   return l;
+}
+function syncBox(l) {
+  const s = textSync(l); if (s.title === null && s.desc === null) return '';
+  const one = (what, key, val) => `<div class="syncbox"><b>${ic('alert-triangle')} The product ${what} changed</b><span class="new">${esc(val || '(empty)')}</span><div class="btns"><button class="btn btn-primary" data-act="sync-${key}" data-id="${l.id}">Update mine to match</button><button class="btn btn-line" data-act="keep-${key}" data-id="${l.id}">Keep mine</button></div></div>`;
+  return (s.title !== null ? one('title', 'title', s.title) : '') + (s.desc !== null ? one('description', 'desc', s.desc) : '');
 }
 function listingCard(l) {
   const p = state.products.find(x => x.id === l.productId), age = listingAge(l), lp = listingPrice(l), ad = activeDisc(l), chans = listingChans(l), tot = listingTotals(l);
@@ -2049,6 +2078,7 @@ function listingCard(l) {
         <div class="row" style="gap:6px;margin-top:5px;flex-wrap:wrap">${pill(l.status, LISTING_TONE[l.status])}${(l.bundle || []).length ? pill('Bundle · ' + (l.bundle.length + 1) + ' products', 'mute', 'layers') : ''}${l.status === 'Active' && age != null ? pill(age + 'd live', listingTone(l), 'clock') : ''}${renewDue(l) ? pill('Renew due', 'warn', 'refresh') : ''}${listingOOS(l) ? pill('Out of stock', 'bad', 'alert-triangle') : ''}${ad ? pill(pct(num(ad.pct)) + ' off' + (ad.noEnd ? ' · open-ended' : ''), 'brand', 'percent') : ''}${up ? pill(up + ' discount' + (up > 1 ? 's' : '') + ' scheduled', 'mute', 'calendar') : ''}</div>
         ${totals.length ? `<div class="mini-metrics">${totals.map(([k, v]) => `<span>${esc(k)} <b>${v}</b></span>`).join('')}</div>` : ''}</button>
       <div class="side" style="text-align:right;flex:none"><div class="amt num" style="font-weight:800">${money(lp)}</div>${lp !== num(l.price) ? `<div class="xs sub num" style="text-decoration:line-through">${money(l.price)}</div>` : ''}</div></div>
+    ${syncBox(l)}
     ${ui.selMode ? '' : `<div class="lacts"><button class="btn btn-soft" data-act="copy-title" data-id="${l.id}">${ic('copy')} Copy title</button><button class="btn btn-soft" data-act="copy-desc" data-id="${l.id}">${ic('copy')} Copy description</button></div>
     <div class="lacts two"><button class="btn btn-line" data-act="analytics" data-id="${l.id}">${ic('bar-chart')} Analytics</button>${l.status !== 'Sold' && l.status !== 'Draft' ? `<button class="btn btn-line" data-act="relist" data-id="${l.id}">${ic('refresh')} Renewed…</button>` : `<span></span>`}</div>`}</div>`;
 }
@@ -2091,7 +2121,7 @@ function needRow(it, prod) {
 }
 function listingStats() {
   const l = state.listings.filter(active), live = l.filter(x => x.status === 'Active');
-  return { all: l.length, live: live.length, draft: l.filter(x => x.status === 'Draft').length, renew: live.filter(renewDue).length, oos: live.filter(listingOOS).length, old: live.filter(x => listingAge(x) >= 30).length, value: sum(live, x => listingPrice(x)) };
+  return { all: l.length, live: live.length, draft: l.filter(x => x.status === 'Draft').length, renew: live.filter(renewDue).length, oos: live.filter(listingOOS).length, old: live.filter(x => listingAge(x) >= 30).length, sync: listingsNeedingSync().length, value: sum(live, x => listingPrice(x)) };
 }
 function stockDash(kind) {
   if (kind === 'listings') {
@@ -2102,6 +2132,7 @@ function stockDash(kind) {
     return `<div class="card stack-sm"><span class="eyebrow">Listings at a glance</span>
       <div class="grid3">${dTile(q.all, 'Listings')}${dTile(q.live, 'Live', '')}${dTile(q.draft, 'Drafts')}</div>
       <div class="grid3">${dTile(q.renew, 'Renew due', q.renew ? 'hot' : '')}${dTile(q.oos, 'Out of stock', q.oos ? 'issue' : '')}${dTile(q.old, '30+ days live')}</div>
+      ${q.sync ? `<div class="xs sub">${q.sync} listing${q.sync > 1 ? 's' : ''} with product text changed</div>` : ''}
       ${chs.length ? chs.map(([c, n]) => barRow(c, '', n + ' live', n / chs[0][1])).join('') : ''}
       ${act ? `<div class="xs sub">${act} need${act === 1 ? 's' : ''} your attention. Use the Needs action filter below.</div>` : ''}</div>`;
   }
@@ -2134,7 +2165,7 @@ function inventoryHome() {
     <button class="card sm item click" style="width:100%;text-align:left" data-act="seg" data-k="stock" data-v="listings"><div class="ava">${ic('store')}</div><div class="grow"><h4>Listings</h4><div class="meta">${L.all ? L.live + ' live · ' + L.draft + ' draft' + (L.renew ? ' · ' + L.renew + ' renew due' : '') + (L.oos ? ' · ' + L.oos + ' out of stock' : '') : 'No listings yet'}</div></div>${ic('chevron-right', 'chev')}</button>`;
 }
 V.stock = () => {
-  const s = ui.seg.stock, prod = s === 'products';
+  const s = ui.seg.stock, prod = s === 'products', nsync = listingsNeedingSync().length;
   if (s === 'home') return `<div class="page stack-sm fade">${seg('stock', [['home', 'Home'], ['supplies', 'Supplies'], ['components', 'Components'], ['products', 'Products'], ['listings', 'Listings']], s)}${valBasisPicker()}${inventoryHome()}</div>`;
   return `<div class="page stack-sm fade">
     ${seg('stock', [['home', 'Home'], ['supplies', 'Supplies'], ['components', 'Components'], ['products', 'Products'], ['listings', 'Listings']], s)}
@@ -2142,7 +2173,7 @@ V.stock = () => {
     ${stockDash(s)}
     ${searchBox('Search ' + s + '…')}
     ${s === 'listings'
-      ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted']].concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${optSel('sort', [['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['renew', 'Renewal date'], ['sku', 'Listing SKU low to high'], ['sku_d', 'Listing SKU high to low'], ['title', 'Title A to Z'], ['price_h', 'Price: high to low'], ['price_l', 'Price: low to high']], ui.sort || 'sku_d', 'Sort')}</div>
+      ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted']].concat(nsync ? [['sync', 'Text changed · ' + nsync]] : []).concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${optSel('sort', [['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['renew', 'Renewal date'], ['sku', 'Listing SKU low to high'], ['sku_d', 'Listing SKU high to low'], ['title', 'Title A to Z'], ['price_h', 'Price: high to low'], ['price_l', 'Price: low to high']], ui.sort || 'sku_d', 'Sort')}</div>
          <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="bulk-listings">${ic('layers')} Bulk create</button></div>`
       : chips([['all', 'All'], ['low', 'Low'], ['out', 'Out of stock'], ['ok', 'In stock']], ui.filter) + `<div class="grid2">${optSel('cat', [['', 'All categories']].concat(state.settings.stockCats.map(c => [c, c])), ui.cat, 'Category')}${optSel('sort', STOCK_SORTS, ui.sort || 'sku_d', 'Sort')}</div>
          <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="reorder">${ic('list-checks')} Reorder list</button>${prod ? `<button class="btn btn-line btn-sm grow" data-act="csv-import">${ic('upload')} Import CSV</button>` : ''}</div>`}
@@ -3252,7 +3283,7 @@ function productStats(id) {
 }
 OPEN.product = id => {
   const p = id ? find('products', id) : null; curPid = id || '';
-  const d = p || { name: '', sku: nextSku(), barcode: '', category: state.settings.stockCats[0] || '', price: '', cost: '', qty: 0, low: '', location: '', supplierId: '', tags: '', notes: '', recipe: [], batch: 1, tiers: [] };
+  const d = p || { name: '', title: '', description: '', sku: nextSku(), barcode: '', category: state.settings.stockCats[0] || '', price: '', cost: '', qty: 0, low: '', location: '', supplierId: '', tags: '', notes: '', recipe: [], batch: 1, tiers: [] };
   const st = p ? productStats(p.id) : null, nl = p ? state.listings.filter(l => listingProducts(l).includes(p.id) && active(l)).length : 0;
   openSheet(p ? 'Edit product' : 'New product', formWrap('product', id, `
     ${!state.supplies.length && !p ? `<p class="hint" style="margin:0 0 12px">Tip: add your components and supplies first (Inventory &rsaquo; Components / Supplies) so you can build this product from them.</p>` : `<p class="hint" style="margin:0 0 12px">Products are what you sell. Build them from components and supplies, then make listings.</p>`}
@@ -3260,6 +3291,8 @@ OPEN.product = id => {
     ${p && p.archived ? `<div class="notice warn" style="margin-bottom:12px">${ic('archive')}<span>This product is archived, so its supplies are back in your supply stock.</span></div>` : ''}
     ${st && (st.units || nl) ? `<p class="hint" style="margin:0 0 12px">Sold ${st.units} · revenue ${money(st.rev)} · profit before fees ${money(st.profit)}${nl ? ` · ${nl} listing${nl > 1 ? 's' : ''}` : ''}</p>` : ''}
     ${fText('Name *', 'name', d.name, 'required maxlength="80" placeholder="Your own name for it"')}
+    ${fText('Title for listings', 'title', d.title, 'maxlength="140" placeholder="Defaults to the name. This is what buyers see"')}
+    ${fArea('Description for listings', 'description', d.description, 'Write it once here. Every listing for this product starts with it, and you can still reword any listing.', 'maxlength="5000" style="min-height:110px"')}
     <div class="grid2">${fText('SKU', 'sku', d.sku, 'maxlength="30"')}${fText('Barcode', 'barcode', d.barcode, 'maxlength="40"')}</div>
     <div class="grid2">${fCat('Category', 'category', 'stockCats', d.category)}${fText('Location', 'location', d.location, 'maxlength="40" placeholder="Shelf A, bin 3…"')}</div>
     <div class="grid2">${fNum('Selling price', 'price', d.price, '0.00', 'min="0" step="any"')}${fNum('Cost per unit', 'cost', d.cost, 'Optional', 'min="0" step="any"')}</div>
@@ -3293,7 +3326,7 @@ FORMS.product = (f, fd, id) => {
   if (!old || !old.archived) {
     for (const r of recipe) { const free = freeFor(r.supplyId, id), s = find('supplies', r.supplyId); if (r.qty > free + 1e-9) return toast(`Only ${free} ${s.unit} of ${s.name} available. Add stock first or use less`); }
   }
-  const rec = { name, sku: tidy(fd.get('sku')), barcode: tidy(fd.get('barcode')), category: fd.get('category') || '', location: tidy(fd.get('location')), supplierId: fd.get('supplierId') || '', price: Math.max(0, num(fd.get('price'))), cost: fd.has('cost') ? Math.max(0, num(fd.get('cost'))) : (old ? old.cost : 0), qty: Math.round(num(fd.get('qty'))), low: fd.get('low') === '' ? '' : Math.max(0, Math.round(num(fd.get('low')))), oneOff: fd.get('oneOff') === 'on', valEst: fd.get('valEst') === '' ? '' : Math.max(0, num(fd.get('valEst'))), tags: tidy(fd.get('tags')), notes: tidy(fd.get('notes')), recipe, batch, tiers: readTiers(f) };
+  const rec = { name, title: tidy(fd.get('title')), description: tidy(fd.get('description')), sku: tidy(fd.get('sku')), barcode: tidy(fd.get('barcode')), category: fd.get('category') || '', location: tidy(fd.get('location')), supplierId: fd.get('supplierId') || '', price: Math.max(0, num(fd.get('price'))), cost: fd.has('cost') ? Math.max(0, num(fd.get('cost'))) : (old ? old.cost : 0), qty: Math.round(num(fd.get('qty'))), low: fd.get('low') === '' ? '' : Math.max(0, Math.round(num(fd.get('low')))), oneOff: fd.get('oneOff') === 'on', valEst: fd.get('valEst') === '' ? '' : Math.max(0, num(fd.get('valEst'))), tags: tidy(fd.get('tags')), notes: tidy(fd.get('notes')), recipe, batch, tiers: readTiers(f) };
   { const vs = readVariants(f), seen = new Set();
     for (const v of vs) { const k = lc(v.size) + '|' + lc(v.color); if (seen.has(k)) return toast('Two rows have the same size and color'); seen.add(k); }
     rec.variants = vs; if (vs.length) rec.qty = sum(vs, v => num(v.qty)); }
@@ -3333,7 +3366,7 @@ const listingOpts = (pid, sel, channel) => {
 };
 const pickListing = (pid, channel) => { const ls = state.listings.filter(l => listingProducts(l).includes(pid) && active(l) && l.status !== 'Sold'); return (ls.find(l => listingChans(l).includes(channel) && l.status === 'Active') || ls.find(l => l.status === 'Active') || ls[0] || {}).id || ''; };
 const lineRow = l => {
-  const p = l.productId && find('products', l.productId), custom = !p, free = !!l.free || !!(p && p.free);
+  const p = l.productId && find('products', l.productId), custom = !p, free = l.free !== undefined ? !!l.free : !!(p && p.free);
   return `<div class="line"><div class="row" style="margin-bottom:8px"><select class="select sm" name="lp"><option value="">Custom item / service</option>${state.products.filter(x => active(x) || (p && x.id === p.id)).map(x => `<option value="${x.id}" ${p && x.id === p.id ? 'selected' : ''}>${esc(pLabel(x))} (${x.qty} in stock)</option>`).join('')}</select><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove item">${ic('x')}</button></div>
     <input class="input sm" name="ln" placeholder="Item name" value="${esc(custom ? l.name : (p ? p.name : ''))}" ${custom ? '' : 'hidden'} style="margin-bottom:8px">
     <select class="select sm" name="ll" style="margin-bottom:8px" ${p ? '' : 'hidden'}>${p ? listingOpts(p.id, l.listingId) : ''}</select>
@@ -3730,8 +3763,8 @@ OPEN.listing = id => {
     ${!state.products.filter(active).length && !l ? `<p class="hint" style="margin:0 0 12px">Tip: add a product first (Inventory &rsaquo; Products) and its title, description and price fill in here for you.</p>` : `<p class="hint" style="margin:0 0 12px">Step 3 of 3: a listing is what buyers see, on one or more platforms.</p>`}
     ${listingProductField(d)}
     <div class="fld"><span class="lbl">Listed on <small style="text-transform:none;letter-spacing:0;font-weight:600">pick all that apply</small></span><div class="mchips">${chans.map(c => `<label class="mchip"><input type="checkbox" name="chs" value="${esc(c)}" ${(d.channels || []).includes(c) ? 'checked' : ''}><span>${esc(c)}</span></label>`).join('')}</div></div>
-    <div class="fld"><span class="lbl">Listing title * <span class="row" style="gap:10px"><button type="button" class="link" data-act="copy-field" data-f="title">${ic('copy')} Copy</button></span></span><input class="input" name="title" value="${esc(d.title)}" required maxlength="140" placeholder="What buyers see"></div>
-    <div class="fld"><span class="lbl">Description <span class="row" style="gap:10px"><button type="button" class="link" data-act="copy-field" data-f="description">${ic('copy')} Copy</button></span></span><textarea class="textarea" name="description" maxlength="5000" style="min-height:120px" placeholder="What buyers read">${esc(d.description)}</textarea></div>
+    <div class="fld"><span class="lbl">Listing title * <span class="row" style="gap:10px"><button type="button" class="link" data-act="use-ptitle" hidden>Use product title</button><button type="button" class="link" data-act="copy-field" data-f="title">${ic('copy')} Copy</button></span></span><input class="input" name="title" value="${esc(d.title)}" required maxlength="140" placeholder="What buyers see"></div>
+    <div class="fld"><span class="lbl">Description <span class="row" style="gap:10px"><button type="button" class="link" data-act="use-pdesc" hidden>Use product description</button><button type="button" class="link" data-act="copy-field" data-f="description">${ic('copy')} Copy</button></span></span><textarea class="textarea" name="description" maxlength="5000" style="min-height:120px" placeholder="Starts from the product's description. Reword it for this listing if you like">${esc(d.description)}</textarea></div>
     <div class="grid2">${fNum('Price *', 'price', d.price, '0.00', 'required min="0"')}${fSel('Status', 'status', LISTING_STATUSES, d.status)}</div>
     <div class="grid2">${fText('Listing SKU', 'sku', d.sku, 'maxlength="30"')}${fDate('Listed on', 'listedDate', d.listedDate, false)}</div>
     ${fDate('Renew on', 'relistDate', d.relistDate, false)}
@@ -3759,6 +3792,7 @@ FORMS.listing = (f, fd, id) => {
   const rec = readListing(f); if (!rec.title) return toast('Give the listing a title');
   if (rec.status !== 'Draft' && !rec.channels.length) return toast('Choose at least one platform it is listed on');
   if (rec.discounts.some(d => d.start && d.end && d.end < d.start)) return toast('A discount ends before it starts');
+  const p = find('products', rec.productId); rec.pTitleSeen = p ? productTitle(p) : ''; rec.pDescSeen = p ? p.description : '';
   if (id) Object.assign(find('listings', id), rec); else { state.counters.listing++; state.listings.push({ id: uid('l'), createdDate: today(), snaps: [], ...rec }); }
   done('Listing saved', [`${id ? 'Updated' : 'New'} listing ${rec.title}${rec.channels.length ? ' on ' + rec.channels.join(', ') : ''}`, 'store']);
 };
@@ -3836,16 +3870,19 @@ function formLive0(f, target) {
     const m = num($('[name=miles]', f).value) * ($('[name=round]', f).checked ? 2 : 1);
     pv.innerHTML = `<div class="kv"><span>Deduction at ${money(state.settings.mileRate)}/${state.settings.mileUnit}</span><b class="num">${money(m * num(state.settings.mileRate))}</b></div>`;
   } else if (type === 'listing') {
-    const tEl = $('[name=title]', f), prEl = $('[name=price]', f);
+    const tEl = $('[name=title]', f), dEl = $('[name=description]', f), prEl = $('[name=price]', f);
     if (target && target.dataset.listprod !== undefined) {
       const p = find('products', target.value);
-      if (p) { if (!tEl.value.trim() || tEl.dataset.auto) { tEl.value = p.name; tEl.dataset.auto = 1; } if (prEl.value === '' || prEl.dataset.auto) { prEl.value = p.price || ''; prEl.dataset.auto = 1; } }
+      if (p) { if (!tEl.value.trim() || tEl.dataset.auto) { tEl.value = productTitle(p); tEl.dataset.auto = 1; } if (!dEl.value.trim() || dEl.dataset.auto) { dEl.value = p.description || ''; dEl.dataset.auto = 1; } if (prEl.value === '' || prEl.dataset.auto) { prEl.value = p.price || ''; prEl.dataset.auto = 1; } }
     }
     if (target && target.name === 'title') delete tEl.dataset.auto;
+    if (target && target.name === 'description') delete dEl.dataset.auto;
     if (target && target.name === 'price') delete prEl.dataset.auto;
     if (target && target.name === 'chs') { const cur = {}; $$('[data-url]', f).forEach(i => { cur[i.dataset.url] = i.value; }); $('#url-box', f).innerHTML = urlRows($$('[name=chs]:checked', f).map(c => c.value), cur); }
     if (target && target.classList && target.classList.contains('d-no')) { const row = target.closest('.disc-row'), e = $('.d-end', row); e.disabled = target.checked; if (target.checked) e.value = ''; }
     const r = readListing(f), p = find('products', r.productId), plist = listingProducts(r).map(id => find('products', id)).filter(Boolean), unit = plist.length ? sum(plist, unitCost) : null, lp = listingPrice(r);
+    const ut = $('[data-act=use-ptitle]', f), ud = $('[data-act=use-pdesc]', f);
+    ut.hidden = !p || tidy(tEl.value) === tidy(productTitle(p)); ud.hidden = !p || !(p.description) || tidy(dEl.value) === tidy(p.description);
     $('#renew-hint', f).textContent = `Leave "Renew on" empty and it renews automatically every ${renewEvery(r.channels)} days${r.channels.length ? ' (the shortest time among your platforms)' : ''}.`;
     const perChan = r.channels.map(c => { const fee = feeFor(c, lp), keep = lp - fee; return `<div class="kv"><span>${esc(c)}: you keep</span><b class="num ${unit != null && keep < unit ? 'bad-t' : ''}">${money(keep)}${unit != null && lp > 0 ? ' · ' + pct((keep - unit) / lp * 100) + ' margin' : ''}</b></div>`; }).join('');
     pv.innerHTML = (r.bundle.length ? `<div class="kv"><span>Products if sold separately</span><b class="num">${money(sum(plist, x => num(x.price)))}</b></div>` : '') + `<div class="kv"><span>Price buyers see${lp !== price_(r) ? ' (discounted)' : ''}</span><b class="num">${money(lp)}</b></div>${perChan}${r.status === 'Active' && r.listedDate ? `<div class="kv"><span>Live for</span><b>${listingAge(r) == null ? 'Starts ' + fmtDate(r.listedDate) : listingAge(r) + ' days'} · renews ${fmtDate(r.relistDate)}</b></div>` : ''}${r.discounts.length ? r.discounts.map(d => `<div class="kv"><span>${discActive(d) ? 'Running' : discUpcoming(d) ? 'Scheduled' : 'Ended'}</span><b style="text-align:right">${esc(discText(d))}</b></div>`).join('') : ''}${unit != null ? `<p class="hint" style="margin:6px 0 0">Margins use your cost (${money(unit)}) and each platform's fees, before shipping.</p>` : ''}`;
@@ -4021,7 +4058,7 @@ OPEN.bulkListings = () => {
   const listed = new Set(); state.listings.filter(l => active(l) && l.status !== 'Sold' && l.status !== 'Expired').forEach(l => listingProducts(l).forEach(id => listed.add(id)));
   const chans = state.settings.channels.map(c => c.name);
   openSheet('Bulk create listings', formWrap('bulklist', '', `
-    <p class="hint" style="margin:0 0 12px">Pick products and where to list them. Each product gets its own listing on every platform you tick, with the product name as its title and the price filled in from the product. Or tick "Combine" to put all the picked products in ONE listing (a bundle or lot).</p>
+    <p class="hint" style="margin:0 0 12px">Pick products and where to list them. Each product gets its own listing on every platform you tick, with title, description and price filled in from the product. Or tick "Combine" to put all the picked products in ONE listing (a bundle or lot).</p>
     <div class="row between" style="margin-bottom:6px"><span class="eyebrow">Products</span><span class="row" style="gap:14px"><button type="button" class="link" data-act="pick-all" data-v="1">All shown</button><button type="button" class="link" data-act="pick-all" data-v="0">None</button></span></div>
     ${pickFilterBox('Search name or SKU…')}
     <div class="scrollbox" style="margin-bottom:14px">${prods.map(p => `<label class="pick"><input type="checkbox" class="chk" name="bp" value="${p.id}" ${listed.has(p.id) ? '' : 'checked'}><span class="grow" style="min-width:0"><span class="trunc b" style="display:block">${esc(p.name)}${listed.has(p.id) ? ' <small>· already listed</small>' : ''}</span><small>${p.sku ? esc(p.sku) : 'No SKU'}</small></span><small class="num">${money(p.price)}</small></label>`).join('')}</div>
@@ -4030,7 +4067,7 @@ OPEN.bulkListings = () => {
     <div class="grid2">${fSel('Status', 'status', ['Active', 'Draft'], 'Active')}${fDate('Listed on', 'listedDate', today(), false)}</div>
     ${adjFields('Price vs. product price', 'p').replace('<option value="set">Set to</option>', '')}
     ${fCheck('Combine ALL picked products into ONE listing (a bundle or lot)', 'combine', false)}
-    <div id="combine-box" hidden>${fText('Bundle title *', 'btitle', '', 'maxlength="140" placeholder="e.g. Jewelry lot, 5 pieces"')}${fArea('Bundle description', 'bdesc', '', 'Optional', 'maxlength="5000"')}<p class="hint" style="margin-top:-6px;margin-bottom:12px">The bundle price starts as the total of the picked products' prices.</p></div>
+    <div id="combine-box" hidden>${fText('Bundle title *', 'btitle', '', 'maxlength="140" placeholder="e.g. Jewelry lot, 5 pieces"')}${fArea('Bundle description', 'bdesc', '', 'Leave blank to use each product name and description', 'maxlength="5000"')}<p class="hint" style="margin-top:-6px;margin-bottom:12px">The bundle price starts as the total of the picked products' prices.</p></div>
     ${fCheck('Make a separate listing for each platform', 'split', false)}
     ${fCheck('Skip products already listed on that platform', 'skip', true)}
     <div class="preview" id="pv"></div>`, foot('', '', 'Create listings')));
@@ -4057,12 +4094,12 @@ FORMS.bulklist = (f, fd) => {
         const ps = x.pids.map(id => find('products', id)).filter(Boolean); if (ps.length < 2) return;
         state.counters.listing++;
         const base = sum(ps, q => num(q.price));
-        state.listings.push({ id: uid('l'), createdDate: today(), title: tidy(fd.get('btitle')), description: tidy(fd.get('bdesc')), productId: ps[0].id, bundle: ps.slice(1).map(q => q.id), channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(base, mode, val) : base, status, listedDate: status === 'Active' ? listed : '', relistDate: status === 'Active' ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: '', notes: '' });
+        state.listings.push({ id: uid('l'), createdDate: today(), title: tidy(fd.get('btitle')), description: tidy(fd.get('bdesc')) || ps.map(q => q.name + (q.description ? ': ' + q.description : '')).join('\n\n'), pTitleSeen: productTitle(ps[0]), pDescSeen: ps[0].description || '', productId: ps[0].id, bundle: ps.slice(1).map(q => q.id), channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(base, mode, val) : base, status, listedDate: status === 'Active' ? listed : '', relistDate: status === 'Active' ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: '', notes: '' });
         return;
       }
       const p = find('products', x.pid); if (!p) return;
       state.counters.listing++;
-      state.listings.push({ id: uid('l'), createdDate: today(), title: p.name, description: '', productId: p.id, channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(p.price, mode, val) : num(p.price), status, listedDate: status === 'Active' ? listed : '', relistDate: status === 'Active' ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: p.tags || '', notes: '' });
+      state.listings.push({ id: uid('l'), createdDate: today(), title: productTitle(p), description: p.description || '', pTitleSeen: productTitle(p), pDescSeen: p.description || '', productId: p.id, channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(p.price, mode, val) : num(p.price), status, listedDate: status === 'Active' ? listed : '', relistDate: status === 'Active' ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: p.tags || '', notes: '' });
     });
     logAct(`Bulk created ${plan.length} listings`, 'layers'); ui.seg.stock = 'listings'; ui.filter = 'all';
   });
@@ -4103,7 +4140,7 @@ function parseCsv(text) {
   row.push(cell); if (row.some(c => c.trim() !== '')) rows.push(row);
   return rows;
 }
-const CSV_ALIAS = { name: ['name', 'title', 'product', 'productname', 'item', 'itemname'], sku: ['sku', 'code', 'itemcode', 'productcode'], category: ['category', 'type'], price: ['price', 'sellingprice', 'retailprice', 'saleprice'], cost: ['cost', 'unitcost', 'costprice', 'costperunit'], valEst: ['estimatedvalue', 'estimatedvalueperunit', 'valueestimate', 'estvalue', 'valueperunit'], qty: ['qty', 'quantity', 'stock', 'instock', 'onhand'], low: ['low', 'lowstock', 'lowstockalert', 'reorderpoint'], location: ['location', 'bin', 'shelf'], barcode: ['barcode', 'upc', 'ean'], tags: ['tags', 'tag'], notes: ['notes', 'note'] };
+const CSV_ALIAS = { name: ['name', 'title', 'product', 'productname', 'item', 'itemname'], sku: ['sku', 'code', 'itemcode', 'productcode'], category: ['category', 'type'], price: ['price', 'sellingprice', 'retailprice', 'saleprice'], cost: ['cost', 'unitcost', 'costprice', 'costperunit'], valEst: ['estimatedvalue', 'estimatedvalueperunit', 'valueestimate', 'estvalue', 'valueperunit'], qty: ['qty', 'quantity', 'stock', 'instock', 'onhand'], low: ['low', 'lowstock', 'lowstockalert', 'reorderpoint'], location: ['location', 'bin', 'shelf'], barcode: ['barcode', 'upc', 'ean'], tags: ['tags', 'tag'], description: ['description', 'desc', 'details'], notes: ['notes', 'note'] };
 function csvProducts(text) {
   const rows = parseCsv(text); if (rows.length < 2) return { items: [], err: 'Add a header row and at least one product.' };
   const head = rows[0].map(h => lc(h).replace(/[^a-z]/g, '')), col = {};
@@ -4112,10 +4149,10 @@ function csvProducts(text) {
   const items = rows.slice(1).map(r => { const o = {}; Object.entries(col).forEach(([k, i]) => { const v = String(r[i] ?? '').trim(); if (v !== '') o[k] = v; }); return o; }).filter(o => o.name);
   return { items, cols: Object.keys(col) };
 }
-const CSV_TEMPLATE = 'name,sku,category,price,cost,qty,low,location,barcode,tags\r\nBeaded Bracelet,PROD-001,General,24,0.5,14,5,Shelf A,,gift\r\nCanvas Tote Bag,PROD-002,General,22,8.5,30,5,Shelf B,,\r\n';
+const CSV_TEMPLATE = 'name,sku,category,price,cost,qty,low,location,barcode,tags,description\r\nBeaded Bracelet,PROD-001,General,24,0.5,14,5,Shelf A,,gift,"Handmade glass bead bracelet on stretch cord"\r\nCanvas Tote Bag,PROD-002,General,22,8.5,30,5,Shelf B,,,\r\n';
 OPEN.csvImport = () => {
   openSheet('Import products (CSV)', formWrap('csv', '', `
-    <p class="hint" style="margin:0 0 12px">Export from a spreadsheet or another tool as CSV. Needs a header row with a <b>name</b> column; <b>sku, category, price, cost, qty, low, location, barcode, tags, notes</b> are optional. Existing products are matched by SKU (or name) and updated.</p>
+    <p class="hint" style="margin:0 0 12px">Export from a spreadsheet or another tool as CSV. Needs a header row with a <b>name</b> column; <b>sku, category, price, cost, qty, low, location, barcode, tags, description, notes</b> are optional. Existing products are matched by SKU (or name) and updated.</p>
     <label class="fld"><span>Choose a file</span><input class="input" type="file" id="csv-file" accept=".csv,.txt,text/csv"></label>
     <label class="fld"><span>…or paste it here</span><textarea class="textarea" name="text" style="min-height:110px;font-family:monospace;font-size:12px" placeholder="name,price,qty&#10;Mug,12,40"></textarea></label>
     <button type="button" class="link" data-act="csv-template">${ic('download')} Download a template</button>
@@ -4131,9 +4168,9 @@ FORMS.csv = (f, fd) => {
       const p = match(it), upd = { name: it.name };
       if (it.sku != null) upd.sku = it.sku; if (it.category) { upd.category = it.category; if (!state.settings.stockCats.includes(it.category)) state.settings.stockCats.push(it.category); }
       if (it.price != null) upd.price = num(it.price); if (it.cost != null) upd.cost = num(it.cost); if (it.valEst != null) upd.valEst = Math.max(0, num(it.valEst)); if (it.qty != null) upd.qty = Math.round(num(it.qty)); if (it.low != null) upd.low = Math.max(0, Math.round(num(it.low)));
-      ['location', 'barcode', 'tags', 'notes'].forEach(k => { if (it[k] != null) upd[k] = it[k]; });
+      ['location', 'barcode', 'tags', 'notes', 'description'].forEach(k => { if (it[k] != null) upd[k] = it[k]; });
       if (p) Object.assign(p, upd);
-      else state.products.push({ id: uid('p'), sku: nextSku(), barcode: '', category: state.settings.stockCats[0] || '', location: '', supplierId: '', tags: '', notes: '', price: 0, cost: 0, qty: 0, low: '', recipe: [], batch: 1, tiers: [], ...upd, oneOff: Math.round(num(upd.qty)) === 1 && (upd.low === '' || upd.low == null) });
+      else state.products.push({ id: uid('p'), sku: nextSku(), barcode: '', category: state.settings.stockCats[0] || '', location: '', supplierId: '', tags: '', notes: '', title: '', description: '', price: 0, cost: 0, qty: 0, low: '', recipe: [], batch: 1, tiers: [], ...upd, oneOff: Math.round(num(upd.qty)) === 1 && (upd.low === '' || upd.low == null) });
     });
     logAct(`Imported products: ${added} new, ${updated} updated`, 'upload');
   });
@@ -4151,7 +4188,7 @@ function exportCsv(kind) {
     orders: [['Order', 'Date', 'Customer', 'Platform', 'Status', 'Items', 'Sales', 'Discount', 'Shipping charged', 'Sales tax', 'Refunded', 'Fees', 'Postage', 'Cost of goods', 'Reimbursed to you', 'Profit after cost of goods', 'Money made before cost of goods', 'Estimated profit after cost of goods', 'Final amount entered', 'Bulk', 'PO', 'Deposit', 'Paid with', 'Carrier', 'Tracking', 'Archived'], by(S.orders, 'date').map(o => { const c = oc(o); return [orderNo(o), o.date, o.customer, o.channel, o.status, o.items.map(i => `${i.qty}x ${i.name}`).join('; '), r2(c.sub), r2(c.disc), r2(num(o.shipCharged)), r2(num(o.tax)), r2(c.refund), r2(c.fees), r2(c.post), r2(c.cogs), r2(c.reimb), r2(c.profit), r2(c.made), r2(c.calcProfit), c.hasFinal ? 'yes' : '', o.bulk ? 'yes' : '', o.po || '', r2(num(o.deposit)), o.payment || '', o.carrier || '', o.tracking, o.archived ? 'yes' : '']; })],
     expenses: [['Date', 'Description', 'Category', 'Vendor', 'Amount', 'Deductible', 'Notes'], by(S.expenses, 'date').map(e => [e.date, e.desc, e.cat, e.vendor || '', r2(num(e.amount)), e.deductible === false ? 'no' : 'yes', e.notes || ''])],
     income: [['Date', 'Source', 'Amount'], by(S.income, 'date').map(e => [e.date, e.desc, r2(num(e.amount))])],
-    products: [['Name', 'SKU', 'Barcode', 'Category', 'Price', 'Cost per unit', 'Estimated value per unit', 'In stock', 'Makes (batch)', 'Low alert', 'Location', 'Supplier', 'Tags', 'Notes', 'Archived'], S.products.map(p => [p.name, p.sku, p.barcode || '', p.category, p.price, r2(unitCost(p)), hasEst(p) ? p.valEst : '', p.qty, p.batch || 1, p.low, p.location || '', sup(p.supplierId), p.tags || '', p.notes || '', p.archived ? 'yes' : ''])],
+    products: [['Name', 'Listing title', 'Description', 'SKU', 'Barcode', 'Category', 'Price', 'Cost per unit', 'Estimated value per unit', 'In stock', 'Makes (batch)', 'Low alert', 'Location', 'Supplier', 'Tags', 'Notes', 'Archived'], S.products.map(p => [p.name, p.title || '', p.description || '', p.sku, p.barcode || '', p.category, p.price, r2(unitCost(p)), hasEst(p) ? p.valEst : '', p.qty, p.batch || 1, p.low, p.location || '', sup(p.supplierId), p.tags || '', p.notes || '', p.archived ? 'yes' : ''])],
     supplies: [['SKU', 'Name', 'Unit', 'In total', 'Used in products', 'Available', 'Cost per unit', 'Estimated value per unit', 'Low alert', 'Category', 'Location', 'Supplier', 'Notes', 'Archived'], S.supplies.map(p => [p.sku || '', p.name, p.unit, p.qty, r2(allocated(p.id)), r2(avail(p)), p.cost, hasEst(p) ? p.valEst : '', p.low, p.category, p.location || '', sup(p.supplierId), p.notes || '', p.archived ? 'yes' : ''])],
     listings: [['Title', 'Description', 'SKU', 'Platforms', 'Status', 'Price', 'Price now', 'Discounts', 'Listed', 'Renews', 'Age (days)', 'Bundle (extra products)'].concat(M.map(m => 'Total ' + m), ['Archived']), S.listings.map(l => { const t = listingTotals(l); return [l.title, l.description || '', l.sku, listingChans(l).join('; '), l.status, l.price, r2(listingPrice(l)), (l.discounts || []).map(d => discText(d)).join(' | '), l.listedDate, l.relistDate, listingAge(l) ?? '', (l.bundle || []).map(id => (state.products.find(p => p.id === id) || {}).name || '').filter(Boolean).join('; ')].concat(M.map(m => t[m] ?? ''), [l.archived ? 'yes' : '']); })],
     snaps: [['Listing', 'Platform', 'Date', 'Time', 'Note'].concat(M), S.listings.flatMap(l => (l.snaps || []).slice().sort((a, b) => snapKey(a).localeCompare(snapKey(b))).map(s => [l.title, s.channel, s.date, s.time, s.note || ''].concat(M.map(m => (s.m || {})[m] ?? ''))))],
@@ -4183,7 +4220,7 @@ function gresHtml(q) {
   const sections = [
     ['Sales', state.orders.filter(o => has(orderNo(o), o.customer, o.channel, o.tracking, o.po, o.items.map(i => i.name).join(' '))).slice(0, 5).map(o => ({ ico: 'receipt', t: `${orderNo(o)}${o.customer ? ' · ' + o.customer : ''}`, s: `${fmtDate(o.date)} · ${o.status} · ${money(oc(o).net)}`, a: `data-act="open-order" data-id="${o.id}"` }))],
     ['Supplies', state.supplies.filter(p => has(p.name, p.sku, p.location, p.category)).slice(0, 5).map(p => ({ ico: 'box', t: p.name, s: `${r2(avail(p))} ${p.unit} available`, a: `data-act="edit" data-type="supply" data-id="${p.id}"` }))],
-    ['Products', state.products.filter(p => has(p.name, p.sku, p.barcode, p.tags, p.location)).slice(0, 5).map(p => ({ ico: 'tag', t: p.name, s: `${p.qty} in stock · ${money(p.price)}${p.archived ? ' · archived' : ''}`, a: `data-act="edit" data-type="product" data-id="${p.id}"` }))],
+    ['Products', state.products.filter(p => has(p.name, p.title, p.sku, p.barcode, p.tags, p.location)).slice(0, 5).map(p => ({ ico: 'tag', t: p.name, s: `${p.qty} in stock · ${money(p.price)}${p.archived ? ' · archived' : ''}`, a: `data-act="edit" data-type="product" data-id="${p.id}"` }))],
     ['Listings', state.listings.filter(l => has(l.title, l.sku, listingChans(l).join(' '), l.tags)).slice(0, 5).map(l => ({ ico: 'store', t: l.title, s: `${listingChans(l).join(', ') || 'No platform'} · ${l.status} · ${money(listingPrice(l))}`, a: `data-act="edit" data-type="listing" data-id="${l.id}"` }))],
     ['Customers', state.customers.filter(c => has(c.name, c.email, c.phone, c.tags)).slice(0, 5).map(c => ({ ico: 'user', t: c.name, s: c.email || c.phone || '', a: `data-act="edit" data-type="customer" data-id="${c.id}"` }))],
     ['Expenses', state.expenses.filter(e => has(e.desc, e.vendor, e.cat)).slice(0, 5).map(e => ({ ico: 'wallet', t: e.desc, s: `${fmtDate(e.date)} · ${money(e.amount)}`, a: `data-act="edit" data-type="expense" data-id="${e.id}"` }))],
@@ -4491,10 +4528,16 @@ const ACT = {
     putOrder(setOrderStatus(o, n)); logAct(`${orderNo(o)} marked ${n}`, 'truck'); save(); render(); OPEN.orderDetail(o.id); toast('Marked as ' + n);
   },
 
-  /* listings: copy buttons, renewal, analytics */
+  /* listings: copy buttons, product text sync, renewal, analytics */
   'copy-title': el => { const l = find('listings', el.dataset.id); if (l) copyText(l.title, 'Title'); },
   'copy-desc': el => { const l = find('listings', el.dataset.id); if (l) copyText(l.description, 'Description'); },
   'copy-field': el => { const f = formOf(el), i = $(`[name=${el.dataset.f}]`, f); if (i) copyText(i.value, el.dataset.f); },
+  'use-ptitle': el => { const f = formOf(el), p = find('products', $('[name=productId]', f).value); if (p) { const i = $('[name=title]', f); i.value = productTitle(p); delete i.dataset.auto; formLive(f); } },
+  'use-pdesc': el => { const f = formOf(el), p = find('products', $('[name=productId]', f).value); if (p) { const i = $('[name=description]', f); i.value = p.description || ''; delete i.dataset.auto; formLive(f); } },
+  'sync-title': el => { const l = find('listings', el.dataset.id), p = l && find('products', l.productId); if (p) { l.title = productTitle(p); l.pTitleSeen = productTitle(p); save(); render(); toast('Title updated to match'); } },
+  'sync-desc': el => { const l = find('listings', el.dataset.id), p = l && find('products', l.productId); if (p) { l.description = p.description || ''; l.pDescSeen = p.description || ''; save(); render(); toast('Description updated to match'); } },
+  'keep-title': el => { const l = find('listings', el.dataset.id), p = l && find('products', l.productId); if (p) { l.pTitleSeen = productTitle(p); save(); render(); toast('Keeping your title'); } },
+  'keep-desc': el => { const l = find('listings', el.dataset.id), p = l && find('products', l.productId); if (p) { l.pDescSeen = p.description || ''; save(); render(); toast('Keeping your description'); } },
   relist: async el => {
     const l = find('listings', el.dataset.id); if (!l) return;
     if (!await confirmBox('Mark as renewed?', `Use this after you have actually renewed or relisted "${l.title}" on its platform. It restarts the listing's age and sets the next renewal date.`, 'Yes, I renewed it', false)) return;
@@ -4722,7 +4765,7 @@ const HELP = {
     example: 'Glass beads · 18 packs · $3.50 per pack. A bracelet uses 1 pack for every 2 bracelets, so each bracelet carries $1.75 in beads.',
     links: [['Supplies', 'Packing, tape and other extras', 't:stock:supplies'], ['Products', 'Recipes use components', 't:stock:products'], ['Orders & deliveries', 'Track components you ordered', 's:purchases'], ['Suppliers', 'Who you buy from', 's:suppliers']], tip: 'Components and supplies are counted the same way: what you own, minus what products already use, is what is available.' },
   'stock.products': { title: 'Inventory › Products', purpose: 'What you actually sell. A product has a price, a quantity in stock and a cost. The cost comes from the components and supplies in its recipe, or you type it in if you buy it ready-made.',
-    steps: ['Tap + Product. Add a name, SKU and price.', 'Made it yourself? Add a recipe: pick components and supplies together and how much of each the whole batch uses, plus how many units the batch makes. Unit cost is calculated.', 'Bought it ready-made? Type its cost per unit when you add it, and set the date you got it.', 'More arrives later? Tap the + on the card and enter how many, the cost per unit and the date.', 'Optional extras: price tiers (cheaper in bulk), sizes & colors.'],
+    steps: ['Tap + Product. Add a name, SKU and price.', 'Made it yourself? Add a recipe: pick components and supplies together and how much of each the whole batch uses, plus how many units the batch makes. Unit cost is calculated.', 'Bought it ready-made? Type its cost per unit when you add it, and set the date you got it.', 'More arrives later? Tap the + on the card and enter how many, the cost per unit and the date.', 'Optional extras: price tiers (cheaper in bulk), sizes & colors, a listing title and description.'],
     example: 'Wire Ring · batch of 22 uses 13.2 m of wire ($0.90/m) → cost $0.54 each. Price $18 → margin about 97%.',
     links: [['Components', 'Parts that go into the recipe', 't:stock:components'], ['Supplies', 'Packing and extras in the recipe', 't:stock:supplies'], ['Listings', 'Create listings for a product', 't:stock:listings'], ['Sales', 'Selling a product lowers its stock', 't:sales']], tip: 'Margin turns amber under 20%, a hint to raise the price or lower the cost.' },
   'stock.listings': { title: 'Inventory › Listings (step 3)', purpose: 'What buyers see on each platform: title, description, price and link. One listing can sit on several platforms at once, and the app tracks renewals, discounts and analytics.',
@@ -4850,7 +4893,7 @@ const FAQ = [
   ]},
   { id: 'inventory', t: 'Products, components & supplies', ic: 'package', q: [
     ['What is the difference between a product, a component and a supply?', '• Product: what you sell.\n• Component: a part that goes INTO a product (beads, wire, fabric, a charm you make ahead).\n• Supply: an extra you use up around products (mailers, tape, labels, gift boxes).\nIf you picked the wrong one, open the item and change “This is a” to move it between tabs.'],
-    ['How do I enter a product?', 'Inventory › Products › + Product. Add a name, SKU, price and how many you have. Choose the date you got them. Optional: price tiers, sizes & colors.'],
+    ['How do I enter a product?', 'Inventory › Products › + Product. Add a name, SKU, price and how many you have. Choose the date you got them. Optional: price tiers, sizes & colors, a listing title and description.'],
     ['How do I enter a product I make myself?', 'Add a recipe on the product: pick the components and supplies it uses, how much the whole batch uses, and how many units the batch makes. The cost per unit is worked out for you.'],
     ['How do I enter a product I bought ready-made?', 'Enter its cost per unit when you add it.'],
     ['How do I enter components or supplies?', 'Inventory › Components or Supplies › + button. Enter the name, unit (pcs, roll, pack…), how many you have and the cost per unit.'],
