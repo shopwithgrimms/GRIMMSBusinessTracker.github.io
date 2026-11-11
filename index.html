@@ -313,11 +313,6 @@ button.metric{text-align:left}
 .lcard .lacts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .lcard .lacts.two{margin-top:8px}
 .lcard .lacts .btn{padding:9px 10px;font-size:12px;border-radius:12px}
-.syncbox{margin-top:10px;border-radius:14px;background:color-mix(in srgb,var(--warn) 11%,var(--card));border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);padding:10px 12px;font-size:12px}
-.syncbox b{display:block;margin-bottom:2px}
-.syncbox .new{display:block;margin:4px 0 8px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.syncbox .btns{display:flex;gap:8px}
-.syncbox .btns .btn{flex:1;padding:7px 10px;font-size:12px;border-radius:11px}
 .mini-metrics{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:11px;color:var(--sub)}
 .mini-metrics b{color:var(--text)}
 
@@ -435,12 +430,12 @@ html[data-bgs=dots] .scroll{background-image:radial-gradient(color-mix(in srgb,v
 html[data-bgs=grid] .scroll{background-image:linear-gradient(color-mix(in srgb,var(--p) 14%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--p) 14%,transparent) 1px,transparent 1px);background-size:22px 22px}
 html[data-bgs=stripes] .scroll{background-image:repeating-linear-gradient(45deg,color-mix(in srgb,var(--p) 9%,transparent) 0 10px,transparent 10px 20px)}
 /* corner shapes */
-html[data-round=sharp] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox,.invoice){border-radius:4px}
+html[data-round=sharp] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.scrollbox,.invoice){border-radius:4px}
 html[data-round=sharp] :is(.input,.select,.textarea,.btn,.seg,.seg button,.chip,.inline-select,.mchip span,.mchip-btn,.item .ava,.list-row .ico,.quick button,.pill){border-radius:4px}
 html[data-round=sharp] .sheet{border-radius:8px 8px 0 0}
-html[data-round=soft] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox){border-radius:14px}
+html[data-round=soft] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.scrollbox){border-radius:14px}
 html[data-round=soft] :is(.input,.select,.textarea,.btn,.seg,.inline-select,.item .ava,.list-row .ico,.quick button){border-radius:10px}
-html[data-round=round] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox){border-radius:32px}
+html[data-round=round] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.scrollbox){border-radius:32px}
 html[data-round=round] :is(.input,.select,.textarea){border-radius:22px}
 html[data-round=round] :is(.btn,.seg,.seg button,.chip,.inline-select,.mchip span){border-radius:999px}
 html[data-round=round] :is(.item .ava,.list-row .ico,.quick button){border-radius:50%}
@@ -1074,13 +1069,11 @@ function normalize(src) {
   /* products */
   out.products.forEach(p => {
     if (!Array.isArray(p.recipe)) p.recipe = [];
-    if (p.title == null) p.title = ''; if (p.description == null) p.description = '';
     if (!(num(p.batch) >= 1)) p.batch = 1;
     if (!Array.isArray(p.tiers)) p.tiers = [];
+    if (p.oneOff === undefined) p.oneOff = Math.round(num(p.qty)) === 1 && (p.low === '' || p.low == null);
   });
   /* listings: one listing can now sit on several platforms, with analytics snapshots and several discounts */
-  const pName = id => { const p = out.products.find(x => x.id === id); return p ? (p.title || p.name) : ''; };
-  const pDesc = id => { const p = out.products.find(x => x.id === id); return p ? p.description : ''; };
   out.listings.forEach(l => {
     if (!Array.isArray(l.channels)) l.channels = l.channel ? [l.channel] : [];
     delete l.channel;
@@ -1098,8 +1091,7 @@ function normalize(src) {
     delete l.views; delete l.favorites; delete l.offers;
     if (l.description == null) l.description = '';
     if (!Array.isArray(l.bundle)) l.bundle = [];
-    if (l.pTitleSeen == null) l.pTitleSeen = pName(l.productId);
-    if (l.pDescSeen == null) l.pDescSeen = pDesc(l.productId);
+    delete l.pTitleSeen; delete l.pDescSeen;
   });
   /* bills, purchase orders, sizes & colors, unpaid invoices */
   ['bills', 'purchaseOrders'].forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
@@ -1343,8 +1335,7 @@ const unitVal = (x, prod) => valBasis() === 'est' ? estVal(x, prod) : costVal(x,
 const valBasisPicker = () => `<div class="row between" style="gap:10px"><span class="xs sub">Value inventory by</span><div style="width:190px">${optSel('valbasis', [['cost', 'What it cost me'], ['est', 'My value estimate']], valBasis(), 'Value basis')}</div></div>`;
 const unitCost = p => num(p.cost) + sum(p.recipe || [], r => { const s = state.supplies.find(x => x.id === r.supplyId); return num(r.qty) * (s ? num(s.cost) : 0); }) / Math.max(1, num(p.batch));
 const lowOf = it => (it.low === '' || it.low == null) ? num(state.settings.lowStock) : num(it.low);
-const stockState = it => { const q = stockQty(it); return q <= 0 ? 'out' : q <= lowOf(it) ? 'low' : 'ok'; };
-const productTitle = p => p ? (p.title || p.name) : '';
+const stockState = it => { const q = stockQty(it); return q <= 0 ? 'out' : (!it.oneOff && q <= lowOf(it)) ? 'low' : 'ok'; };
 const tierPrice = (p, qty) => { const t = (p.tiers || []).filter(x => num(x.minQty) > 0 && qty >= num(x.minQty) && num(x.price) >= 0 && x.price !== '').sort((a, b) => num(b.minQty) - num(a.minQty))[0]; if (t) return num(t.price); if (num(p.price) > 0) return num(p.price); const ls = state.listings.filter(l => l.productId === p.id && !(Array.isArray(l.bundle) && l.bundle.length) && active(l) && num(l.price) > 0); return ls.length ? listingPrice(ls[0]) : 0; };
 
 function stockEffect(o) {
@@ -1430,18 +1421,6 @@ function latestByPlatform(l) {
 }
 function listingTotals(l) { const t = {}; Object.values(latestByPlatform(l)).forEach(o => Object.entries(o.m).forEach(([k, v]) => { t[k] = (t[k] || 0) + v; })); return t; }
 
-/* keeping listing text in step with the product */
-function textSync(l) {
-  if ((l.bundle || []).length) return { title: null, desc: null };
-  const p = state.products.find(x => x.id === l.productId);
-  if (!p) return { title: null, desc: null };
-  const pt = productTitle(p), pd = p.description || '';
-  return {
-    title: pt !== (l.pTitleSeen || '') && tidy(l.title) !== tidy(pt) ? pt : null,
-    desc: pd !== (l.pDescSeen || '') && tidy(l.description) !== tidy(pd) ? pd : null,
-  };
-}
-const listingsNeedingSync = () => state.listings.filter(l => active(l) && l.status !== 'Sold' && (() => { const s = textSync(l); return s.title !== null || s.desc !== null; })());
 
 /* ----- archive rules ----- */
 const listingReleased = l => l.status === 'Sold' || l.status === 'Expired' || state.orders.some(o => o.status === 'Fulfilled' && o.items.some(i => i.listingId === l.id));
@@ -1568,7 +1547,6 @@ function alerts0() {
     if (n) add({ key: 'archsold', cat: 'listings', icon: 'archive', tone: 'warn', title: `${n} sold-out item${n > 1 ? 's' : ''} can be archived`, detail: 'Open Stock and tap "Archive all sold". You can bring them back anytime.', sig: fp.concat(fl).map(x => x.id).join(), go: ['listings'] }); }
   if (oos.length) add({ key: 'oos', cat: 'listings', icon: 'alert-triangle', tone: 'bad', title: `${oos.length} live listing${oos.length > 1 ? 's' : ''} for sold-out items`, detail: 'Pause or end them so nobody buys what you do not have.', sig: oos.map(l => l.id).join(), go: ['listings', 'oos'] });
   if (old.length) add({ key: 'old', cat: 'listings', icon: 'clock', tone: 'warn', title: `${old.length} listing${old.length > 1 ? 's' : ''} live for 30+ days`, detail: 'Consider a discount, new photos or a fresh title.', sig: old.map(l => l.id).join(), go: ['listings', 'old'] });
-  const sy = listingsNeedingSync(); if (sy.length) add({ key: 'sync', cat: 'listings', icon: 'copy', tone: 'warn', title: `${sy.length} listing${sy.length > 1 ? 's' : ''} have a changed product title or description`, detail: 'Update them to match, or keep your own wording.', sig: sy.map(l => l.id + (textSync(l).title || '') + (textSync(l).desc || '')).join('|'), go: ['listings', 'sync'] });
   const ending = ls.filter(l => (l.discounts || []).some(d => discActive(d) && !d.noEnd && d.end && daysBetween(t, d.end) <= 3));
   if (ending.length) add({ key: 'dend', cat: 'listings', icon: 'percent', tone: 'brand', title: `${ending.length} discount${ending.length > 1 ? 's' : ''} ending within 3 days`, detail: plainList(ending.slice(0, 2).map(l => l.title)), sig: ending.map(l => l.id + l.discounts.map(d => d.end).join()).join(), go: ['listings', 'all'] });
   const open = ls.filter(l => (l.discounts || []).some(d => discActive(d) && (d.noEnd || !d.end)));
@@ -2011,7 +1989,7 @@ const supplierName = id => (state.suppliers.find(s => s.id === id) || {}).name |
 function stockFiltered() {
   const prod = ui.seg.stock === 'products';
   let l = (prod ? state.products : state.supplies.filter(x => (x.kind === 'component') === (ui.seg.stock === 'components'))).filter(x => !!x.archived === ui.arch);
-  if (ui.q) { const q = ui.q.toLowerCase(); l = l.filter(x => [x.name, x.title, x.sku, x.barcode, x.category, x.location, x.tags, supplierName(x.supplierId)].join(' ').toLowerCase().includes(q)); }
+  if (ui.q) { const q = ui.q.toLowerCase(); l = l.filter(x => [x.name, x.sku, x.barcode, x.category, x.location, x.tags, supplierName(x.supplierId)].join(' ').toLowerCase().includes(q)); }
   if (ui.cat) l = l.filter(x => x.category === ui.cat);
   if (ui.filter === 'low') l = l.filter(x => stockState(x) === 'low'); else if (ui.filter === 'out') l = l.filter(x => stockState(x) === 'out'); else if (ui.filter === 'ok') l = l.filter(x => stockState(x) === 'ok');
   const val = x => unitVal(x, prod), so = ui.sort || 'sku_d';
@@ -2053,17 +2031,11 @@ function listingsFiltered() {
   else if (f === 'renew') l = l.filter(renewDue);
   else if (f === 'oos') l = l.filter(listingOOS);
   else if (f === 'old') l = l.filter(x => x.status === 'Active' && listingAge(x) >= 30);
-  else if (f === 'sync') l = l.filter(x => { const s = textSync(x); return s.title !== null || s.desc !== null; });
   else if (f === 'disc') l = l.filter(x => (x.discounts || []).some(d => discActive(d) || discUpcoming(d)));
   else if (f !== 'all') l = l.filter(x => x.status === f);
   const so = ui.sort || 'sku_d', pr = x => listingPrice(x);
   l.sort((a, b) => so === 'sku_d' ? skuDesc(a.sku, b.sku) : so === 'sku' ? skuCmp(a.sku, b.sku) : so === 'oldest' ? (a.listedDate || '9999').localeCompare(b.listedDate || '9999') : so === 'title' ? a.title.localeCompare(b.title) : so === 'price_h' ? pr(b) - pr(a) : so === 'price_l' ? pr(a) - pr(b) : so === 'renew' ? (a.relistDate || '9999').localeCompare(b.relistDate || '9999') : (b.listedDate || b.createdDate || '').localeCompare(a.listedDate || a.createdDate || ''));
   return l;
-}
-function syncBox(l) {
-  const s = textSync(l); if (s.title === null && s.desc === null) return '';
-  const one = (what, key, val) => `<div class="syncbox"><b>${ic('alert-triangle')} The product ${what} changed</b><span class="new">${esc(val || '(empty)')}</span><div class="btns"><button class="btn btn-primary" data-act="sync-${key}" data-id="${l.id}">Update mine to match</button><button class="btn btn-line" data-act="keep-${key}" data-id="${l.id}">Keep mine</button></div></div>`;
-  return (s.title !== null ? one('title', 'title', s.title) : '') + (s.desc !== null ? one('description', 'desc', s.desc) : '');
 }
 function listingCard(l) {
   const p = state.products.find(x => x.id === l.productId), age = listingAge(l), lp = listingPrice(l), ad = activeDisc(l), chans = listingChans(l), tot = listingTotals(l);
@@ -2077,7 +2049,6 @@ function listingCard(l) {
         <div class="row" style="gap:6px;margin-top:5px;flex-wrap:wrap">${pill(l.status, LISTING_TONE[l.status])}${(l.bundle || []).length ? pill('Bundle · ' + (l.bundle.length + 1) + ' products', 'mute', 'layers') : ''}${l.status === 'Active' && age != null ? pill(age + 'd live', listingTone(l), 'clock') : ''}${renewDue(l) ? pill('Renew due', 'warn', 'refresh') : ''}${listingOOS(l) ? pill('Out of stock', 'bad', 'alert-triangle') : ''}${ad ? pill(pct(num(ad.pct)) + ' off' + (ad.noEnd ? ' · open-ended' : ''), 'brand', 'percent') : ''}${up ? pill(up + ' discount' + (up > 1 ? 's' : '') + ' scheduled', 'mute', 'calendar') : ''}</div>
         ${totals.length ? `<div class="mini-metrics">${totals.map(([k, v]) => `<span>${esc(k)} <b>${v}</b></span>`).join('')}</div>` : ''}</button>
       <div class="side" style="text-align:right;flex:none"><div class="amt num" style="font-weight:800">${money(lp)}</div>${lp !== num(l.price) ? `<div class="xs sub num" style="text-decoration:line-through">${money(l.price)}</div>` : ''}</div></div>
-    ${syncBox(l)}
     ${ui.selMode ? '' : `<div class="lacts"><button class="btn btn-soft" data-act="copy-title" data-id="${l.id}">${ic('copy')} Copy title</button><button class="btn btn-soft" data-act="copy-desc" data-id="${l.id}">${ic('copy')} Copy description</button></div>
     <div class="lacts two"><button class="btn btn-line" data-act="analytics" data-id="${l.id}">${ic('bar-chart')} Analytics</button>${l.status !== 'Sold' && l.status !== 'Draft' ? `<button class="btn btn-line" data-act="relist" data-id="${l.id}">${ic('refresh')} Renewed…</button>` : `<span></span>`}</div>`}</div>`;
 }
@@ -2120,7 +2091,7 @@ function needRow(it, prod) {
 }
 function listingStats() {
   const l = state.listings.filter(active), live = l.filter(x => x.status === 'Active');
-  return { all: l.length, live: live.length, draft: l.filter(x => x.status === 'Draft').length, renew: live.filter(renewDue).length, oos: live.filter(listingOOS).length, old: live.filter(x => listingAge(x) >= 30).length, sync: listingsNeedingSync().length, value: sum(live, x => listingPrice(x)) };
+  return { all: l.length, live: live.length, draft: l.filter(x => x.status === 'Draft').length, renew: live.filter(renewDue).length, oos: live.filter(listingOOS).length, old: live.filter(x => listingAge(x) >= 30).length, value: sum(live, x => listingPrice(x)) };
 }
 function stockDash(kind) {
   if (kind === 'listings') {
@@ -2131,7 +2102,6 @@ function stockDash(kind) {
     return `<div class="card stack-sm"><span class="eyebrow">Listings at a glance</span>
       <div class="grid3">${dTile(q.all, 'Listings')}${dTile(q.live, 'Live', '')}${dTile(q.draft, 'Drafts')}</div>
       <div class="grid3">${dTile(q.renew, 'Renew due', q.renew ? 'hot' : '')}${dTile(q.oos, 'Out of stock', q.oos ? 'issue' : '')}${dTile(q.old, '30+ days live')}</div>
-      ${q.sync ? `<div class="xs sub">${q.sync} listing${q.sync > 1 ? 's' : ''} with product text changed</div>` : ''}
       ${chs.length ? chs.map(([c, n]) => barRow(c, '', n + ' live', n / chs[0][1])).join('') : ''}
       ${act ? `<div class="xs sub">${act} need${act === 1 ? 's' : ''} your attention. Use the Needs action filter below.</div>` : ''}</div>`;
   }
@@ -2164,7 +2134,7 @@ function inventoryHome() {
     <button class="card sm item click" style="width:100%;text-align:left" data-act="seg" data-k="stock" data-v="listings"><div class="ava">${ic('store')}</div><div class="grow"><h4>Listings</h4><div class="meta">${L.all ? L.live + ' live · ' + L.draft + ' draft' + (L.renew ? ' · ' + L.renew + ' renew due' : '') + (L.oos ? ' · ' + L.oos + ' out of stock' : '') : 'No listings yet'}</div></div>${ic('chevron-right', 'chev')}</button>`;
 }
 V.stock = () => {
-  const s = ui.seg.stock, prod = s === 'products', nsync = listingsNeedingSync().length;
+  const s = ui.seg.stock, prod = s === 'products';
   if (s === 'home') return `<div class="page stack-sm fade">${seg('stock', [['home', 'Home'], ['supplies', 'Supplies'], ['components', 'Components'], ['products', 'Products'], ['listings', 'Listings']], s)}${valBasisPicker()}${inventoryHome()}</div>`;
   return `<div class="page stack-sm fade">
     ${seg('stock', [['home', 'Home'], ['supplies', 'Supplies'], ['components', 'Components'], ['products', 'Products'], ['listings', 'Listings']], s)}
@@ -2172,7 +2142,7 @@ V.stock = () => {
     ${stockDash(s)}
     ${searchBox('Search ' + s + '…')}
     ${s === 'listings'
-      ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted']].concat(nsync ? [['sync', 'Text changed · ' + nsync]] : []).concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${optSel('sort', [['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['renew', 'Renewal date'], ['sku', 'Listing SKU low to high'], ['sku_d', 'Listing SKU high to low'], ['title', 'Title A to Z'], ['price_h', 'Price: high to low'], ['price_l', 'Price: low to high']], ui.sort || 'sku_d', 'Sort')}</div>
+      ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted']].concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${optSel('sort', [['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['renew', 'Renewal date'], ['sku', 'Listing SKU low to high'], ['sku_d', 'Listing SKU high to low'], ['title', 'Title A to Z'], ['price_h', 'Price: high to low'], ['price_l', 'Price: low to high']], ui.sort || 'sku_d', 'Sort')}</div>
          <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="bulk-listings">${ic('layers')} Bulk create</button></div>`
       : chips([['all', 'All'], ['low', 'Low'], ['out', 'Out of stock'], ['ok', 'In stock']], ui.filter) + `<div class="grid2">${optSel('cat', [['', 'All categories']].concat(state.settings.stockCats.map(c => [c, c])), ui.cat, 'Category')}${optSel('sort', STOCK_SORTS, ui.sort || 'sku_d', 'Sort')}</div>
          <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="reorder">${ic('list-checks')} Reorder list</button>${prod ? `<button class="btn btn-line btn-sm grow" data-act="csv-import">${ic('upload')} Import CSV</button>` : ''}</div>`}
@@ -2615,7 +2585,7 @@ const AIP = [
     const rep = new Map(); os.forEach(o => { const n = lc(o.customer || ''); if (n) rep.set(n, (rep.get(n) || 0) + 1); }); if ([...rep.values()].some(v => v > 1)) ideas.push('You have repeat buyers. A thank-you note or small discount keeps them coming back.'); if (!ideas.length) ideas.push('Record more sales and listing snapshots and I can spot patterns for you.');
     return { t: `Based on your last 30 days, here are the ideas I\u2019d actually consider:\n\n${ideas.map(x => '\u2022 ' + x).join('\n')}\n\nNone of these are added anywhere. Tell me which ones you like and I\u2019ll plan around them.`, next: ['plan_promo', 'plan_listings', 'best', 'margin'] }; } },
   { id: 'check', cat: 'plan', q: 'Give me a month-end checklist', run: () => { const c = aiCands(['money']).concat([{ g: 'money', l: 'Record every sale and expense from this month' }, { g: 'money', l: 'Log snapshots for your listings' }, { g: 'money', l: 'Review goals and set next month\u2019s targets' }]); return aiChoose('Here\u2019s a month-end routine. Tick the steps you want as tasks.', c, ['tax', 'goals', 'plan_money']); } },
-  { id: 'health', cat: 'more', q: 'Run a data health check', run: () => { const f = [], us = live().filter(o => state.accounts.length && !state.accounts.some(a => a.id === o.acct)).length, nc = state.products.filter(x => active(x) && !num(x.cost) && !(x.recipe || []).length).length, np = state.listings.filter(x => !x.archived && !num(x.price)).length, ng = state.listings.filter(x => !x.archived && x.status === 'Active' && !(x.snaps || []).length).length;
+  { id: 'health', cat: 'more', q: 'Run a data health check', run: () => { const f = [], us = live().filter(o => state.accounts.length && !state.accounts.some(a => a.id === o.acct)).length, nc = state.products.filter(x => active(x) && !x.free && !num(x.cost) && !(x.recipe || []).length).length, np = state.listings.filter(x => !x.archived && !num(x.price)).length, ng = state.listings.filter(x => !x.archived && x.status === 'Active' && !(x.snaps || []).length).length;
     if (us) f.push(`${aiN(us, 'sale')} not in an account`); if (nc) f.push(`${aiN(nc, 'product')} with no cost, so profit looks too high`); if (np) f.push(`${aiN(np, 'listing')} with no price`); if (ng) f.push(`${aiN(ng, 'live listing')} with no analytics snapshot`); const b = state.backup.last ? Math.floor((Date.now() - state.backup.last) / 864e5) : null; if (b == null || b > 14) f.push(b == null ? 'You have never backed up' : `Last backup was ${b} days ago`);
     return { t: f.length ? `I found ${aiN(f.length, 'thing')} to tidy up. Fixing these makes every report I give you more accurate:` : 'Everything looks tidy. Your numbers should be reliable.', rows: f.map(x => ['\u2022', x]) }; } },
   { id: 'backup', cat: 'more', q: 'Is my data backed up?', run: () => { const b = state.backup.last ? Math.floor((Date.now() - state.backup.last) / 864e5) : null; return { t: b == null ? 'You haven\u2019t backed up yet. Open Settings, then Your data, and tap "Copy ALL my data as text" or download a file. Keep it somewhere safe.' : `Your last backup was ${b === 0 ? 'today' : aiN(b, 'day') + ' ago'}. ${b > 14 ? 'That\u2019s a while. Make a fresh one in Settings, then Your data.' : 'That\u2019s recent. Nice.'}` }; } },
@@ -2663,7 +2633,7 @@ function aiFree(raw) {
   const hit = (arr, f) => arr.find(x => { const n = lc(f(x) || ''); return n.length >= 3 && lo.includes(n); });
   const prod = hit(state.products, x => x.name), sup = hit(state.supplies, x => x.name), cust = hit(state.customers, x => x.name), lst = hit(state.listings, x => x.title), spl = hit(state.suppliers, x => x.name), ord = state.orders.find(o => lo.includes(lc(orderNo(o))));
   if (ord) { const c = oc(ord); return aiSay({ t: `${orderNo(ord)}${ord.customer ? ' for ' + ord.customer : ''}: ${ord.status}, placed ${fmtDate(ord.date)}${ord.channel ? ' on ' + ord.channel : ''}. Net ${money(c.net)}, fees ${money(c.fees)}, profit ${money(c.profit)}.${ord.shipBy ? ' Ship by ' + fmtDate(ord.shipBy) + '.' : ''}`, rows: (ord.items || []).map(l => [l.name, `${l.qty} \u00d7 ${money(l.price)}`]), next: ['todo', 'allsales'] }); }
-  if (prod) { const st = productStats(prod.id), u = unitCost(prod), mg = num(prod.price) > 0 ? (num(prod.price) - u) / num(prod.price) * 100 : null; return aiSay({ t: `${prod.name}${prod.sku ? ' (' + prod.sku + ')' : ''}${prod.archived ? ' (archived)' : ''}: ${prod.qty} in stock, priced at ${money(prod.price)} with a cost of ${money(u)} each${mg != null ? `, a ${pct(mg)} margin before fees` : ''}. You\u2019ve sold ${aiN(st.units, 'unit')} for ${money(st.rev)}.${prod.qty <= lowOf(prod) ? ' Stock is low, so it might be time to make or order more.' : ''}`, next: ['best', 'margin', 'low', 'allprod'] }); }
+  if (prod) { const st = productStats(prod.id), u = unitCost(prod), mg = num(prod.price) > 0 ? (num(prod.price) - u) / num(prod.price) * 100 : null; return aiSay({ t: `${prod.name}${prod.sku ? ' (' + prod.sku + ')' : ''}${prod.archived ? ' (archived)' : ''}: ${prod.qty} in stock, priced at ${money(prod.price)} with a cost of ${money(u)} each${mg != null ? `, a ${pct(mg)} margin before fees` : ''}. You\u2019ve sold ${aiN(st.units, 'unit')} for ${money(st.rev)}.${!prod.oneOff && prod.qty <= lowOf(prod) ? ' Stock is low, so it might be time to make or order more.' : ''}`, next: ['best', 'margin', 'low', 'allprod'] }); }
   if (sup) return aiSay({ t: `${sup.name}${sup.archived ? ' (archived)' : ''}: ${stockQty(sup)} ${sup.unit || ''} left, costing ${money(sup.cost)} each${supplierName(sup.supplierId) ? ', bought from ' + supplierName(sup.supplierId) : ''}.${stockState(sup) !== 'ok' ? ' That\u2019s ' + (stockQty(sup) <= 0 ? 'out' : 'running low') + ', so it\u2019s worth reordering.' : ''}`, next: ['low', 'allsup'] });
   if (spl) { const ps = state.products.filter(x => x.supplierId === spl.id), ss = state.supplies.filter(x => x.supplierId === spl.id); return aiSay({ t: `${spl.name}: you buy ${aiN(ps.length, 'product')} and ${aiN(ss.length, 'supply item')} from them.${spl.contact ? ' Contact: ' + spl.contact + '.' : ''}`, rows: ps.map(x => [x.name, 'product']).concat(ss.map(x => [x.name, 'supply'])).slice(0, 30), next: ['allsupp', 'low'] }); }
   if (cust) { const s = customerStats(cust.name); return aiSay({ t: `${cust.name}: ${aiN(s.orders, 'order')}, ${money(s.spent)} spent in total${s.last ? ', last order ' + fmtDate(s.last) : ''}.${s.orders > 1 ? ' A repeat buyer, so worth looking after.' : ''}`, next: ['cust', 'allcust', 'chan'] }); }
@@ -3282,7 +3252,7 @@ function productStats(id) {
 }
 OPEN.product = id => {
   const p = id ? find('products', id) : null; curPid = id || '';
-  const d = p || { name: '', title: '', description: '', sku: nextSku(), barcode: '', category: state.settings.stockCats[0] || '', price: '', cost: '', qty: 0, low: '', location: '', supplierId: '', tags: '', notes: '', recipe: [], batch: 1, tiers: [] };
+  const d = p || { name: '', sku: nextSku(), barcode: '', category: state.settings.stockCats[0] || '', price: '', cost: '', qty: 0, low: '', location: '', supplierId: '', tags: '', notes: '', recipe: [], batch: 1, tiers: [] };
   const st = p ? productStats(p.id) : null, nl = p ? state.listings.filter(l => listingProducts(l).includes(p.id) && active(l)).length : 0;
   openSheet(p ? 'Edit product' : 'New product', formWrap('product', id, `
     ${!state.supplies.length && !p ? `<p class="hint" style="margin:0 0 12px">Tip: add your components and supplies first (Inventory &rsaquo; Components / Supplies) so you can build this product from them.</p>` : `<p class="hint" style="margin:0 0 12px">Products are what you sell. Build them from components and supplies, then make listings.</p>`}
@@ -3290,17 +3260,17 @@ OPEN.product = id => {
     ${p && p.archived ? `<div class="notice warn" style="margin-bottom:12px">${ic('archive')}<span>This product is archived, so its supplies are back in your supply stock.</span></div>` : ''}
     ${st && (st.units || nl) ? `<p class="hint" style="margin:0 0 12px">Sold ${st.units} · revenue ${money(st.rev)} · profit before fees ${money(st.profit)}${nl ? ` · ${nl} listing${nl > 1 ? 's' : ''}` : ''}</p>` : ''}
     ${fText('Name *', 'name', d.name, 'required maxlength="80" placeholder="Your own name for it"')}
-    ${fText('Title for listings', 'title', d.title, 'maxlength="140" placeholder="Defaults to the name. This is what buyers see"')}
-    ${fArea('Description for listings', 'description', d.description, 'Write it once here. Every listing for this product starts with it, and you can still reword any listing.', 'maxlength="5000" style="min-height:110px"')}
     <div class="grid2">${fText('SKU', 'sku', d.sku, 'maxlength="30"')}${fText('Barcode', 'barcode', d.barcode, 'maxlength="40"')}</div>
     <div class="grid2">${fCat('Category', 'category', 'stockCats', d.category)}${fText('Location', 'location', d.location, 'maxlength="40" placeholder="Shelf A, bin 3…"')}</div>
     <div class="grid2">${fNum('Selling price', 'price', d.price, '0.00', 'min="0" step="any"')}${fNum('Cost per unit', 'cost', d.cost, 'Optional', 'min="0" step="any"')}</div>
     <p class="hint" style="margin:-2px 0 10px">Cost is only used when the product has no components or supplies listed below. Otherwise cost comes from them.</p>
     <div class="grid2">${fNum('In stock', 'qty', d.qty, '0', 'step="1"')}${fNum('Low-stock alert', 'low', d.low, 'Default ' + state.settings.lowStock, 'min="0" step="1"')}</div>
+    ${fCheck('One of a kind (no low-stock alert)', 'oneOff', p ? p.oneOff : Math.round(num(d.qty)) === 1)}
+    <p class="hint" style="margin:-6px 0 10px">For items you only have one of. It is never shown as Low; it only shows as Out when sold. The low-stock alert above is ignored while this is checked.</p>
     ${fSupplier(d.supplierId)}
     ${fNum('Estimated value per unit', 'valEst', d.valEst, 'Optional', 'min="0"')}
     <p class="hint" style="margin:-2px 0 10px">Optional. What one unit is worth to you now (resale or replacement). Leave blank to use cost. Used for inventory totals when "Value inventory by" is set to My value estimate.</p>
-    ${!p ? `${fNum('Price you paid per unit (optional)', 'paid', '', '0.00', 'min="0"')}${fDate('Date you got it', 'recvDate', today(), false)}<p class="hint" style="margin-top:-4px">For ready-made items you bought. Skip it if you made it yourself. It sets what each unit cost you, so enter the price for one, not the total.</p>` : ''}
+    ${!p ? `${fNum('Cost per unit', 'paid', '', '0.00', 'min="0"')}${fDate('Date you got it', 'recvDate', today(), false)}<p class="hint" style="margin-top:-4px">For ready-made items you bought. Skip it if you made it yourself. Enter the cost of one unit, not the total.</p>` : ''}
     <div class="fld"><span class="lbl">Components &amp; supplies used in this product <small style="text-transform:none;letter-spacing:0;font-weight:600">optional</small></span>
       <div id="rec-rows">${(d.recipe || []).map(recRow).join('')}</div>
       ${state.supplies.length ? `<div class="row" style="gap:16px"><button type="button" class="link" data-act="rec-add">${ic('plus')} Add component or supply</button><button type="button" class="link" data-act="rec-multi">${ic('layers')} Add several</button></div>` : `<p class="hint">Add items under Inventory &rsaquo; Components or Supplies first.</p>`}
@@ -3323,7 +3293,7 @@ FORMS.product = (f, fd, id) => {
   if (!old || !old.archived) {
     for (const r of recipe) { const free = freeFor(r.supplyId, id), s = find('supplies', r.supplyId); if (r.qty > free + 1e-9) return toast(`Only ${free} ${s.unit} of ${s.name} available. Add stock first or use less`); }
   }
-  const rec = { name, title: tidy(fd.get('title')), description: tidy(fd.get('description')), sku: tidy(fd.get('sku')), barcode: tidy(fd.get('barcode')), category: fd.get('category') || '', location: tidy(fd.get('location')), supplierId: fd.get('supplierId') || '', price: Math.max(0, num(fd.get('price'))), cost: fd.has('cost') ? Math.max(0, num(fd.get('cost'))) : (old ? old.cost : 0), qty: Math.round(num(fd.get('qty'))), low: fd.get('low') === '' ? '' : Math.max(0, Math.round(num(fd.get('low')))), valEst: fd.get('valEst') === '' ? '' : Math.max(0, num(fd.get('valEst'))), tags: tidy(fd.get('tags')), notes: tidy(fd.get('notes')), recipe, batch, tiers: readTiers(f) };
+  const rec = { name, sku: tidy(fd.get('sku')), barcode: tidy(fd.get('barcode')), category: fd.get('category') || '', location: tidy(fd.get('location')), supplierId: fd.get('supplierId') || '', price: Math.max(0, num(fd.get('price'))), cost: fd.has('cost') ? Math.max(0, num(fd.get('cost'))) : (old ? old.cost : 0), qty: Math.round(num(fd.get('qty'))), low: fd.get('low') === '' ? '' : Math.max(0, Math.round(num(fd.get('low')))), oneOff: fd.get('oneOff') === 'on', valEst: fd.get('valEst') === '' ? '' : Math.max(0, num(fd.get('valEst'))), tags: tidy(fd.get('tags')), notes: tidy(fd.get('notes')), recipe, batch, tiers: readTiers(f) };
   { const vs = readVariants(f), seen = new Set();
     for (const v of vs) { const k = lc(v.size) + '|' + lc(v.color); if (seen.has(k)) return toast('Two rows have the same size and color'); seen.add(k); }
     rec.variants = vs; if (vs.length) rec.qty = sum(vs, v => num(v.qty)); }
@@ -3341,7 +3311,7 @@ OPEN.restock = (type, id) => {
     <p class="b" style="margin-bottom:12px">${esc(it.name)} <span class="sub" style="font-weight:600">· ${stockQty(it)} ${sup ? 'available' : 'in stock'}${sup && allocated(id) ? ' · ' + r2(allocated(id)) + ' used in products' : ''}</span></p>
     ${fSel('What happened?', 'mode', [['add', 'Received / restocked'], ['remove', 'Remove (used up, damaged, lost, gifted)'], ['set', sup ? 'Set exact count (what you can see on the shelf)' : 'Set exact count (stocktake)']], 'add')}
     ${fNum('Quantity *', 'amt', '', '0', 'required min="0" step="any"')}
-    <div id="paid-wrap">${showCost ? fNum('Total paid (optional)', 'paid', '', '0.00', 'min="0"') + `<p class="hint" style="margin-top:-4px">If you enter what you paid, the average cost per unit updates for you.</p>` : ''}${fDate('Date received', 'recvDate', today(), false)}</div>
+    <div id="paid-wrap">${showCost ? fNum('Cost per unit', 'paid', '', '0.00', 'min="0" step="any"') + `<p class="hint" style="margin-top:-4px">Optional. Enter what one unit cost, not the total. The average cost per unit updates for you.</p>` : ''}${fDate('Date received', 'recvDate', today(), false)}</div>
     <div class="preview" id="pv"></div>`, foot('', '', 'Update stock')));
   formLive($('form[data-form=restock]'));
 };
@@ -3349,7 +3319,7 @@ FORMS.restock = (f, fd, id) => {
   const type = fd.get('type'), sup = type === 'supply', it = find(sup ? 'supplies' : 'products', id), mode = fd.get('mode'), amt = num(fd.get('amt')), paid = num(fd.get('paid'));
   if (!it || !(amt >= 0) || fd.get('amt') === '') return toast('Enter a quantity');
   const before = stockQty(it), alloc = sup ? allocated(id) : 0;
-  if (mode === 'add') { if (amt <= 0) return toast('Enter a quantity'); if (!sup && (it.recipe || []).length) { const bt = Math.max(1, num(it.batch)); const short = it.recipe.map(r => { const sp = find('supplies', r.supplyId), need = r2(num(r.qty) * amt / bt); return sp && avail(sp) < need - 1e-9 ? `${sp.name} (needs ${need}, only ${avail(sp)} free)` : null; }).filter(Boolean); if (short.length) return toast('Not enough supplies: ' + short.join('; ')); it.recipe.forEach(r => { r.qty = r2(num(r.qty) * (bt + amt) / bt); }); it.batch = bt + amt; } const estV = sup || !(it.recipe && it.recipe.length) ? num(it.cost) * amt : unitCost(it) * amt; logIn(it, kindOfItem(it, !sup), amt, paid > 0 ? paid : estV, 'manual', fd.get('recvDate'), { est: !(paid > 0) }); if (paid > 0) { const have = Math.max(0, num(it.qty)); it.cost = r2((have * num(it.cost) + paid) / (have + amt)); } it.qty = r2(num(it.qty) + amt); }
+  if (mode === 'add') { if (amt <= 0) return toast('Enter a quantity'); if (!sup && (it.recipe || []).length) { const bt = Math.max(1, num(it.batch)); const short = it.recipe.map(r => { const sp = find('supplies', r.supplyId), need = r2(num(r.qty) * amt / bt); return sp && avail(sp) < need - 1e-9 ? `${sp.name} (needs ${need}, only ${avail(sp)} free)` : null; }).filter(Boolean); if (short.length) return toast('Not enough supplies: ' + short.join('; ')); it.recipe.forEach(r => { r.qty = r2(num(r.qty) * (bt + amt) / bt); }); it.batch = bt + amt; } const estV = sup || !(it.recipe && it.recipe.length) ? num(it.cost) * amt : unitCost(it) * amt; logIn(it, kindOfItem(it, !sup), amt, paid > 0 ? r2(paid * amt) : estV, 'manual', fd.get('recvDate'), { est: !(paid > 0) }); if (paid > 0) { const have = Math.max(0, num(it.qty)); it.cost = r2((have * num(it.cost) + paid * amt) / (have + amt)); } it.qty = r2(num(it.qty) + amt); }
   else if (mode === 'remove') { if (sup && amt > before + 1e-9) return toast(`Only ${before} available. The rest is used in products`); it.qty = r2(num(it.qty) - amt); const val = r2(amt * (sup ? num(it.cost) : unitCost(it))); if (val > 0) state.expenses.push({ id: uid('e'), desc: 'Written off: ' + it.name + ' (' + amt + (it.unit ? ' ' + it.unit : '') + ')', amount: val, date: today(), cat: state.settings.expenseCats.includes('Other') ? 'Other' : (state.settings.expenseCats[0] || ''), vendor: '', deductible: true, acct: '', stockBuy: false, notes: 'Stock removed (used up, damaged, lost or gifted)' }); }
   else it.qty = r2(amt + alloc);
   const after = stockQty(it);
@@ -3363,13 +3333,14 @@ const listingOpts = (pid, sel, channel) => {
 };
 const pickListing = (pid, channel) => { const ls = state.listings.filter(l => listingProducts(l).includes(pid) && active(l) && l.status !== 'Sold'); return (ls.find(l => listingChans(l).includes(channel) && l.status === 'Active') || ls.find(l => l.status === 'Active') || ls[0] || {}).id || ''; };
 const lineRow = l => {
-  const p = l.productId && find('products', l.productId), custom = !p;
+  const p = l.productId && find('products', l.productId), custom = !p, free = !!l.free || !!(p && p.free);
   return `<div class="line"><div class="row" style="margin-bottom:8px"><select class="select sm" name="lp"><option value="">Custom item / service</option>${state.products.filter(x => active(x) || (p && x.id === p.id)).map(x => `<option value="${x.id}" ${p && x.id === p.id ? 'selected' : ''}>${esc(pLabel(x))} (${x.qty} in stock)</option>`).join('')}</select><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove item">${ic('x')}</button></div>
     <input class="input sm" name="ln" placeholder="Item name" value="${esc(custom ? l.name : (p ? p.name : ''))}" ${custom ? '' : 'hidden'} style="margin-bottom:8px">
     <select class="select sm" name="ll" style="margin-bottom:8px" ${p ? '' : 'hidden'}>${p ? listingOpts(p.id, l.listingId) : ''}</select>
     <select class="select sm" name="lv" style="margin-bottom:8px" ${p && (p.variants || []).length ? '' : 'hidden'}>${p && (p.variants || []).length ? variantOpts(p, l) : ''}</select><input type="hidden" name="lsz" value="${esc(l.size || '')}"><input type="hidden" name="lcl" value="${esc(l.color || '')}">
     <input type="hidden" name="lr" value="${l.returned || 0}">
-    <div class="grid3"><label>Qty<input class="input" type="number" step="1" min="1" name="lq" value="${l.qty ?? 1}"></label><label>Price each<input class="input" type="number" step="any" min="0" name="lc" value="${l.price ?? ''}" placeholder="0.00"></label><label>Cost each<input class="input" type="number" step="any" min="0" name="lk" value="${l.cost ?? ''}" placeholder="0.00"></label></div>
+    <div class="grid3"><label>Qty<input class="input" type="number" step="1" min="1" name="lq" value="${l.qty ?? 1}"></label><label>Price each<input class="input" type="number" step="any" min="0" name="lc" value="${l.price ?? ''}" placeholder="0.00"></label><label>Cost per unit<input class="input" type="number" step="any" min="0" name="lk" value="${l.cost ?? ''}" placeholder="0.00"></label></div>
+    <div class="row xs" data-costwarn style="gap:8px 12px;flex-wrap:wrap;margin-top:6px" ${num(l.cost) > 0 ? 'hidden' : ''}><span class="warn-txt" data-costnote ${free ? 'hidden' : ''}>No cost set, so profit shows as 100%.</span><label class="row xs b" style="gap:6px"><input type="checkbox" class="chk" name="lf" ${free ? 'checked' : ''}> Free item (cost really is $0)</label></div>
     <div class="warn-txt" data-stockwarn></div><div class="hint" data-tierhint style="margin-top:4px"></div></div>`;
 };
 const customerNames = () => [...new Set(state.customers.map(c => c.name).concat(state.orders.map(o => o.customer)).filter(Boolean))];
@@ -3417,7 +3388,7 @@ function readOrder0(f, existing) {
   const fd = new FormData(f);
   const items = $$('.line', f).map(row => {
     const pid = $('[name=lp]', row).value, p = pid && find('products', pid), ll = $('[name=ll]', row);
-    return { productId: p ? p.id : '', name: p ? p.name : tidy($('[name=ln]', row).value), listingId: p && ll ? ll.value : '', qty: Math.max(0, Math.round(num($('[name=lq]', row).value))), price: num($('[name=lc]', row).value), cost: num($('[name=lk]', row).value), returned: num($('[name=lr]', row).value), ...varOf(row) };
+    return { productId: p ? p.id : '', name: p ? p.name : tidy($('[name=ln]', row).value), listingId: p && ll ? ll.value : '', qty: Math.max(0, Math.round(num($('[name=lq]', row).value))), price: num($('[name=lc]', row).value), cost: num($('[name=lk]', row).value), free: !(num($('[name=lk]', row).value) > 0) && !!($('[name=lf]', row) || {}).checked, returned: num($('[name=lr]', row).value), ...varOf(row) };
   }).filter(l => l.qty > 0 && (l.productId || l.name));
   items.forEach(l => { l.returned = Math.min(l.returned, l.qty); });
   const feeRaw = String(fd.get('fees') || '').trim(), manual = feeRaw !== '', bulk = fd.get('bulk') === 'on';
@@ -3432,6 +3403,7 @@ FORMS.order = (f, fd, id) => {
   if (!o.date) return toast('Please choose a date');
   if (!old || old.status !== o.status) o = setOrderStatus(o, o.status);
   if (!old) { state.counters.order++; o.id = uid('o'); o.no = state.counters.order; o.createdAt = Date.now(); }
+  o.items.forEach(l => { const p = l.productId && find('products', l.productId); if (p && !(num(l.cost) > 0)) p.free = !!l.free; });
   putOrder(o); ensureCustomer(o.customer);
   done(old ? 'Sale updated' : 'Sale recorded', [`${old ? 'Updated' : 'New sale'} ${orderNo(o)}${o.customer ? ' · ' + o.customer : ''} · ${money(oc(o).net)}`, 'receipt']);
 };
@@ -3589,7 +3561,7 @@ OPEN.expense = id => {
     <div class="grid2">${fCat('Category', 'cat', 'expenseCats', d.cat)}${fText('Vendor', 'vendor', d.vendor, 'maxlength="60" list="vend-list"')}<datalist id="vend-list">${[...new Set(state.expenses.map(x => x.vendor).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('')}</datalist></div>
     ${fSel('Repeats', 'every', [['', 'Never'], ['weekly', 'Every week'], ['monthly', 'Every month'], ['yearly', 'Every year']], d.repeat ? d.repeat.every : '')}
     ${fSel('Paid from', 'acct', acctOpts(), d.acct || '')}
-    ${e ? '' : `${fCheck('This is stock I bought (supplies for making products)', 'stockBuy', !!d.stockBuy)}<div class="grid2">${fText('Supply name', 'supName', '', 'maxlength="60" placeholder="e.g. Bubble mailers"')}${fNum('How many', 'supQty', '', '50')}</div><p class="hint" style="margin:-4px 0 10px">Adds them to Supplies and works out the cost each (amount ÷ how many). It is not counted as an expense, so the cost is only taken off your profit when you sell products made with it. The money still leaves your account.</p>`}
+    ${e ? '' : `${fCheck('This is stock I bought (supplies for making products)', 'stockBuy', !!d.stockBuy)}<div class="grid2">${fText('Supply name', 'supName', '', 'maxlength="60" placeholder="e.g. Bubble mailers"')}${fNum('How many', 'supQty', '', '50')}</div><p class="hint" style="margin:-4px 0 10px">Adds them to Supplies and works out the cost per unit (amount ÷ how many). It is not counted as an expense, so the cost is only taken off your profit when you sell products made with it. The money still leaves your account.</p>`}
     ${fCheck('Tax deductible', 'deductible', d.deductible !== false)}
     ${fArea('Notes', 'notes', d.notes, 'Receipt number, what it was for…')}
     <p class="hint" style="margin-top:-4px">Repeating expenses add themselves on each due date. Don't log stock you resell here: it is costed automatically when sold.</p>`, foot('expense', id)));
@@ -3758,8 +3730,8 @@ OPEN.listing = id => {
     ${!state.products.filter(active).length && !l ? `<p class="hint" style="margin:0 0 12px">Tip: add a product first (Inventory &rsaquo; Products) and its title, description and price fill in here for you.</p>` : `<p class="hint" style="margin:0 0 12px">Step 3 of 3: a listing is what buyers see, on one or more platforms.</p>`}
     ${listingProductField(d)}
     <div class="fld"><span class="lbl">Listed on <small style="text-transform:none;letter-spacing:0;font-weight:600">pick all that apply</small></span><div class="mchips">${chans.map(c => `<label class="mchip"><input type="checkbox" name="chs" value="${esc(c)}" ${(d.channels || []).includes(c) ? 'checked' : ''}><span>${esc(c)}</span></label>`).join('')}</div></div>
-    <div class="fld"><span class="lbl">Listing title * <span class="row" style="gap:10px"><button type="button" class="link" data-act="use-ptitle" hidden>Use product title</button><button type="button" class="link" data-act="copy-field" data-f="title">${ic('copy')} Copy</button></span></span><input class="input" name="title" value="${esc(d.title)}" required maxlength="140" placeholder="What buyers see"></div>
-    <div class="fld"><span class="lbl">Description <span class="row" style="gap:10px"><button type="button" class="link" data-act="use-pdesc" hidden>Use product description</button><button type="button" class="link" data-act="copy-field" data-f="description">${ic('copy')} Copy</button></span></span><textarea class="textarea" name="description" maxlength="5000" style="min-height:120px" placeholder="Starts from the product's description. Reword it for this listing if you like">${esc(d.description)}</textarea></div>
+    <div class="fld"><span class="lbl">Listing title * <span class="row" style="gap:10px"><button type="button" class="link" data-act="copy-field" data-f="title">${ic('copy')} Copy</button></span></span><input class="input" name="title" value="${esc(d.title)}" required maxlength="140" placeholder="What buyers see"></div>
+    <div class="fld"><span class="lbl">Description <span class="row" style="gap:10px"><button type="button" class="link" data-act="copy-field" data-f="description">${ic('copy')} Copy</button></span></span><textarea class="textarea" name="description" maxlength="5000" style="min-height:120px" placeholder="What buyers read">${esc(d.description)}</textarea></div>
     <div class="grid2">${fNum('Price *', 'price', d.price, '0.00', 'required min="0"')}${fSel('Status', 'status', LISTING_STATUSES, d.status)}</div>
     <div class="grid2">${fText('Listing SKU', 'sku', d.sku, 'maxlength="30"')}${fDate('Listed on', 'listedDate', d.listedDate, false)}</div>
     ${fDate('Renew on', 'relistDate', d.relistDate, false)}
@@ -3787,7 +3759,6 @@ FORMS.listing = (f, fd, id) => {
   const rec = readListing(f); if (!rec.title) return toast('Give the listing a title');
   if (rec.status !== 'Draft' && !rec.channels.length) return toast('Choose at least one platform it is listed on');
   if (rec.discounts.some(d => d.start && d.end && d.end < d.start)) return toast('A discount ends before it starts');
-  const p = find('products', rec.productId); rec.pTitleSeen = p ? productTitle(p) : ''; rec.pDescSeen = p ? p.description : '';
   if (id) Object.assign(find('listings', id), rec); else { state.counters.listing++; state.listings.push({ id: uid('l'), createdDate: today(), snaps: [], ...rec }); }
   done('Listing saved', [`${id ? 'Updated' : 'New'} listing ${rec.title}${rec.channels.length ? ' on ' + rec.channels.join(', ') : ''}`, 'store']);
 };
@@ -3848,6 +3819,7 @@ function formLive0(f, target) {
   const type = f.dataset.form, pv = $('#pv', f);
   if (type === 'product') {
     curPid = f.dataset.id || '';
+    { const oo = $('[name=oneOff]', f); if (oo && target) { if (target.name === 'oneOff') f.dataset.ooTouched = '1'; else if (target.name === 'qty' && !f.dataset.id && !f.dataset.ooTouched) oo.checked = Math.round(num(target.value)) === 1; } }
     const rec = readRecipe(f), batch = Math.max(1, Math.round(num($('[name=batch]', f).value) || 1));
     $('#batch-wrap', f).hidden = !$$('.rec-row', f).length;
     const old = f.dataset.id ? find('products', f.dataset.id) : null, arch = old && old.archived, pdEl = $('[name=paid]', f), qtyN = num($('[name=qty]', f) ? $('[name=qty]', f).value : 0), baseCost = old ? num(old.cost) : (pdEl && num(pdEl.value) > 0 ? num(pdEl.value) : 0), cost = unitCost({ cost: baseCost, recipe: rec, batch });
@@ -3857,26 +3829,23 @@ function formLive0(f, target) {
     const sup = f.querySelector('[name=type]').value === 'supply', it = find(sup ? 'supplies' : 'products', f.dataset.id), mode = $('[name=mode]', f).value, raw = $('[name=amt]', f).value, amt = num(raw), paid = $('[name=paid]', f) ? num($('[name=paid]', f).value) : 0;
     if (!it) return;
     $('#paid-wrap', f).hidden = mode !== 'add';
-    const cur = stockQty(it), nq = mode === 'add' ? cur + amt : mode === 'remove' ? cur - amt : amt, have = Math.max(0, num(it.qty)), nc = mode === 'add' && paid > 0 && amt > 0 ? (have * num(it.cost) + paid) / (have + amt) : null;
+    const cur = stockQty(it), nq = mode === 'add' ? cur + amt : mode === 'remove' ? cur - amt : amt, have = Math.max(0, num(it.qty)), nc = mode === 'add' && paid > 0 && amt > 0 ? (have * num(it.cost) + paid * amt) / (have + amt) : null;
     pv.innerHTML = raw === '' ? '' : `<div class="kv"><span>New ${sup ? 'available' : 'stock'} level</span><b class="num ${nq < 0 ? 'bad-t' : ''}">${r2(nq)}</b></div>${nc != null ? `<div class="kv"><span>Average cost per unit</span><b class="num">${money(nc)}</b></div>` : ''}`;
     pv.hidden = raw === '';
   } else if (type === 'mileage') {
     const m = num($('[name=miles]', f).value) * ($('[name=round]', f).checked ? 2 : 1);
     pv.innerHTML = `<div class="kv"><span>Deduction at ${money(state.settings.mileRate)}/${state.settings.mileUnit}</span><b class="num">${money(m * num(state.settings.mileRate))}</b></div>`;
   } else if (type === 'listing') {
-    const tEl = $('[name=title]', f), dEl = $('[name=description]', f), prEl = $('[name=price]', f);
+    const tEl = $('[name=title]', f), prEl = $('[name=price]', f);
     if (target && target.dataset.listprod !== undefined) {
       const p = find('products', target.value);
-      if (p) { if (!tEl.value.trim() || tEl.dataset.auto) { tEl.value = productTitle(p); tEl.dataset.auto = 1; } if (!dEl.value.trim() || dEl.dataset.auto) { dEl.value = p.description || ''; dEl.dataset.auto = 1; } if (prEl.value === '' || prEl.dataset.auto) { prEl.value = p.price || ''; prEl.dataset.auto = 1; } }
+      if (p) { if (!tEl.value.trim() || tEl.dataset.auto) { tEl.value = p.name; tEl.dataset.auto = 1; } if (prEl.value === '' || prEl.dataset.auto) { prEl.value = p.price || ''; prEl.dataset.auto = 1; } }
     }
     if (target && target.name === 'title') delete tEl.dataset.auto;
-    if (target && target.name === 'description') delete dEl.dataset.auto;
     if (target && target.name === 'price') delete prEl.dataset.auto;
     if (target && target.name === 'chs') { const cur = {}; $$('[data-url]', f).forEach(i => { cur[i.dataset.url] = i.value; }); $('#url-box', f).innerHTML = urlRows($$('[name=chs]:checked', f).map(c => c.value), cur); }
     if (target && target.classList && target.classList.contains('d-no')) { const row = target.closest('.disc-row'), e = $('.d-end', row); e.disabled = target.checked; if (target.checked) e.value = ''; }
     const r = readListing(f), p = find('products', r.productId), plist = listingProducts(r).map(id => find('products', id)).filter(Boolean), unit = plist.length ? sum(plist, unitCost) : null, lp = listingPrice(r);
-    const ut = $('[data-act=use-ptitle]', f), ud = $('[data-act=use-pdesc]', f);
-    ut.hidden = !p || tidy(tEl.value) === tidy(productTitle(p)); ud.hidden = !p || !(p.description) || tidy(dEl.value) === tidy(p.description);
     $('#renew-hint', f).textContent = `Leave "Renew on" empty and it renews automatically every ${renewEvery(r.channels)} days${r.channels.length ? ' (the shortest time among your platforms)' : ''}.`;
     const perChan = r.channels.map(c => { const fee = feeFor(c, lp), keep = lp - fee; return `<div class="kv"><span>${esc(c)}: you keep</span><b class="num ${unit != null && keep < unit ? 'bad-t' : ''}">${money(keep)}${unit != null && lp > 0 ? ' · ' + pct((keep - unit) / lp * 100) + ' margin' : ''}</b></div>`; }).join('');
     pv.innerHTML = (r.bundle.length ? `<div class="kv"><span>Products if sold separately</span><b class="num">${money(sum(plist, x => num(x.price)))}</b></div>` : '') + `<div class="kv"><span>Price buyers see${lp !== price_(r) ? ' (discounted)' : ''}</span><b class="num">${money(lp)}</b></div>${perChan}${r.status === 'Active' && r.listedDate ? `<div class="kv"><span>Live for</span><b>${listingAge(r) == null ? 'Starts ' + fmtDate(r.listedDate) : listingAge(r) + ' days'} · renews ${fmtDate(r.relistDate)}</b></div>` : ''}${r.discounts.length ? r.discounts.map(d => `<div class="kv"><span>${discActive(d) ? 'Running' : discUpcoming(d) ? 'Scheduled' : 'Ended'}</span><b style="text-align:right">${esc(discText(d))}</b></div>`).join('') : ''}${unit != null ? `<p class="hint" style="margin:6px 0 0">Margins use your cost (${money(unit)}) and each platform's fees, before shipping.</p>` : ''}`;
@@ -3894,6 +3863,7 @@ function formLive0(f, target) {
     if (target && target.name === 'lp') {
       const row = target.closest('.line'), p = find('products', target.value), nm = $('[name=ln]', row), ll = $('[name=ll]', row), qty = Math.max(1, Math.round(num($('[name=lq]', row).value)));
       nm.hidden = !!p; ll.hidden = !p;
+      { const lf = $('[name=lf]', row); if (lf) lf.checked = !!(p && p.free); }
       if (p) { const pr = $('[name=lc]', row); pr.value = tierPrice(p, qty); pr.dataset.auto = 1; $('[name=lk]', row).value = r2(unitCost(p)); ll.innerHTML = listingOpts(p.id, pickListing(p.id, $('[name=channel]', f).value)); ll.value = pickListing(p.id, $('[name=channel]', f).value); } else { nm.value = ''; ll.innerHTML = ''; }
     }
     if (target && target.name === 'lc') delete target.dataset.auto;
@@ -3903,6 +3873,7 @@ function formLive0(f, target) {
       const p = find('products', $('[name=lp]', row).value), q = Math.round(num($('[name=lq]', row).value)), w = $('[data-stockwarn]', row), th = $('[data-tierhint]', row);
       const avl = p ? p.qty + (back[p.id] || 0) : null;
       w.textContent = p && q > avl ? `Only ${Math.max(0, avl)} in stock` : '';
+      { const cw = $('[data-costwarn]', row), lf = $('[name=lf]', row), cn = $('[data-costnote]', row); if (cw && lf && cn) { cw.hidden = num($('[name=lk]', row).value) > 0; cn.hidden = lf.checked; } }
       const nextTier = p ? (p.tiers || []).filter(t => num(t.minQty) > q).sort((a, b) => a.minQty - b.minQty)[0] : null;
       th.textContent = nextTier ? `Buy ${nextTier.minQty}+ and the price drops to ${money(nextTier.price)} each` : '';
     });
@@ -4050,7 +4021,7 @@ OPEN.bulkListings = () => {
   const listed = new Set(); state.listings.filter(l => active(l) && l.status !== 'Sold' && l.status !== 'Expired').forEach(l => listingProducts(l).forEach(id => listed.add(id)));
   const chans = state.settings.channels.map(c => c.name);
   openSheet('Bulk create listings', formWrap('bulklist', '', `
-    <p class="hint" style="margin:0 0 12px">Pick products and where to list them. Each product gets its own listing on every platform you tick, with title, description and price filled in from the product. Or tick "Combine" to put all the picked products in ONE listing (a bundle or lot).</p>
+    <p class="hint" style="margin:0 0 12px">Pick products and where to list them. Each product gets its own listing on every platform you tick, with the product name as its title and the price filled in from the product. Or tick "Combine" to put all the picked products in ONE listing (a bundle or lot).</p>
     <div class="row between" style="margin-bottom:6px"><span class="eyebrow">Products</span><span class="row" style="gap:14px"><button type="button" class="link" data-act="pick-all" data-v="1">All shown</button><button type="button" class="link" data-act="pick-all" data-v="0">None</button></span></div>
     ${pickFilterBox('Search name or SKU…')}
     <div class="scrollbox" style="margin-bottom:14px">${prods.map(p => `<label class="pick"><input type="checkbox" class="chk" name="bp" value="${p.id}" ${listed.has(p.id) ? '' : 'checked'}><span class="grow" style="min-width:0"><span class="trunc b" style="display:block">${esc(p.name)}${listed.has(p.id) ? ' <small>· already listed</small>' : ''}</span><small>${p.sku ? esc(p.sku) : 'No SKU'}</small></span><small class="num">${money(p.price)}</small></label>`).join('')}</div>
@@ -4059,7 +4030,7 @@ OPEN.bulkListings = () => {
     <div class="grid2">${fSel('Status', 'status', ['Active', 'Draft'], 'Active')}${fDate('Listed on', 'listedDate', today(), false)}</div>
     ${adjFields('Price vs. product price', 'p').replace('<option value="set">Set to</option>', '')}
     ${fCheck('Combine ALL picked products into ONE listing (a bundle or lot)', 'combine', false)}
-    <div id="combine-box" hidden>${fText('Bundle title *', 'btitle', '', 'maxlength="140" placeholder="e.g. Jewelry lot, 5 pieces"')}${fArea('Bundle description', 'bdesc', '', 'Leave blank to use each product name and description', 'maxlength="5000"')}<p class="hint" style="margin-top:-6px;margin-bottom:12px">The bundle price starts as the total of the picked products' prices.</p></div>
+    <div id="combine-box" hidden>${fText('Bundle title *', 'btitle', '', 'maxlength="140" placeholder="e.g. Jewelry lot, 5 pieces"')}${fArea('Bundle description', 'bdesc', '', 'Optional', 'maxlength="5000"')}<p class="hint" style="margin-top:-6px;margin-bottom:12px">The bundle price starts as the total of the picked products' prices.</p></div>
     ${fCheck('Make a separate listing for each platform', 'split', false)}
     ${fCheck('Skip products already listed on that platform', 'skip', true)}
     <div class="preview" id="pv"></div>`, foot('', '', 'Create listings')));
@@ -4086,12 +4057,12 @@ FORMS.bulklist = (f, fd) => {
         const ps = x.pids.map(id => find('products', id)).filter(Boolean); if (ps.length < 2) return;
         state.counters.listing++;
         const base = sum(ps, q => num(q.price));
-        state.listings.push({ id: uid('l'), createdDate: today(), title: tidy(fd.get('btitle')), description: tidy(fd.get('bdesc')) || ps.map(q => q.name + (q.description ? ': ' + q.description : '')).join('\n\n'), pTitleSeen: productTitle(ps[0]), pDescSeen: ps[0].description || '', productId: ps[0].id, bundle: ps.slice(1).map(q => q.id), channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(base, mode, val) : base, status, listedDate: status === 'Active' ? listed : '', relistDate: status === 'Active' ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: '', notes: '' });
+        state.listings.push({ id: uid('l'), createdDate: today(), title: tidy(fd.get('btitle')), description: tidy(fd.get('bdesc')), productId: ps[0].id, bundle: ps.slice(1).map(q => q.id), channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(base, mode, val) : base, status, listedDate: status === 'Active' ? listed : '', relistDate: status === 'Active' ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: '', notes: '' });
         return;
       }
       const p = find('products', x.pid); if (!p) return;
       state.counters.listing++;
-      state.listings.push({ id: uid('l'), createdDate: today(), title: productTitle(p), description: p.description || '', pTitleSeen: productTitle(p), pDescSeen: p.description || '', productId: p.id, channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(p.price, mode, val) : num(p.price), status, listedDate: status === 'Active' ? listed : '', relistDate: status === 'Active' ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: p.tags || '', notes: '' });
+      state.listings.push({ id: uid('l'), createdDate: today(), title: p.name, description: '', productId: p.id, channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(p.price, mode, val) : num(p.price), status, listedDate: status === 'Active' ? listed : '', relistDate: status === 'Active' ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: p.tags || '', notes: '' });
     });
     logAct(`Bulk created ${plan.length} listings`, 'layers'); ui.seg.stock = 'listings'; ui.filter = 'all';
   });
@@ -4132,7 +4103,7 @@ function parseCsv(text) {
   row.push(cell); if (row.some(c => c.trim() !== '')) rows.push(row);
   return rows;
 }
-const CSV_ALIAS = { name: ['name', 'title', 'product', 'productname', 'item', 'itemname'], sku: ['sku', 'code', 'itemcode', 'productcode'], category: ['category', 'type'], price: ['price', 'sellingprice', 'retailprice', 'saleprice'], cost: ['cost', 'unitcost', 'costprice', 'costperunit'], valEst: ['estimatedvalue', 'estimatedvalueperunit', 'valueestimate', 'estvalue', 'valueperunit'], qty: ['qty', 'quantity', 'stock', 'instock', 'onhand'], low: ['low', 'lowstock', 'lowstockalert', 'reorderpoint'], location: ['location', 'bin', 'shelf'], barcode: ['barcode', 'upc', 'ean'], tags: ['tags', 'tag'], description: ['description', 'desc', 'details'], notes: ['notes', 'note'] };
+const CSV_ALIAS = { name: ['name', 'title', 'product', 'productname', 'item', 'itemname'], sku: ['sku', 'code', 'itemcode', 'productcode'], category: ['category', 'type'], price: ['price', 'sellingprice', 'retailprice', 'saleprice'], cost: ['cost', 'unitcost', 'costprice', 'costperunit'], valEst: ['estimatedvalue', 'estimatedvalueperunit', 'valueestimate', 'estvalue', 'valueperunit'], qty: ['qty', 'quantity', 'stock', 'instock', 'onhand'], low: ['low', 'lowstock', 'lowstockalert', 'reorderpoint'], location: ['location', 'bin', 'shelf'], barcode: ['barcode', 'upc', 'ean'], tags: ['tags', 'tag'], notes: ['notes', 'note'] };
 function csvProducts(text) {
   const rows = parseCsv(text); if (rows.length < 2) return { items: [], err: 'Add a header row and at least one product.' };
   const head = rows[0].map(h => lc(h).replace(/[^a-z]/g, '')), col = {};
@@ -4141,10 +4112,10 @@ function csvProducts(text) {
   const items = rows.slice(1).map(r => { const o = {}; Object.entries(col).forEach(([k, i]) => { const v = String(r[i] ?? '').trim(); if (v !== '') o[k] = v; }); return o; }).filter(o => o.name);
   return { items, cols: Object.keys(col) };
 }
-const CSV_TEMPLATE = 'name,sku,category,price,cost,qty,low,location,barcode,tags,description\r\nBeaded Bracelet,PROD-001,General,24,0.5,14,5,Shelf A,,gift,"Handmade glass bead bracelet on stretch cord"\r\nCanvas Tote Bag,PROD-002,General,22,8.5,30,5,Shelf B,,,\r\n';
+const CSV_TEMPLATE = 'name,sku,category,price,cost,qty,low,location,barcode,tags\r\nBeaded Bracelet,PROD-001,General,24,0.5,14,5,Shelf A,,gift\r\nCanvas Tote Bag,PROD-002,General,22,8.5,30,5,Shelf B,,\r\n';
 OPEN.csvImport = () => {
   openSheet('Import products (CSV)', formWrap('csv', '', `
-    <p class="hint" style="margin:0 0 12px">Export from a spreadsheet or another tool as CSV. Needs a header row with a <b>name</b> column; <b>sku, category, price, cost, qty, low, location, barcode, tags, description, notes</b> are optional. Existing products are matched by SKU (or name) and updated.</p>
+    <p class="hint" style="margin:0 0 12px">Export from a spreadsheet or another tool as CSV. Needs a header row with a <b>name</b> column; <b>sku, category, price, cost, qty, low, location, barcode, tags, notes</b> are optional. Existing products are matched by SKU (or name) and updated.</p>
     <label class="fld"><span>Choose a file</span><input class="input" type="file" id="csv-file" accept=".csv,.txt,text/csv"></label>
     <label class="fld"><span>…or paste it here</span><textarea class="textarea" name="text" style="min-height:110px;font-family:monospace;font-size:12px" placeholder="name,price,qty&#10;Mug,12,40"></textarea></label>
     <button type="button" class="link" data-act="csv-template">${ic('download')} Download a template</button>
@@ -4160,9 +4131,9 @@ FORMS.csv = (f, fd) => {
       const p = match(it), upd = { name: it.name };
       if (it.sku != null) upd.sku = it.sku; if (it.category) { upd.category = it.category; if (!state.settings.stockCats.includes(it.category)) state.settings.stockCats.push(it.category); }
       if (it.price != null) upd.price = num(it.price); if (it.cost != null) upd.cost = num(it.cost); if (it.valEst != null) upd.valEst = Math.max(0, num(it.valEst)); if (it.qty != null) upd.qty = Math.round(num(it.qty)); if (it.low != null) upd.low = Math.max(0, Math.round(num(it.low)));
-      ['location', 'barcode', 'tags', 'notes', 'description'].forEach(k => { if (it[k] != null) upd[k] = it[k]; });
+      ['location', 'barcode', 'tags', 'notes'].forEach(k => { if (it[k] != null) upd[k] = it[k]; });
       if (p) Object.assign(p, upd);
-      else state.products.push({ id: uid('p'), sku: nextSku(), barcode: '', category: state.settings.stockCats[0] || '', location: '', supplierId: '', tags: '', notes: '', title: '', description: '', price: 0, cost: 0, qty: 0, low: '', recipe: [], batch: 1, tiers: [], ...upd });
+      else state.products.push({ id: uid('p'), sku: nextSku(), barcode: '', category: state.settings.stockCats[0] || '', location: '', supplierId: '', tags: '', notes: '', price: 0, cost: 0, qty: 0, low: '', recipe: [], batch: 1, tiers: [], ...upd, oneOff: Math.round(num(upd.qty)) === 1 && (upd.low === '' || upd.low == null) });
     });
     logAct(`Imported products: ${added} new, ${updated} updated`, 'upload');
   });
@@ -4180,7 +4151,7 @@ function exportCsv(kind) {
     orders: [['Order', 'Date', 'Customer', 'Platform', 'Status', 'Items', 'Sales', 'Discount', 'Shipping charged', 'Sales tax', 'Refunded', 'Fees', 'Postage', 'Cost of goods', 'Reimbursed to you', 'Profit after cost of goods', 'Money made before cost of goods', 'Estimated profit after cost of goods', 'Final amount entered', 'Bulk', 'PO', 'Deposit', 'Paid with', 'Carrier', 'Tracking', 'Archived'], by(S.orders, 'date').map(o => { const c = oc(o); return [orderNo(o), o.date, o.customer, o.channel, o.status, o.items.map(i => `${i.qty}x ${i.name}`).join('; '), r2(c.sub), r2(c.disc), r2(num(o.shipCharged)), r2(num(o.tax)), r2(c.refund), r2(c.fees), r2(c.post), r2(c.cogs), r2(c.reimb), r2(c.profit), r2(c.made), r2(c.calcProfit), c.hasFinal ? 'yes' : '', o.bulk ? 'yes' : '', o.po || '', r2(num(o.deposit)), o.payment || '', o.carrier || '', o.tracking, o.archived ? 'yes' : '']; })],
     expenses: [['Date', 'Description', 'Category', 'Vendor', 'Amount', 'Deductible', 'Notes'], by(S.expenses, 'date').map(e => [e.date, e.desc, e.cat, e.vendor || '', r2(num(e.amount)), e.deductible === false ? 'no' : 'yes', e.notes || ''])],
     income: [['Date', 'Source', 'Amount'], by(S.income, 'date').map(e => [e.date, e.desc, r2(num(e.amount))])],
-    products: [['Name', 'Listing title', 'Description', 'SKU', 'Barcode', 'Category', 'Price', 'Cost per unit', 'Estimated value per unit', 'In stock', 'Makes (batch)', 'Low alert', 'Location', 'Supplier', 'Tags', 'Notes', 'Archived'], S.products.map(p => [p.name, p.title || '', p.description || '', p.sku, p.barcode || '', p.category, p.price, r2(unitCost(p)), hasEst(p) ? p.valEst : '', p.qty, p.batch || 1, p.low, p.location || '', sup(p.supplierId), p.tags || '', p.notes || '', p.archived ? 'yes' : ''])],
+    products: [['Name', 'SKU', 'Barcode', 'Category', 'Price', 'Cost per unit', 'Estimated value per unit', 'In stock', 'Makes (batch)', 'Low alert', 'Location', 'Supplier', 'Tags', 'Notes', 'Archived'], S.products.map(p => [p.name, p.sku, p.barcode || '', p.category, p.price, r2(unitCost(p)), hasEst(p) ? p.valEst : '', p.qty, p.batch || 1, p.low, p.location || '', sup(p.supplierId), p.tags || '', p.notes || '', p.archived ? 'yes' : ''])],
     supplies: [['SKU', 'Name', 'Unit', 'In total', 'Used in products', 'Available', 'Cost per unit', 'Estimated value per unit', 'Low alert', 'Category', 'Location', 'Supplier', 'Notes', 'Archived'], S.supplies.map(p => [p.sku || '', p.name, p.unit, p.qty, r2(allocated(p.id)), r2(avail(p)), p.cost, hasEst(p) ? p.valEst : '', p.low, p.category, p.location || '', sup(p.supplierId), p.notes || '', p.archived ? 'yes' : ''])],
     listings: [['Title', 'Description', 'SKU', 'Platforms', 'Status', 'Price', 'Price now', 'Discounts', 'Listed', 'Renews', 'Age (days)', 'Bundle (extra products)'].concat(M.map(m => 'Total ' + m), ['Archived']), S.listings.map(l => { const t = listingTotals(l); return [l.title, l.description || '', l.sku, listingChans(l).join('; '), l.status, l.price, r2(listingPrice(l)), (l.discounts || []).map(d => discText(d)).join(' | '), l.listedDate, l.relistDate, listingAge(l) ?? '', (l.bundle || []).map(id => (state.products.find(p => p.id === id) || {}).name || '').filter(Boolean).join('; ')].concat(M.map(m => t[m] ?? ''), [l.archived ? 'yes' : '']); })],
     snaps: [['Listing', 'Platform', 'Date', 'Time', 'Note'].concat(M), S.listings.flatMap(l => (l.snaps || []).slice().sort((a, b) => snapKey(a).localeCompare(snapKey(b))).map(s => [l.title, s.channel, s.date, s.time, s.note || ''].concat(M.map(m => (s.m || {})[m] ?? ''))))],
@@ -4212,7 +4183,7 @@ function gresHtml(q) {
   const sections = [
     ['Sales', state.orders.filter(o => has(orderNo(o), o.customer, o.channel, o.tracking, o.po, o.items.map(i => i.name).join(' '))).slice(0, 5).map(o => ({ ico: 'receipt', t: `${orderNo(o)}${o.customer ? ' · ' + o.customer : ''}`, s: `${fmtDate(o.date)} · ${o.status} · ${money(oc(o).net)}`, a: `data-act="open-order" data-id="${o.id}"` }))],
     ['Supplies', state.supplies.filter(p => has(p.name, p.sku, p.location, p.category)).slice(0, 5).map(p => ({ ico: 'box', t: p.name, s: `${r2(avail(p))} ${p.unit} available`, a: `data-act="edit" data-type="supply" data-id="${p.id}"` }))],
-    ['Products', state.products.filter(p => has(p.name, p.title, p.sku, p.barcode, p.tags, p.location)).slice(0, 5).map(p => ({ ico: 'tag', t: p.name, s: `${p.qty} in stock · ${money(p.price)}${p.archived ? ' · archived' : ''}`, a: `data-act="edit" data-type="product" data-id="${p.id}"` }))],
+    ['Products', state.products.filter(p => has(p.name, p.sku, p.barcode, p.tags, p.location)).slice(0, 5).map(p => ({ ico: 'tag', t: p.name, s: `${p.qty} in stock · ${money(p.price)}${p.archived ? ' · archived' : ''}`, a: `data-act="edit" data-type="product" data-id="${p.id}"` }))],
     ['Listings', state.listings.filter(l => has(l.title, l.sku, listingChans(l).join(' '), l.tags)).slice(0, 5).map(l => ({ ico: 'store', t: l.title, s: `${listingChans(l).join(', ') || 'No platform'} · ${l.status} · ${money(listingPrice(l))}`, a: `data-act="edit" data-type="listing" data-id="${l.id}"` }))],
     ['Customers', state.customers.filter(c => has(c.name, c.email, c.phone, c.tags)).slice(0, 5).map(c => ({ ico: 'user', t: c.name, s: c.email || c.phone || '', a: `data-act="edit" data-type="customer" data-id="${c.id}"` }))],
     ['Expenses', state.expenses.filter(e => has(e.desc, e.vendor, e.cat)).slice(0, 5).map(e => ({ ico: 'wallet', t: e.desc, s: `${fmtDate(e.date)} · ${money(e.amount)}`, a: `data-act="edit" data-type="expense" data-id="${e.id}"` }))],
@@ -4520,16 +4491,10 @@ const ACT = {
     putOrder(setOrderStatus(o, n)); logAct(`${orderNo(o)} marked ${n}`, 'truck'); save(); render(); OPEN.orderDetail(o.id); toast('Marked as ' + n);
   },
 
-  /* listings: copy buttons, product text sync, renewal, analytics */
+  /* listings: copy buttons, renewal, analytics */
   'copy-title': el => { const l = find('listings', el.dataset.id); if (l) copyText(l.title, 'Title'); },
   'copy-desc': el => { const l = find('listings', el.dataset.id); if (l) copyText(l.description, 'Description'); },
   'copy-field': el => { const f = formOf(el), i = $(`[name=${el.dataset.f}]`, f); if (i) copyText(i.value, el.dataset.f); },
-  'use-ptitle': el => { const f = formOf(el), p = find('products', $('[name=productId]', f).value); if (p) { const i = $('[name=title]', f); i.value = productTitle(p); delete i.dataset.auto; formLive(f); } },
-  'use-pdesc': el => { const f = formOf(el), p = find('products', $('[name=productId]', f).value); if (p) { const i = $('[name=description]', f); i.value = p.description || ''; delete i.dataset.auto; formLive(f); } },
-  'sync-title': el => { const l = find('listings', el.dataset.id), p = l && find('products', l.productId); if (p) { l.title = productTitle(p); l.pTitleSeen = productTitle(p); save(); render(); toast('Title updated to match'); } },
-  'sync-desc': el => { const l = find('listings', el.dataset.id), p = l && find('products', l.productId); if (p) { l.description = p.description || ''; l.pDescSeen = p.description || ''; save(); render(); toast('Description updated to match'); } },
-  'keep-title': el => { const l = find('listings', el.dataset.id), p = l && find('products', l.productId); if (p) { l.pTitleSeen = productTitle(p); save(); render(); toast('Keeping your title'); } },
-  'keep-desc': el => { const l = find('listings', el.dataset.id), p = l && find('products', l.productId); if (p) { l.pDescSeen = p.description || ''; save(); render(); toast('Keeping your description'); } },
   relist: async el => {
     const l = find('listings', el.dataset.id); if (!l) return;
     if (!await confirmBox('Mark as renewed?', `Use this after you have actually renewed or relisted "${l.title}" on its platform. It restarts the listing's age and sets the next renewal date.`, 'Yes, I renewed it', false)) return;
@@ -4749,15 +4714,15 @@ const HELP = {
     example: 'Beads are low, mailers are out. Both show under Needs restock so you can reorder in one go.',
     links: [['Supplies', 'Packing and extras', 't:stock:supplies'], ['Components', 'Parts that go into products', 't:stock:components'], ['Products', 'What you sell', 't:stock:products'], ['Listings', 'What buyers see', 't:stock:listings']], tip: 'Tap the Inventory tab at the bottom any time to come back here.' },
   'stock.supplies': { title: 'Inventory › Supplies', purpose: 'The extras you use up around your products: packing, tape, mailers, labels, gift boxes, ink. These are not the parts of the product itself. Those go in Components.',
-    steps: ['Tap + Supply. Enter the name, the unit (pcs, roll, pack…), how many you have, and what one unit costs.', 'Don’t know the cost per unit? Divide what you paid by how many you got and enter that.', 'Set a low-stock level. When you drop to it, the item shows “Low” and appears in your Inbox and the Reorder list.', 'Tap the + on a card when more arrives. Enter how many, what you paid and the date.', 'Pick a supply in a product’s recipe if each product uses some (for example 1 mailer and 0.2 m of tape).', 'Mixed something up? Open the item and change “This is a” to Supply or Component to move it between tabs.'],
+    steps: ['Tap + Supply. Enter the name, the unit (pcs, roll, pack…), how many you have, and the cost per unit.', 'Don’t know the cost per unit? Divide what you paid by how many you got and enter that.', 'Set a low-stock level. When you drop to it, the item shows “Low” and appears in your Inbox and the Reorder list.', 'Tap the + on a card when more arrives. Enter how many, the cost per unit and the date.', 'Pick a supply in a product’s recipe if each product uses some (for example 1 mailer and 0.2 m of tape).', 'Mixed something up? Open the item and change “This is a” to Supply or Component to move it between tabs.'],
     example: 'Bubble mailers · 120 pcs · $0.20 each · low at 25. A bracelet recipe that uses 1 mailer adds $0.20 to its cost.',
     links: [['Components', 'The parts that go into products', 't:stock:components'], ['Products', 'Recipes can use supplies', 't:stock:products'], ['Orders & deliveries', 'Order more and track it until it arrives', 's:purchases'], ['Suppliers', 'Who you buy each supply from', 's:suppliers']], tip: 'Don’t log supplies you resell as expenses. Their cost is counted when sold, so it would count twice.' },
   'stock.components': { title: 'Inventory › Components', purpose: 'The parts that go INTO what you sell: beads, chain, clasps, wire, fabric, or a handmade charm you make ahead of time. Supplies (packing, tape) stay on the Supplies tab.',
-    steps: ['Tap + Component. Name it, choose the unit, and enter how many you have.', 'Enter the cost per unit (what you paid divided by how many you got).', 'When you make or buy more, tap the + on the card. Enter how many, what you paid and the date.', 'In a product’s recipe, pick components and supplies together. Cost per unit is worked out from them.'],
+    steps: ['Tap + Component. Name it, choose the unit, and enter how many you have.', 'Enter the cost per unit (what you paid divided by how many you got).', 'When you make or buy more, tap the + on the card. Enter how many, the cost per unit and the date.', 'In a product’s recipe, pick components and supplies together. Cost per unit is worked out from them.'],
     example: 'Glass beads · 18 packs · $3.50 per pack. A bracelet uses 1 pack for every 2 bracelets, so each bracelet carries $1.75 in beads.',
     links: [['Supplies', 'Packing, tape and other extras', 't:stock:supplies'], ['Products', 'Recipes use components', 't:stock:products'], ['Orders & deliveries', 'Track components you ordered', 's:purchases'], ['Suppliers', 'Who you buy from', 's:suppliers']], tip: 'Components and supplies are counted the same way: what you own, minus what products already use, is what is available.' },
   'stock.products': { title: 'Inventory › Products', purpose: 'What you actually sell. A product has a price, a quantity in stock and a cost. The cost comes from the components and supplies in its recipe, or you type it in if you buy it ready-made.',
-    steps: ['Tap + Product. Add a name, SKU and price.', 'Made it yourself? Add a recipe: pick components and supplies together and how much of each the whole batch uses, plus how many units the batch makes. Unit cost is calculated.', 'Bought it ready-made? Type its cost per unit, or the price you paid per unit when you add it, and set the date you got it.', 'More arrives later? Tap the + on the card and enter how many, what you paid and the date.', 'Optional extras: price tiers (cheaper in bulk), sizes & colors, a listing title and description.'],
+    steps: ['Tap + Product. Add a name, SKU and price.', 'Made it yourself? Add a recipe: pick components and supplies together and how much of each the whole batch uses, plus how many units the batch makes. Unit cost is calculated.', 'Bought it ready-made? Type its cost per unit when you add it, and set the date you got it.', 'More arrives later? Tap the + on the card and enter how many, the cost per unit and the date.', 'Optional extras: price tiers (cheaper in bulk), sizes & colors.'],
     example: 'Wire Ring · batch of 22 uses 13.2 m of wire ($0.90/m) → cost $0.54 each. Price $18 → margin about 97%.',
     links: [['Components', 'Parts that go into the recipe', 't:stock:components'], ['Supplies', 'Packing and extras in the recipe', 't:stock:supplies'], ['Listings', 'Create listings for a product', 't:stock:listings'], ['Sales', 'Selling a product lowers its stock', 't:sales']], tip: 'Margin turns amber under 20%, a hint to raise the price or lower the cost.' },
   'stock.listings': { title: 'Inventory › Listings (step 3)', purpose: 'What buyers see on each platform: title, description, price and link. One listing can sit on several platforms at once, and the app tracks renewals, discounts and analytics.',
@@ -4815,9 +4780,9 @@ const HELP = {
     example: 'Start $800 + $300 invoices − $450 rent − $180 supplier order → about $470 in 30 days.',
     links: [['Accounts', 'Starting cash', 't:money:accounts'], ['Bills & invoices', 'Money in and out', 's:bills'], ['Purchase orders', 'Supplier payments', 's:purchases']], tip: 'It is an estimate based on your last weeks of sales and spending.' },
   purchases: { title: 'Orders & deliveries', purpose: 'Everything you bought from suppliers. Tap where it is now (bought, shipped, in transit, out for delivery, delayed, delivered) and the dates are kept. When it is delivered, receiving it adds the items to your stock.',
-    steps: ['Tap + Order. Pick a saved supplier, or type the store or website (Amazon, a craft fair seller…).', 'Add the items: pick a supply, component or product, or type a name for anything else. Enter the quantity and what each costs.', 'Add the carrier and tracking number if you have them. Open the order to tap Track package.', 'Open an order and tap where it is now: Ordered, In Transit, Out for Delivery or Delayed. The On the way filter shows only what has not arrived.', 'When it shows up, tap Delivered (or Receive items). Enter how many came. You can receive in parts. Stock goes up and a bill can be made so you remember to pay.'],
+    steps: ['Tap + Order. Pick a saved supplier, or type the store or website (Amazon, a craft fair seller…).', 'Add the items: pick a supply, component or product, or type a name for anything else. Enter the quantity and the cost per unit.', 'Add the carrier and tracking number if you have them. Open the order to tap Track package.', 'Open an order and tap where it is now: Ordered, In Transit, Out for Delivery or Delayed. The On the way filter shows only what has not arrived.', 'When it shows up, tap Delivered (or Receive items). Enter how many came. You can receive in parts. Stock goes up and a bill can be made so you remember to pay.'],
     example: '200 mailers from PackRight, USPS 9400… → In Transit → Delivered: Mailers +200, a bill for the invoice, and the delivery dates on the order.',
-    links: [['Supplies', 'Supplies increase here', 't:stock:supplies'], ['Components', 'Components increase here', 't:stock:components'], ['Products', 'Ready-made products increase here', 't:stock:products'], ['Suppliers', 'Who the order is with', 's:suppliers'], ['Bills & invoices', 'The bill it creates', 's:bills']], tip: 'Didn’t order through here? Add the stock with the + on the item instead and enter what you paid.' },
+    links: [['Supplies', 'Supplies increase here', 't:stock:supplies'], ['Components', 'Components increase here', 't:stock:components'], ['Products', 'Ready-made products increase here', 't:stock:products'], ['Suppliers', 'Who the order is with', 's:suppliers'], ['Bills & invoices', 'The bill it creates', 's:bills']], tip: 'Didn’t order through here? Add the stock with the + on the item instead and enter the cost per unit.' },
   customers: { title: 'Customers', purpose: 'Everyone who buys from you, with their order history, lifetime spend and contact details.',
     steps: ['Customers are created automatically when you type a name on a sale. You can also tap + Customer.', 'Open one to see orders, total spent and profit, and to start a new sale for them.', 'Add email, phone, address and tags such as vip.'],
     example: 'Maya R. has 6 orders and $210 spent, which makes her a repeat buyer.',
@@ -4850,7 +4815,7 @@ const FAQ_GUIDE = [
   ['Set up the basics', 'Open the app and tap Get Started (or Explore with sample data to practice first). Enter your business name, currency, the platforms you sell on and, if you like, a monthly revenue goal.', 's:settings:business', 'Business settings'],
   ['Add your platforms and fees', 'In More › Settings › Platforms & fees, add each place you sell (Etsy, eBay, markets, your own site). Enter its fee % and fixed fee so every sale works out your real profit.', 's:settings:channels', 'Platforms & fees'],
   ['Add suppliers (optional)', 'In More › Suppliers, save the shops and people you buy from so you can pick them later on supplies and orders.', 's:suppliers', 'Suppliers'],
-  ['Enter components and supplies', 'In Inventory, use the Components tab for parts that go INTO your products (beads, wire, fabric) and the Supplies tab for extras like mailers and tape. Enter how many you have and what each costs.', 't:stock:components', 'Components'],
+  ['Enter components and supplies', 'In Inventory, use the Components tab for parts that go INTO your products (beads, wire, fabric) and the Supplies tab for extras like mailers and tape. Enter how many you have and the cost per unit.', 't:stock:components', 'Components'],
   ['Enter your products', 'In Inventory › Products tap + Product. Add the name, SKU, price and quantity. If you make it yourself, add a recipe so the cost is worked out for you. If you bought it ready-made, type its cost.', 't:stock:products', 'Products'],
   ['Create listings (optional)', 'In Inventory › Listings, record where each product is for sale, the price on each platform and when it needs renewing.', 't:stock:listings', 'Listings'],
   ['Record a sale', 'In Sales tap + Sale, pick the products, the platform and the customer. Stock goes down and the fee, cost and profit are worked out.', 't:sales', 'Sales'],
@@ -4885,11 +4850,11 @@ const FAQ = [
   ]},
   { id: 'inventory', t: 'Products, components & supplies', ic: 'package', q: [
     ['What is the difference between a product, a component and a supply?', '• Product: what you sell.\n• Component: a part that goes INTO a product (beads, wire, fabric, a charm you make ahead).\n• Supply: an extra you use up around products (mailers, tape, labels, gift boxes).\nIf you picked the wrong one, open the item and change “This is a” to move it between tabs.'],
-    ['How do I enter a product?', 'Inventory › Products › + Product. Add a name, SKU, price and how many you have. Choose the date you got them. Optional: price tiers, sizes & colors, a listing title and description.'],
+    ['How do I enter a product?', 'Inventory › Products › + Product. Add a name, SKU, price and how many you have. Choose the date you got them. Optional: price tiers, sizes & colors.'],
     ['How do I enter a product I make myself?', 'Add a recipe on the product: pick the components and supplies it uses, how much the whole batch uses, and how many units the batch makes. The cost per unit is worked out for you.'],
-    ['How do I enter a product I bought ready-made?', 'Type its cost per unit in the Cost field, or fill in “Price you paid per unit” when you add it.'],
+    ['How do I enter a product I bought ready-made?', 'Enter its cost per unit when you add it.'],
     ['How do I enter components or supplies?', 'Inventory › Components or Supplies › + button. Enter the name, unit (pcs, roll, pack…), how many you have and the cost per unit.'],
-    ['I got more stock. How do I add it?', 'Tap the + on the item’s card and enter how many, what you paid and the date. If you ordered it through Orders & deliveries, receive it there instead.'],
+    ['I got more stock. How do I add it?', 'Tap the + on the item’s card and enter how many, the cost per unit and the date. If you ordered it through Orders & deliveries, receive it there instead.'],
     ['How do I get low-stock warnings?', 'Set a low-stock level on the item (or a default in Settings). At that level it shows “Low”, appears in your Inbox and in the Reorder list.'],
     ['How is stock reduced?', 'Selling a product lowers its stock. If the product has a recipe, the components and supplies it uses are counted as used up too. Cancelled and failed orders do not take stock, and a returned order that you receive back puts it back.'],
     ['What does “available” mean?', 'What you own, minus what your products’ recipes already use. It shows how many more you could make.'],
@@ -4930,7 +4895,7 @@ const FAQ = [
   { id: 'purchases', t: 'Ordering stock & deliveries', ic: 'truck', q: [
     ['How do I track something I ordered from a supplier?', 'More › Orders & deliveries › + Order. Pick a supplier (or type the store), add the items and costs, and add the carrier and tracking number. Then open the order and tap where it is now: Ordered, In Transit, Out for Delivery or Delayed. “On the way” shows only what has not arrived.'],
     ['What happens when it arrives?', 'Tap Delivered (or Receive items) and enter how many came. You can receive in parts. Your stock goes up and a bill can be made so you remember to pay it.'],
-    ['I did not order through the app. How do I add stock?', 'Tap the + on the item and enter how many, what you paid and the date.'],
+    ['I did not order through the app. How do I add stock?', 'Tap the + on the item and enter how many, the cost per unit and the date.'],
     ['Can I order something that is not in my inventory?', 'Yes. Type a name for anything else on the order.'],
   ]},
   { id: 'money', t: 'Money, bills & forecast', ic: 'wallet', q: [
@@ -5129,7 +5094,7 @@ function syncVarQty(f) {
 }
 const variantChips = p => {
   const vs = p.variants || []; if (!vs.length) return '';
-  return `<div class="vchips">${vs.slice(0, 10).map(v => `<span class="pill ${num(v.qty) <= 0 ? 'bad' : num(v.qty) <= lowOf(p) ? 'warn' : 'mute'}">${colorDot(v.color)}${esc(varLabel(v))} · ${num(v.qty)}</span>`).join('')}${vs.length > 10 ? `<span class="pill mute">+${vs.length - 10} more</span>` : ''}</div>`;
+  return `<div class="vchips">${vs.slice(0, 10).map(v => `<span class="pill ${num(v.qty) <= 0 ? 'bad' : (!p.oneOff && num(v.qty) <= lowOf(p)) ? 'warn' : 'mute'}">${colorDot(v.color)}${esc(varLabel(v))} · ${num(v.qty)}</span>`).join('')}${vs.length > 10 ? `<span class="pill mute">+${vs.length - 10} more</span>` : ''}</div>`;
 };
 function applyVarStock(oldO, newO) {
   const ve = o => { const m = {}; if (!o || NO_STOCK.includes(o.status)) return m; (o.items || []).forEach(l => { if (l.productId && l.variantId) { const k = l.productId + '|' + l.variantId; m[k] = (m[k] || 0) + Math.max(0, l.qty - (l.returned || 0)); } }); return m; };
@@ -5172,7 +5137,7 @@ function varOf(row) {
         const bt = Math.max(1, num(p.batch)), short = p.recipe.map(r => { const sp = find('supplies', r.supplyId), need = r2(num(r.qty) * amt / bt); return sp && avail(sp) < need - 1e-9 ? `${sp.name} (needs ${need}, only ${avail(sp)} free)` : null; }).filter(Boolean);
         if (short.length) return toast('Not enough supplies: ' + short.join('; '));
         p.recipe.forEach(r => { r.qty = r2(num(r.qty) * (bt + amt) / bt); }); p.batch = bt + amt;
-      } else if (paid > 0) { const have = Math.max(0, num(p.qty)); p.cost = r2((have * num(p.cost) + paid) / (have + amt)); }
+      } else if (paid > 0) { const have = Math.max(0, num(p.qty)); p.cost = r2((have * num(p.cost) + paid * amt) / (have + amt)); }
       after = before + amt;
     }
     else if (mode === 'remove') {
@@ -5422,7 +5387,7 @@ const poLineRow = (l = {}) => {
     <button type="button" class="icon-btn" data-act="po-line-del" aria-label="Remove item">${ic('x')}</button></div>
     <input class="input sm" name="pn" maxlength="100" placeholder="Item name" value="${esc(l.name || '')}" ${l.refId ? 'hidden' : ''}>
     <select class="select sm" name="pv" ${hasV ? '' : 'hidden'}>${hasV ? variantOpts(p, l) : ''}</select>
-    <div class="grid2"><label class="xs sub b">Quantity<input class="input sm" type="number" step="any" min="0" name="pq" value="${l.qty ?? ''}" placeholder="0"></label><label class="xs sub b">Cost each<input class="input sm" type="number" step="any" min="0" name="pc" value="${l.cost ?? ''}" placeholder="0.00"></label></div></div>`;
+    <div class="grid2"><label class="xs sub b">Quantity<input class="input sm" type="number" step="any" min="0" name="pq" value="${l.qty ?? ''}" placeholder="0"></label><label class="xs sub b">Cost per unit<input class="input sm" type="number" step="any" min="0" name="pc" value="${l.cost ?? ''}" placeholder="0.00"></label></div></div>`;
 };
 function poPick(row) {
   const sel = $('[name=pi]', row).value, pn = $('[name=pn]', row), pc = $('[name=pc]', row), pq = $('[name=pq]', row), pv = $('[name=pv]', row);
