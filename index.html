@@ -313,11 +313,6 @@ button.metric{text-align:left}
 .lcard .lacts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .lcard .lacts.two{margin-top:8px}
 .lcard .lacts .btn{padding:9px 10px;font-size:12px;border-radius:12px}
-.syncbox{margin-top:10px;border-radius:14px;background:color-mix(in srgb,var(--warn) 11%,var(--card));border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);padding:10px 12px;font-size:12px}
-.syncbox b{display:block;margin-bottom:2px}
-.syncbox .new{display:block;margin:4px 0 8px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.syncbox .btns{display:flex;gap:8px}
-.syncbox .btns .btn{flex:1;padding:7px 10px;font-size:12px;border-radius:11px}
 .mini-metrics{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:11px;color:var(--sub)}
 .mini-metrics b{color:var(--text)}
 
@@ -435,12 +430,12 @@ html[data-bgs=dots] .scroll{background-image:radial-gradient(color-mix(in srgb,v
 html[data-bgs=grid] .scroll{background-image:linear-gradient(color-mix(in srgb,var(--p) 14%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--p) 14%,transparent) 1px,transparent 1px);background-size:22px 22px}
 html[data-bgs=stripes] .scroll{background-image:repeating-linear-gradient(45deg,color-mix(in srgb,var(--p) 9%,transparent) 0 10px,transparent 10px 20px)}
 /* corner shapes */
-html[data-round=sharp] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox,.invoice){border-radius:4px}
+html[data-round=sharp] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.scrollbox,.invoice){border-radius:4px}
 html[data-round=sharp] :is(.input,.select,.textarea,.btn,.seg,.seg button,.chip,.inline-select,.mchip span,.mchip-btn,.item .ava,.list-row .ico,.quick button,.pill){border-radius:4px}
 html[data-round=sharp] .sheet{border-radius:8px 8px 0 0}
-html[data-round=soft] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox){border-radius:14px}
+html[data-round=soft] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.scrollbox){border-radius:14px}
 html[data-round=soft] :is(.input,.select,.textarea,.btn,.seg,.inline-select,.item .ava,.list-row .ico,.quick button){border-radius:10px}
-html[data-round=round] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.syncbox,.scrollbox){border-radius:32px}
+html[data-round=round] :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.notice,.banner,.preview,.scrollbox){border-radius:32px}
 html[data-round=round] :is(.input,.select,.textarea){border-radius:22px}
 html[data-round=round] :is(.btn,.seg,.seg button,.chip,.inline-select,.mchip span){border-radius:999px}
 html[data-round=round] :is(.item .ava,.list-row .ico,.quick button){border-radius:50%}
@@ -624,6 +619,7 @@ html[data-motion=off] *{animation:none!important;transition:none!important}
     <form id="setup-form" autocomplete="off">
       <label class="fld"><span>Business name</span><input class="input" id="su-name" required maxlength="60" placeholder="e.g. Grimms Reselling"></label>
       <label class="fld"><span>What do you do?</span><input class="input" id="su-industry" maxlength="60" placeholder="e.g. Handmade jewelry, consulting, bakery…"></label>
+      <label class="fld"><span>Do you resell items or make them?</span><select class="select" id="su-mode"><option value="resell">Resell items</option><option value="make">Make them</option></select><small class="hint" style="display:block;margin-top:4px">Sets how your inventory is valued: resellers use My value estimate, makers use What it cost me. Change it anytime on the Inventory page.</small></label>
       <label class="fld"><span>Currency</span><select class="select" id="su-currency"></select></label>
       <div class="fld"><span class="lbl">Color theme</span><div id="su-themes"></div></div>
       <label class="fld"><span>Font</span><select class="select" id="su-font"></select></label>
@@ -986,7 +982,7 @@ const DEFAULTS = () => ({
   v: 3, setup: false,
   settings: {
     name: '', industry: '', currency: 'USD', theme: 'blush', font: FONTS[0][0], taxRate: 0, lowStock: 5, weekStart: guessWeekStart(),
-    relistDays: 30, valueBasis: 'cost', mileRate: 0.7, mileUnit: 'mi', budgets: {}, homeHide: [], quarterly: true,
+    relistDays: 30, valueBasis: 'est', mileRate: 0.7, mileUnit: 'mi', budgets: {}, homeHide: [], quarterly: true,
     business: { address: '', email: '', phone: '', taxId: '', note: 'Thank you for your business!' },
     channels: [{ id: 'ch1', name: 'In person', pct: 0, fixed: 0, renew: 0, tax: false }, { id: 'ch2', name: 'Online', pct: 0, fixed: 0, renew: 0, tax: false }],
     expenseCats: ['Software & Subscriptions', 'Marketing', 'Packaging', 'Rent & Utilities', 'Equipment', 'Travel', 'Professional Services', 'Other'],
@@ -1043,6 +1039,8 @@ function normalize(src) {
   if (!src || typeof src !== 'object' || Array.isArray(src)) return d;
   const out = { ...d, ...src };
   out.settings = { ...d.settings, ...(src.settings || {}) };
+  /* existing data that never stored a choice keeps the old behaviour (cost); only brand-new businesses default to the estimate */
+  if (src.setup && !((src.settings || {}).valueBasis === 'cost' || (src.settings || {}).valueBasis === 'est')) out.settings.valueBasis = 'cost';
   out.settings.business = { ...d.settings.business, ...((src.settings || {}).business || {}) };
   { /* look settings: older backups simply get the defaults */
     const sl = (src.settings || {}).look, L = { ...LOOK_DEFAULTS(), ...(sl && typeof sl === 'object' && !Array.isArray(sl) ? sl : {}) };
@@ -1074,14 +1072,11 @@ function normalize(src) {
   /* products */
   out.products.forEach(p => {
     if (!Array.isArray(p.recipe)) p.recipe = [];
-    if (p.title == null) p.title = ''; if (p.description == null) p.description = '';
     if (!(num(p.batch) >= 1)) p.batch = 1;
     if (!Array.isArray(p.tiers)) p.tiers = [];
     if (p.oneOff === undefined) p.oneOff = Math.round(num(p.qty)) === 1 && (p.low === '' || p.low == null);
   });
   /* listings: one listing can now sit on several platforms, with analytics snapshots and several discounts */
-  const pName = id => { const p = out.products.find(x => x.id === id); return p ? (p.title || p.name) : ''; };
-  const pDesc = id => { const p = out.products.find(x => x.id === id); return p ? p.description : ''; };
   out.listings.forEach(l => {
     if (!Array.isArray(l.channels)) l.channels = l.channel ? [l.channel] : [];
     delete l.channel;
@@ -1091,6 +1086,8 @@ function normalize(src) {
       l.discounts = (l.discount && num(l.discount.pct) > 0) ? [{ id: uid('d'), pct: num(l.discount.pct), start: l.discount.start || '', end: l.discount.end || '', noEnd: false }] : [];
     }
     delete l.discount;
+    if (l.status === 'Sold') l.relistDate = '';
+    autoEndDiscounts(l.discounts);
     if (!Array.isArray(l.snaps)) {
       l.snaps = [];
       const m = {}; if (num(l.views)) m.Views = num(l.views); if (num(l.favorites)) m.Favorites = num(l.favorites); if (num(l.offers)) m.Offers = num(l.offers);
@@ -1099,8 +1096,6 @@ function normalize(src) {
     delete l.views; delete l.favorites; delete l.offers;
     if (l.description == null) l.description = '';
     if (!Array.isArray(l.bundle)) l.bundle = [];
-    if (l.pTitleSeen == null) l.pTitleSeen = pName(l.productId);
-    if (l.pDescSeen == null) l.pDescSeen = pDesc(l.productId);
   });
   /* bills, purchase orders, sizes & colors, unpaid invoices */
   ['bills', 'purchaseOrders'].forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
@@ -1345,7 +1340,7 @@ const valBasisPicker = () => `<div class="row between" style="gap:10px"><span cl
 const unitCost = p => num(p.cost) + sum(p.recipe || [], r => { const s = state.supplies.find(x => x.id === r.supplyId); return num(r.qty) * (s ? num(s.cost) : 0); }) / Math.max(1, num(p.batch));
 const lowOf = it => (it.low === '' || it.low == null) ? num(state.settings.lowStock) : num(it.low);
 const stockState = it => { const q = stockQty(it); return q <= 0 ? 'out' : (!it.oneOff && q <= lowOf(it)) ? 'low' : 'ok'; };
-const productTitle = p => p ? (p.title || p.name) : '';
+const productTitle = p => p ? p.name : '';
 const tierPrice = (p, qty) => { const t = (p.tiers || []).filter(x => num(x.minQty) > 0 && qty >= num(x.minQty) && num(x.price) >= 0 && x.price !== '').sort((a, b) => num(b.minQty) - num(a.minQty))[0]; if (t) return num(t.price); if (num(p.price) > 0) return num(p.price); const ls = state.listings.filter(l => l.productId === p.id && !(Array.isArray(l.bundle) && l.bundle.length) && active(l) && num(l.price) > 0); return ls.length ? listingPrice(ls[0]) : 0; };
 
 function stockEffect(o) {
@@ -1396,7 +1391,7 @@ function ensureCustomer(name) {
 }
 
 /* =====================================================================
-   7. LISTINGS MATHS: platforms, discounts, analytics, product sync
+   7. LISTINGS MATHS: platforms, discounts, analytics
    ===================================================================== */
 const listingChans = l => Array.isArray(l.channels) ? l.channels : [];
 /* a listing has one main product and, for bundles / lots, more products after it */
@@ -1404,7 +1399,7 @@ const listingProducts = l => [...new Set([l.productId].concat(Array.isArray(l.bu
 const listingProductText = l => listingProducts(l).map(id => { const p = state.products.find(x => x.id === id); return p ? [p.name, p.sku].join(' ') : ''; }).join(' ');
 const listingAge = l => (l.listedDate && l.listedDate <= today()) ? daysBetween(l.listedDate, today()) : null;
 const listingTone = l => { if (l.status !== 'Active') return 'mute'; const d = listingAge(l); return d == null ? 'mute' : d >= 30 ? 'bad' : d >= 20 ? 'warn' : 'ok'; };
-const renewDue = l => !l.archived && l.status === 'Active' && l.relistDate && l.relistDate <= today();
+const renewDue = l => !l.archived && l.status === 'Active' && l.status !== 'Sold' && !!l.relistDate && l.relistDate <= today();
 const listingOOS = l => { if (l.archived || l.status !== 'Active') return false; return listingProducts(l).map(id => state.products.find(x => x.id === id)).filter(Boolean).some(p => p.qty <= 0); };
 const nextListingSku = () => 'LIST-' + String(Math.max(0, ...state.listings.map(l => parseInt(String(l.sku || '').replace(/\D/g, '')) || 0)) + 1).padStart(3, '0');
 /* how long until it needs renewing: the shortest renewal time of the platforms it is on, else your default */
@@ -1415,7 +1410,23 @@ const discActive = (d, t = today()) => num(d.pct) > 0 && (!d.start || d.start <=
 const discUpcoming = (d, t = today()) => num(d.pct) > 0 && d.start && d.start > t;
 const activeDisc = l => (l.discounts || []).filter(d => discActive(d)).sort((a, b) => num(b.pct) - num(a.pct))[0] || null;
 const listingPrice = l => { const d = activeDisc(l); return d ? r2(num(l.price) * (1 - num(d.pct) / 100)) : num(l.price); };
-const discText = d => `${pct(num(d.pct))} off · ${d.start ? 'from ' + fmtDate(d.start) : 'now'} · ${d.noEnd ? 'no end date set' : d.end ? 'until ' + fmtDate(d.end) : 'no end date set'}`;
+const discText = d => `${pct(num(d.pct))} off · ${d.start ? 'from ' + fmtDate(d.start) : 'now'} · ${d.noEnd ? 'no end date set' : d.end ? 'until ' + fmtDate(d.end) + (d.auto ? ' (auto-ended)' : '') : 'no end date set'}`;
+/* a discount with no end date ends the day before the next-starting discount begins. `auto` marks an end date set this way,
+   so it is cleared and recalculated if the later discount moves or is removed. */
+function autoEndDiscounts(list) {
+  const ds = (list || []).filter(d => d && num(d.pct) > 0);
+  ds.forEach(d => { if (d.auto) { d.end = ''; d.noEnd = true; } delete d.auto; });
+  ds.forEach(d => {
+    if (!(d.noEnd || !d.end)) return;
+    const t0 = d.start || '';
+    const later = ds.filter(o => o !== d && o.start && o.start > t0).map(o => o.start).sort()[0];
+    if (!later) return;
+    const e = addDays(later, -1);
+    if (t0 && e < t0) return;
+    d.end = e; d.noEnd = false; d.auto = true;
+  });
+  return list;
+}
 
 /* analytics: each snapshot is "what the numbers were on this platform at this time".
    The newest snapshot for each platform is its current count; platforms add together. */
@@ -1430,19 +1441,6 @@ function latestByPlatform(l) {
   return out;
 }
 function listingTotals(l) { const t = {}; Object.values(latestByPlatform(l)).forEach(o => Object.entries(o.m).forEach(([k, v]) => { t[k] = (t[k] || 0) + v; })); return t; }
-
-/* keeping listing text in step with the product */
-function textSync(l) {
-  if ((l.bundle || []).length) return { title: null, desc: null };
-  const p = state.products.find(x => x.id === l.productId);
-  if (!p) return { title: null, desc: null };
-  const pt = productTitle(p), pd = p.description || '';
-  return {
-    title: pt !== (l.pTitleSeen || '') && tidy(l.title) !== tidy(pt) ? pt : null,
-    desc: pd !== (l.pDescSeen || '') && tidy(l.description) !== tidy(pd) ? pd : null,
-  };
-}
-const listingsNeedingSync = () => state.listings.filter(l => active(l) && l.status !== 'Sold' && (() => { const s = textSync(l); return s.title !== null || s.desc !== null; })());
 
 /* ----- archive rules ----- */
 const listingReleased = l => l.status === 'Sold' || l.status === 'Expired' || state.orders.some(o => o.status === 'Fulfilled' && o.items.some(i => i.listingId === l.id));
@@ -1569,7 +1567,6 @@ function alerts0() {
     if (n) add({ key: 'archsold', cat: 'listings', icon: 'archive', tone: 'warn', title: `${n} sold-out item${n > 1 ? 's' : ''} can be archived`, detail: 'Open Stock and tap "Archive all sold". You can bring them back anytime.', sig: fp.concat(fl).map(x => x.id).join(), go: ['listings'] }); }
   if (oos.length) add({ key: 'oos', cat: 'listings', icon: 'alert-triangle', tone: 'bad', title: `${oos.length} live listing${oos.length > 1 ? 's' : ''} for sold-out items`, detail: 'Pause or end them so nobody buys what you do not have.', sig: oos.map(l => l.id).join(), go: ['listings', 'oos'] });
   if (old.length) add({ key: 'old', cat: 'listings', icon: 'clock', tone: 'warn', title: `${old.length} listing${old.length > 1 ? 's' : ''} live for 30+ days`, detail: 'Consider a discount, new photos or a fresh title.', sig: old.map(l => l.id).join(), go: ['listings', 'old'] });
-  const sy = listingsNeedingSync(); if (sy.length) add({ key: 'sync', cat: 'listings', icon: 'copy', tone: 'warn', title: `${sy.length} listing${sy.length > 1 ? 's' : ''} have a changed product title or description`, detail: 'Update them to match, or keep your own wording.', sig: sy.map(l => l.id + (textSync(l).title || '') + (textSync(l).desc || '')).join('|'), go: ['listings', 'sync'] });
   const ending = ls.filter(l => (l.discounts || []).some(d => discActive(d) && !d.noEnd && d.end && daysBetween(t, d.end) <= 3));
   if (ending.length) add({ key: 'dend', cat: 'listings', icon: 'percent', tone: 'brand', title: `${ending.length} discount${ending.length > 1 ? 's' : ''} ending within 3 days`, detail: plainList(ending.slice(0, 2).map(l => l.title)), sig: ending.map(l => l.id + l.discounts.map(d => d.end).join()).join(), go: ['listings', 'all'] });
   const open = ls.filter(l => (l.discounts || []).some(d => discActive(d) && (d.noEnd || !d.end)));
@@ -1723,7 +1720,7 @@ async function copyText(text, label) {
 /* =====================================================================
    10. VIEW STATE + SMALL RENDER HELPERS
    ===================================================================== */
-const ui = { tab: 'home', sub: null, ret: null, inboxAll: false, inboxCat: 'all', showDismissed: false, seg: { stock: 'home', money: 'overview', plan: 'tasks', bills: 'bills' }, q: '', filter: 'all', sort: '', cat: '', ch: '', arch: false, selMode: false, sel: new Set(), vis: [], cal: today().slice(0, 7), calSel: today(), limit: 60, calF: { items: true, listed: true, relist: true, disc: true }, showDone: false, setOpen: { business: true } };
+const ui = { matf: 'all', tab: 'home', sub: null, ret: null, inboxAll: false, inboxCat: 'all', showDismissed: false, seg: { stock: 'home', money: 'overview', plan: 'tasks', bills: 'bills' }, q: '', filter: 'all', sort: '', cat: '', ch: '', arch: false, selMode: false, sel: new Set(), vis: [], cal: today().slice(0, 7), calSel: today(), limit: 60, calF: { items: true, listed: true, relist: true, disc: true }, showDone: false, setOpen: { business: true } };
 const charts = {};
 const BULK_EDIT = new Set(['order', 'product', 'supply', 'listing', 'expense', 'task', 'note']);
 
@@ -1732,6 +1729,11 @@ const pill = (t, tone = 'brand', icon) => `<span class="pill ${tone}">${icon ? i
 const empty = (icon, title, body, btn) => `<div class="empty">${ic(icon)}<h4>${esc(title)}</h4><p class="xs">${esc(body)}</p>${btn || ''}</div>`;
 const emptyBtn = (label, type) => `<button class="btn btn-primary btn-sm" style="margin-top:12px" data-act="add" data-type="${type}">${esc(label)}</button>`;
 const periodSelect = () => `<select class="inline-select" data-bind="period" aria-label="Time period">${PERIODS.map(p => `<option value="${p[0]}" ${p[0] === state.prefs.period ? 'selected' : ''}>${p[0] === 'custom' && state.prefs.period === 'custom' ? esc(periodLabel('custom')) : p[1]}</option>`).join('')}</select>`;
+/* Materials tab = supplies + components in one list, with an All / Supplies / Components filter (ui.matf) */
+function normStock() { const v = ui.seg.stock; if (v === 'supplies' || v === 'components') { ui.matf = v; ui.seg.stock = 'materials'; } }
+function setSeg(k, v) { ui.seg[k] = v; if (k === 'stock') normStock(); }
+const matMatch = x => ui.matf === 'all' || (x.kind === 'component') === (ui.matf === 'components');
+const matLabel = () => ui.matf === 'components' ? 'components' : ui.matf === 'supplies' ? 'supplies' : 'materials';
 const seg = (k, opts, cur) => `<div class="seg" role="tablist">${opts.map(o => `<button class="${o[0] === cur ? 'on' : ''}" data-act="seg" data-k="${k}" data-v="${o[0]}" role="tab">${o[1]}</button>`).join('')}</div>`;
 const barRow = (label, sub, right, ratio, color) => `<div class="barrow"><div class="top"><span class="trunc b">${esc(label)}</span><span class="b num">${right}</span></div><div class="bar"><i style="width:${Math.max(2, Math.min(100, ratio * 100))}%;${color ? 'background:' + color : ''}"></i></div>${sub ? `<div class="hint" style="margin-top:4px">${sub}</div>` : ''}</div>`;
 const ring = (ratio, size) => {
@@ -1748,7 +1750,7 @@ const statusOptions = cur => `<optgroup label="Order steps">${FLOW.map(s => `<op
 function curType() {
   const v = ui.sub || ui.tab;
   if (v === 'sales') return 'order';
-  if (v === 'stock') return { products: 'product', supplies: 'supply', components: 'supply', listings: 'listing' }[ui.seg.stock] || null;
+  if (v === 'stock') return { products: 'product', materials: 'supply', listings: 'listing' }[ui.seg.stock] || null;
   if (v === 'money') return ui.seg.money === 'expenses' ? 'expense' : ui.seg.money === 'income' ? 'income' : null;
   if (v === 'customers') return 'customer';
   if (v === 'suppliers') return 'supplier';
@@ -1831,7 +1833,7 @@ const TITLES = { sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More
 function addType() {
   const v = ui.sub || ui.tab, s = ui.seg;
   if (v === 'sales') return ['order', 'Sale'];
-  if (v === 'stock') return s.stock === 'home' ? null : s.stock === 'products' ? ['product', 'Product'] : s.stock === 'supplies' ? ['supply', 'Supply'] : s.stock === 'components' ? ['component', 'Component'] : ['listing', 'Listing'];
+  if (v === 'stock') return s.stock === 'home' ? null : s.stock === 'products' ? ['product', 'Product'] : s.stock === 'materials' ? (ui.matf === 'components' ? ['component', 'Component'] : ui.matf === 'supplies' ? ['supply', 'Supply'] : ['supply', 'Material']) : ['listing', 'Listing'];
   if (v === 'money') return s.money === 'expenses' ? ['expense', 'Expense'] : s.money === 'income' ? ['income', 'Income'] : null;
   if (v === 'plan') return s.plan === 'tasks' ? ['task', 'Task'] : s.plan === 'calendar' ? ['event', 'Event'] : ['shift', 'Entry'];
   if (v === 'bills') return s.bills === 'invoices' ? ['newinvoice', 'Invoice'] : ['bill', 'Bill'];
@@ -2011,7 +2013,7 @@ const STOCK_SORTS = [['name', 'A to Z'], ['sku', 'SKU low to high'], ['sku_d', '
 const supplierName = id => (state.suppliers.find(s => s.id === id) || {}).name || '';
 function stockFiltered() {
   const prod = ui.seg.stock === 'products';
-  let l = (prod ? state.products : state.supplies.filter(x => (x.kind === 'component') === (ui.seg.stock === 'components'))).filter(x => !!x.archived === ui.arch);
+  let l = (prod ? state.products : state.supplies.filter(matMatch)).filter(x => !!x.archived === ui.arch);
   if (ui.q) { const q = ui.q.toLowerCase(); l = l.filter(x => [x.name, x.title, x.sku, x.barcode, x.category, x.location, x.tags, supplierName(x.supplierId)].join(' ').toLowerCase().includes(q)); }
   if (ui.cat) l = l.filter(x => x.category === ui.cat);
   if (ui.filter === 'low') l = l.filter(x => stockState(x) === 'low'); else if (ui.filter === 'out') l = l.filter(x => stockState(x) === 'out'); else if (ui.filter === 'ok') l = l.filter(x => stockState(x) === 'ok');
@@ -2031,7 +2033,7 @@ function stockCard(it, prod) {
   return `<div class="card sm item ${selCls(it.id)}" ${selAttr(it.id)}>${selMark(it.id)}
     <button class="grow" style="text-align:left;min-width:0" data-act="edit" data-type="${prod ? 'product' : 'supply'}" data-id="${it.id}">
       <h4 class="trunc">${esc(it.name)}</h4><div class="meta trunc">${meta}</div>
-      <div class="row" style="gap:6px;margin-top:4px;flex-wrap:wrap">${it.category ? pill(it.category) : ''}${margin != null ? pill(pct(margin) + ' margin', margin < 20 ? 'warn' : 'ok') : ''}${prod && (it.recipe || []).length ? pill('Uses ' + it.recipe.length + ' suppl' + (it.recipe.length > 1 ? 'ies' : 'y'), 'mute') : ''}${usedIn ? pill('In ' + usedIn + ' product' + (usedIn > 1 ? 's' : ''), 'mute') : ''}${nlive ? pill(nlive + ' live', 'ok', 'store') : ''}${it.location ? pill(it.location, 'mute', 'map-pin') : ''}${onOrderText(it.id) ? pill(onOrderText(it.id), 'brand', 'truck') : ''}</div>
+      <div class="row" style="gap:6px;margin-top:4px;flex-wrap:wrap">${!prod && ui.matf === 'all' ? pill(it.kind === 'component' ? 'Component' : 'Supply', 'mute') : ''}${it.category ? pill(it.category) : ''}${margin != null ? pill(pct(margin) + ' margin', margin < 20 ? 'warn' : 'ok') : ''}${prod && (it.recipe || []).length ? pill('Uses ' + it.recipe.length + ' suppl' + (it.recipe.length > 1 ? 'ies' : 'y'), 'mute') : ''}${usedIn ? pill('In ' + usedIn + ' product' + (usedIn > 1 ? 's' : ''), 'mute') : ''}${nlive ? pill(nlive + ' live', 'ok', 'store') : ''}${it.location ? pill(it.location, 'mute', 'map-pin') : ''}${onOrderText(it.id) ? pill(onOrderText(it.id), 'brand', 'truck') : ''}</div>
       ${prod ? variantChips(it) : ''}
       ${alloc > 0 ? `<div class="meta" style="margin-top:3px">${r2(it.qty)} owned · <b>${r2(alloc)} used in products</b></div>` : ''}</button>
     <div class="side" style="border-left:1px solid var(--line);padding-left:10px">
@@ -2054,17 +2056,11 @@ function listingsFiltered() {
   else if (f === 'renew') l = l.filter(renewDue);
   else if (f === 'oos') l = l.filter(listingOOS);
   else if (f === 'old') l = l.filter(x => x.status === 'Active' && listingAge(x) >= 30);
-  else if (f === 'sync') l = l.filter(x => { const s = textSync(x); return s.title !== null || s.desc !== null; });
   else if (f === 'disc') l = l.filter(x => (x.discounts || []).some(d => discActive(d) || discUpcoming(d)));
   else if (f !== 'all') l = l.filter(x => x.status === f);
   const so = ui.sort || 'sku_d', pr = x => listingPrice(x);
   l.sort((a, b) => so === 'sku_d' ? skuDesc(a.sku, b.sku) : so === 'sku' ? skuCmp(a.sku, b.sku) : so === 'oldest' ? (a.listedDate || '9999').localeCompare(b.listedDate || '9999') : so === 'title' ? a.title.localeCompare(b.title) : so === 'price_h' ? pr(b) - pr(a) : so === 'price_l' ? pr(a) - pr(b) : so === 'renew' ? (a.relistDate || '9999').localeCompare(b.relistDate || '9999') : (b.listedDate || b.createdDate || '').localeCompare(a.listedDate || a.createdDate || ''));
   return l;
-}
-function syncBox(l) {
-  const s = textSync(l); if (s.title === null && s.desc === null) return '';
-  const one = (what, key, val) => `<div class="syncbox"><b>${ic('alert-triangle')} The product ${what} changed</b><span class="new">${esc(val || '(empty)')}</span><div class="btns"><button class="btn btn-primary" data-act="sync-${key}" data-id="${l.id}">Update mine to match</button><button class="btn btn-line" data-act="keep-${key}" data-id="${l.id}">Keep mine</button></div></div>`;
-  return (s.title !== null ? one('title', 'title', s.title) : '') + (s.desc !== null ? one('description', 'desc', s.desc) : '');
 }
 function listingCard(l) {
   const p = state.products.find(x => x.id === l.productId), age = listingAge(l), lp = listingPrice(l), ad = activeDisc(l), chans = listingChans(l), tot = listingTotals(l);
@@ -2075,10 +2071,9 @@ function listingCard(l) {
       <button class="lmain" data-act="edit" data-type="listing" data-id="${l.id}">
         <h4 class="trunc" style="font-size:14px;font-weight:700">${esc(l.title)}</h4>
         <div class="meta trunc" style="font-size:11px;color:var(--sub)">${esc(chans.join(' · ') || 'No platform chosen')}${l.sku ? ' · ' + esc(l.sku) : ''}${p ? ' · ' + esc(p.name) : ''}</div>
-        <div class="row" style="gap:6px;margin-top:5px;flex-wrap:wrap">${pill(l.status, LISTING_TONE[l.status])}${(l.bundle || []).length ? pill('Bundle · ' + (l.bundle.length + 1) + ' products', 'mute', 'layers') : ''}${l.status === 'Active' && age != null ? pill(age + 'd live', listingTone(l), 'clock') : ''}${renewDue(l) ? pill('Renew due', 'warn', 'refresh') : ''}${listingOOS(l) ? pill('Out of stock', 'bad', 'alert-triangle') : ''}${ad ? pill(pct(num(ad.pct)) + ' off' + (ad.noEnd ? ' · open-ended' : ''), 'brand', 'percent') : ''}${up ? pill(up + ' discount' + (up > 1 ? 's' : '') + ' scheduled', 'mute', 'calendar') : ''}</div>
+        <div class="row" style="gap:6px;margin-top:5px;flex-wrap:wrap">${pill(l.status, LISTING_TONE[l.status])}${(l.bundle || []).length ? pill('Bundle · ' + (l.bundle.length + 1) + ' products', 'mute', 'layers') : ''}${l.status === 'Active' && age != null ? pill(age + 'd live', listingTone(l), 'clock') : ''}${renewDue(l) ? pill('Renew due', 'warn', 'refresh') : ''}${listingOOS(l) ? pill('Out of stock', 'bad', 'alert-triangle') : ''}${ad ? pill(pct(num(ad.pct)) + ' off' + (ad.noEnd || !ad.end ? ' · open-ended' : ' · until ' + fmtDate(ad.end)), 'brand', 'percent') : ''}${up ? pill(up + ' discount' + (up > 1 ? 's' : '') + ' scheduled', 'mute', 'calendar') : ''}</div>
         ${totals.length ? `<div class="mini-metrics">${totals.map(([k, v]) => `<span>${esc(k)} <b>${v}</b></span>`).join('')}</div>` : ''}</button>
       <div class="side" style="text-align:right;flex:none"><div class="amt num" style="font-weight:800">${money(lp)}</div>${lp !== num(l.price) ? `<div class="xs sub num" style="text-decoration:line-through">${money(l.price)}</div>` : ''}</div></div>
-    ${syncBox(l)}
     ${ui.selMode ? '' : `<div class="lacts"><button class="btn btn-soft" data-act="copy-title" data-id="${l.id}">${ic('copy')} Copy title</button><button class="btn btn-soft" data-act="copy-desc" data-id="${l.id}">${ic('copy')} Copy description</button></div>
     <div class="lacts two"><button class="btn btn-line" data-act="analytics" data-id="${l.id}">${ic('bar-chart')} Analytics</button>${l.status !== 'Sold' && l.status !== 'Draft' ? `<button class="btn btn-line" data-act="relist" data-id="${l.id}">${ic('refresh')} Renewed…</button>` : `<span></span>`}</div>`}</div>`;
 }
@@ -2092,26 +2087,28 @@ function listingsList() {
 function stockList() {
   if (ui.seg.stock === 'home') return '';
   if (ui.seg.stock === 'listings') return listingsList();
-  const prod = ui.seg.stock === 'products', comp = ui.seg.stock === 'components', all = prod ? state.products : state.supplies.filter(x => (x.kind === 'component') === comp), l = stockFiltered(); ui.vis = l.map(x => x.id);
+  const prod = ui.seg.stock === 'products', all = prod ? state.products : state.supplies.filter(matMatch), l = stockFiltered(); ui.vis = l.map(x => x.id);
   if (!all.length) return prod
     ? empty('package', 'No products yet', 'Add what you sell. Pick the supplies it is made from, set a price, and margins are worked out for you.', `<div class="row" style="gap:8px;justify-content:center;margin-top:12px"><button class="btn btn-primary btn-sm" data-act="add" data-type="product">Add a product</button><button class="btn btn-soft btn-sm" data-act="csv-import">Import CSV</button></div>`)
-    : comp ? empty('layers', 'No components yet', 'Components are the parts that go into what you make: beads, chain, clasps, fabric, a handmade charm. Add them, then pick them in a product’s recipe.', emptyBtn('Add a component', 'component'))
-    : empty('box', 'No supplies yet', 'Supplies are what you use up around your products: packing, tape, mailers, labels, boxes. Add them, then pick them in a product’s recipe.', emptyBtn('Add a supply', 'supply'));
+    : ui.matf === 'components' ? empty('layers', 'No components yet', 'Components are the parts that go into what you make: beads, chain, clasps, fabric, a handmade charm. Add them, then pick them in a product’s recipe.', emptyBtn('Add a component', 'component'))
+    : ui.matf === 'supplies' ? empty('box', 'No supplies yet', 'Supplies are what you use up around your products: packing, tape, mailers, labels, boxes. Add them, then pick them in a product’s recipe.', emptyBtn('Add a supply', 'supply'))
+    : empty('layers', 'No materials yet', 'Materials are what you use to make and pack what you sell: components (beads, chain, clasps, fabric) and supplies (packing, tape, mailers, labels, boxes). Add them, then pick them in a product’s recipe.', `<div class="row" style="gap:8px;justify-content:center;margin-top:12px"><button class="btn btn-primary btn-sm" data-act="add" data-type="component">Add a component</button><button class="btn btn-soft btn-sm" data-act="add" data-type="supply">Add a supply</button></div>`);
   const val = sum(l, x => Math.max(0, prod ? num(x.qty) : stockQty(x)) * unitVal(x, prod)), ret = prod ? sum(l, x => Math.max(0, x.qty) * num(x.price)) : 0;
   return `${listHead(`${l.length} ${ui.arch ? 'archived' : 'item' + (l.length === 1 ? '' : 's')} · value ${money(val, true)}${prod && !ui.arch ? ' (retail ' + money(ret, true) + ')' : ''}`)}${archNote()}
     ${l.length ? l.slice(0, ui.limit).map(x => stockCard(x, prod)).join('') : empty('search', 'No matches', 'Try a different search, category or filter.')}${l.length > ui.limit ? `<button class="btn btn-line block btn-sm" data-act="more-rows">Show more</button>` : ''}${selBar()}`;
 }
 
 /* ----- inventory dashboards ----- */
-const stockItems = kind => kind === 'products' ? state.products.filter(active) : state.supplies.filter(x => active(x) && (x.kind === 'component') === (kind === 'components'));
+const stockItems = kind => kind === 'products' ? state.products.filter(active) : kind === 'materials' ? state.supplies.filter(active) : state.supplies.filter(x => active(x) && (x.kind === 'component') === (kind === 'components'));
 function stockStats(kind) {
   const l = stockItems(kind), prod = kind === 'products';
   const cost = x => unitVal(x, prod);
   const value = sum(l, x => Math.max(0, prod ? num(x.qty) : stockQty(x)) * cost(x));
+  const costValue = sum(l, x => Math.max(0, prod ? num(x.qty) : stockQty(x)) * costVal(x, prod)), estValue = sum(l, x => Math.max(0, prod ? num(x.qty) : stockQty(x)) * estVal(x, prod));
   const retail = prod ? sum(l, x => Math.max(0, num(x.qty)) * num(x.price)) : 0;
   const low = l.filter(x => stockState(x) === 'low'), out = l.filter(x => stockState(x) === 'out'), ok = l.length - low.length - out.length;
   const ordered = l.filter(x => onOrderInfo(x.id).qty > 0).length;
-  return { l, prod, value, retail, low, out, ok, ordered, units: sum(l, x => Math.max(0, stockQty(x))) };
+  return { l, prod, value, costValue, estValue, retail, low, out, ok, ordered, units: sum(l, x => Math.max(0, stockQty(x))) };
 }
 const dTile = (n, label, tone, go) => `<${go ? 'button' : 'div'} class="tile ${tone || ''}" ${go ? `data-act="seg" data-k="stock" data-v="${go}"` : ''}><b class="num">${n}</b><span>${label}</span></${go ? 'button' : 'div'}>`;
 const healthBar = (ok, low, out) => { const t = ok + low + out; if (!t) return ''; const w = n => (n / t * 100).toFixed(1); return `<div style="display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--line);margin:8px 0 6px"><i style="width:${w(ok)}%;background:var(--ok)"></i><i style="width:${w(low)}%;background:var(--warn)"></i><i style="width:${w(out)}%;background:var(--bad)"></i></div><div class="xs sub">${ok} in stock · ${low} low · ${out} out</div>`; };
@@ -2121,7 +2118,7 @@ function needRow(it, prod) {
 }
 function listingStats() {
   const l = state.listings.filter(active), live = l.filter(x => x.status === 'Active');
-  return { all: l.length, live: live.length, draft: l.filter(x => x.status === 'Draft').length, renew: live.filter(renewDue).length, oos: live.filter(listingOOS).length, old: live.filter(x => listingAge(x) >= 30).length, sync: listingsNeedingSync().length, value: sum(live, x => listingPrice(x)) };
+  return { all: l.length, live: live.length, draft: l.filter(x => x.status === 'Draft').length, renew: live.filter(renewDue).length, oos: live.filter(listingOOS).length, old: live.filter(x => listingAge(x) >= 30).length, value: sum(live, x => listingPrice(x)) };
 }
 function stockDash(kind) {
   if (kind === 'listings') {
@@ -2132,12 +2129,12 @@ function stockDash(kind) {
     return `<div class="card stack-sm"><span class="eyebrow">Listings at a glance</span>
       <div class="grid3">${dTile(q.all, 'Listings')}${dTile(q.live, 'Live', '')}${dTile(q.draft, 'Drafts')}</div>
       <div class="grid3">${dTile(q.renew, 'Renew due', q.renew ? 'hot' : '')}${dTile(q.oos, 'Out of stock', q.oos ? 'issue' : '')}${dTile(q.old, '30+ days live')}</div>
-      ${q.sync ? `<div class="xs sub">${q.sync} listing${q.sync > 1 ? 's' : ''} with product text changed</div>` : ''}
       ${chs.length ? chs.map(([c, n]) => barRow(c, '', n + ' live', n / chs[0][1])).join('') : ''}
       ${act ? `<div class="xs sub">${act} need${act === 1 ? 's' : ''} your attention. Use the Needs action filter below.</div>` : ''}</div>`;
   }
+  if (kind === 'materials') kind = ui.matf === 'all' ? 'materials' : ui.matf;
   const q = stockStats(kind); if (!q.l.length) return '';
-  const label = kind === 'products' ? 'Products' : kind === 'components' ? 'Components' : 'Supplies';
+  const label = kind === 'products' ? 'Products' : kind === 'components' ? 'Components' : kind === 'materials' ? 'Materials' : 'Supplies';
   const need = q.out.concat(q.low).slice(0, 3);
   const top = q.l.map(x => ({ x, v: Math.max(0, q.prod ? num(x.qty) : stockQty(x)) * unitVal(x, q.prod) })).filter(a => a.v > 0).sort((a, b) => b.v - a.v).slice(0, 3);
   return `<div class="card stack-sm"><span class="eyebrow">${label} at a glance</span>
@@ -2152,11 +2149,12 @@ function inventoryHome() {
   const S = stockStats('supplies'), C = stockStats('components'), P = stockStats('products'), L = listingStats();
   const total = S.value + C.value + P.value, groups = [['Supplies', S, 'supplies', 'box'], ['Components', C, 'components', 'layers'], ['Products', P, 'products', 'package']];
   const nItems = S.l.length + C.l.length + P.l.length;
-  if (!nItems && !L.all) return `<div class="card">${empty('box', 'Your inventory starts here', 'Add supplies, components and products and this page shows everything at once: what you own, what it is worth and what needs restocking.', `<div class="row" style="gap:8px;justify-content:center;margin-top:12px"><button class="btn btn-primary btn-sm" data-act="seg" data-k="stock" data-v="supplies">Supplies</button><button class="btn btn-soft btn-sm" data-act="seg" data-k="stock" data-v="components">Components</button><button class="btn btn-soft btn-sm" data-act="seg" data-k="stock" data-v="products">Products</button></div>`)}</div>`;
+  if (!nItems && !L.all) return `<div class="card">${empty('box', 'Your inventory starts here', 'Add materials (supplies and components) and products and this page shows everything at once: what you own, what it is worth and what needs restocking.', `<div class="row" style="gap:8px;justify-content:center;margin-top:12px"><button class="btn btn-primary btn-sm" data-act="seg" data-k="stock" data-v="materials">Materials</button><button class="btn btn-soft btn-sm" data-act="seg" data-k="stock" data-v="products">Products</button></div>`)}</div>`;
   const lowAll = S.low.length + C.low.length + P.low.length, outAll = S.out.length + C.out.length + P.out.length;
   const needs = [].concat(S.out, C.out, P.out, S.low, C.low, P.low).slice(0, 8);
   const rankV = groups.map(g => [g[0], g[1].value]).filter(a => a[1] > 0).sort((a, b) => b[1] - a[1]);
-  return `<div class="card" style="text-align:center"><span class="eyebrow">Total inventory value</span><h2 class="rev num" style="margin:6px 0 8px">${money(total)}</h2>
+  const costTot = S.costValue + C.costValue + P.costValue, estTot = S.estValue + C.estValue + P.estValue;
+  return `<div class="card" style="text-align:center"><div class="grid2" style="gap:12px"><div><span class="eyebrow">Cost value</span><h2 class="rev num" style="margin:6px 0 4px">${money(costTot)}</h2><div class="xs sub">What it cost me</div></div><div><span class="eyebrow">Estimated value</span><h2 class="rev num" style="margin:6px 0 4px">${money(estTot)}</h2><div class="xs sub">My value estimate</div></div></div><div style="height:8px"></div>
       <div class="xs sub">${nItems} item${nItems === 1 ? '' : 's'} across supplies, components and products${P.retail ? ' · ' + money(P.retail, true) + ' retail value of products' : ''}</div></div>
     <div class="grid3">${dTile(nItems, 'Items')}${dTile(lowAll, 'Low', lowAll ? 'hot' : '')}${dTile(outAll, 'Out of stock', outAll ? 'issue' : '')}</div>
     ${groups.map(([name, q, key, icon]) => `<button class="card sm item click" style="width:100%;text-align:left" data-act="seg" data-k="stock" data-v="${key}"><div class="ava">${ic(icon)}</div><div class="grow" style="min-width:0"><h4>${name}</h4><div class="meta">${q.l.length} item${q.l.length === 1 ? '' : 's'} · ${money(q.value, true)}${q.low.length ? ' · ' + q.low.length + ' low' : ''}${q.out.length ? ' · ' + q.out.length + ' out' : ''}</div>${healthBar(q.ok, q.low.length, q.out.length)}</div>${ic('chevron-right', 'chev')}</button>`).join('')}
@@ -2165,19 +2163,20 @@ function inventoryHome() {
     <button class="card sm item click" style="width:100%;text-align:left" data-act="seg" data-k="stock" data-v="listings"><div class="ava">${ic('store')}</div><div class="grow"><h4>Listings</h4><div class="meta">${L.all ? L.live + ' live · ' + L.draft + ' draft' + (L.renew ? ' · ' + L.renew + ' renew due' : '') + (L.oos ? ' · ' + L.oos + ' out of stock' : '') : 'No listings yet'}</div></div>${ic('chevron-right', 'chev')}</button>`;
 }
 V.stock = () => {
-  const s = ui.seg.stock, prod = s === 'products', nsync = listingsNeedingSync().length;
-  if (s === 'home') return `<div class="page stack-sm fade">${seg('stock', [['home', 'Home'], ['supplies', 'Supplies'], ['components', 'Components'], ['products', 'Products'], ['listings', 'Listings']], s)}${valBasisPicker()}${inventoryHome()}</div>`;
+  const s = ui.seg.stock, prod = s === 'products';
+  if (s === 'home') return `<div class="page stack-sm fade">${seg('stock', [['home', 'Home'], ['materials', 'Materials'], ['products', 'Products'], ['listings', 'Listings']], s)}${valBasisPicker()}${inventoryHome()}</div>`;
   return `<div class="page stack-sm fade">
-    ${seg('stock', [['home', 'Home'], ['supplies', 'Supplies'], ['components', 'Components'], ['products', 'Products'], ['listings', 'Listings']], s)}
+    ${seg('stock', [['home', 'Home'], ['materials', 'Materials'], ['products', 'Products'], ['listings', 'Listings']], s)}
+    ${s === 'materials' ? chips([['all', 'All'], ['supplies', 'Supplies'], ['components', 'Components']], ui.matf, 'matf') : ''}
     ${s === 'listings' ? '' : valBasisPicker()}
     ${stockDash(s)}
-    ${searchBox('Search ' + s + '…')}
+    ${searchBox('Search ' + (s === 'materials' ? matLabel() : s) + '…')}
     ${s === 'listings'
-      ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted']].concat(nsync ? [['sync', 'Text changed · ' + nsync]] : []).concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${optSel('sort', [['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['renew', 'Renewal date'], ['sku', 'Listing SKU low to high'], ['sku_d', 'Listing SKU high to low'], ['title', 'Title A to Z'], ['price_h', 'Price: high to low'], ['price_l', 'Price: low to high']], ui.sort || 'sku_d', 'Sort')}</div>
+      ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted']].concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${optSel('sort', [['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['renew', 'Renewal date'], ['sku', 'Listing SKU low to high'], ['sku_d', 'Listing SKU high to low'], ['title', 'Title A to Z'], ['price_h', 'Price: high to low'], ['price_l', 'Price: low to high']], ui.sort || 'sku_d', 'Sort')}</div>
          <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="bulk-listings">${ic('layers')} Bulk create</button></div>`
       : chips([['all', 'All'], ['low', 'Low'], ['out', 'Out of stock'], ['ok', 'In stock']], ui.filter) + `<div class="grid2">${optSel('cat', [['', 'All categories']].concat(state.settings.stockCats.map(c => [c, c])), ui.cat, 'Category')}${optSel('sort', STOCK_SORTS, ui.sort || 'sku_d', 'Sort')}</div>
          <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="reorder">${ic('list-checks')} Reorder list</button>${prod ? `<button class="btn btn-line btn-sm grow" data-act="csv-import">${ic('upload')} Import CSV</button>` : ''}</div>`}
-    <button class="btn btn-line btn-sm block" data-act="archive-sold">${ic('archive')} Archive all sold ${prod ? 'products' : s === 'listings' ? 'listings' : s === 'components' ? 'components' : 'supplies'}</button><div id="list" class="stack-sm" style="margin-top:4px">${stockList()}</div></div>`;
+    <button class="btn btn-line btn-sm block" data-act="archive-sold">${ic('archive')} Archive all sold ${prod ? 'products' : s === 'listings' ? 'listings' : matLabel()}</button><div id="list" class="stack-sm" style="margin-top:4px">${stockList()}</div></div>`;
 };
 
 
@@ -3228,7 +3227,7 @@ const nextSku = () => { const n = Math.max(0, ...state.products.map(p => parseIn
 const done = (msg, log) => { if (log) logAct(log[0], log[1]); closeSheet(); save(); render(); if (msg) { quietToast = msg === 'Sale recorded'; toast(msg); quietToast = false; } if (msg === 'Sale recorded') { const L = state.settings.look; if (L.confetti && L.motion !== false) confetti(); else playSound('win'); } };
 const OPEN = {}, FORMS = {};
 
-/* ---------- supplies & components (one list underneath, two tabs on top) ---------- */
+/* ---------- supplies & components (one list underneath, one Materials tab with an All / Supplies / Components filter) ---------- */
 OPEN.component = () => OPEN.supply('', 'component');
 OPEN.supply = (id, hint) => {
   const s = id ? find('supplies', id) : null, kind = s ? (s.kind === 'component' ? 'component' : 'supply') : (hint === 'component' ? 'component' : 'supply'), comp = kind === 'component', W = comp ? 'component' : 'supply';
@@ -3286,16 +3285,15 @@ OPEN.product = id => {
   const d = p || { name: '', title: '', description: '', sku: nextSku(), barcode: '', category: state.settings.stockCats[0] || '', price: '', cost: '', qty: 0, low: '', location: '', supplierId: '', tags: '', notes: '', recipe: [], batch: 1, tiers: [] };
   const st = p ? productStats(p.id) : null, nl = p ? state.listings.filter(l => listingProducts(l).includes(p.id) && active(l)).length : 0;
   openSheet(p ? 'Edit product' : 'New product', formWrap('product', id, `
-    ${!state.supplies.length && !p ? `<p class="hint" style="margin:0 0 12px">Tip: add your components and supplies first (Inventory &rsaquo; Components / Supplies) so you can build this product from them.</p>` : `<p class="hint" style="margin:0 0 12px">Products are what you sell. Build them from components and supplies, then make listings.</p>`}
+    ${!state.supplies.length && !p ? `<p class="hint" style="margin:0 0 12px">Tip: add your components and supplies first (Inventory &rsaquo; Materials) so you can build this product from them.</p>` : `<p class="hint" style="margin:0 0 12px">Products are what you sell. Build them from components and supplies, then make listings.</p>`}
     ${p && onOrderText(p.id) ? `<div class="notice" style="margin-bottom:12px">${ic('truck')}<span>${esc(onOrderText(p.id))} (${esc(onOrderInfo(p.id).no)}). It is added to your stock when you receive the order.</span></div>` : ''}
     ${p && p.archived ? `<div class="notice warn" style="margin-bottom:12px">${ic('archive')}<span>This product is archived, so its supplies are back in your supply stock.</span></div>` : ''}
     ${st && (st.units || nl) ? `<p class="hint" style="margin:0 0 12px">Sold ${st.units} · revenue ${money(st.rev)} · profit before fees ${money(st.profit)}${nl ? ` · ${nl} listing${nl > 1 ? 's' : ''}` : ''}</p>` : ''}
     ${fText('Name *', 'name', d.name, 'required maxlength="80" placeholder="Your own name for it"')}
-    ${fText('Title for listings', 'title', d.title, 'maxlength="140" placeholder="Defaults to the name. This is what buyers see"')}
-    ${fArea('Description for listings', 'description', d.description, 'Write it once here. Every listing for this product starts with it, and you can still reword any listing.', 'maxlength="5000" style="min-height:110px"')}
     <div class="grid2">${fText('SKU', 'sku', d.sku, 'maxlength="30"')}${fText('Barcode', 'barcode', d.barcode, 'maxlength="40"')}</div>
     <div class="grid2">${fCat('Category', 'category', 'stockCats', d.category)}${fText('Location', 'location', d.location, 'maxlength="40" placeholder="Shelf A, bin 3…"')}</div>
-    <div class="grid2">${fNum('Selling price', 'price', d.price, '0.00', 'min="0" step="any"')}${fNum('Cost per unit', 'cost', d.cost, 'Optional', 'min="0" step="any"')}</div>
+    <div class="grid2">${fNum('Estimated price I\'d sell it for (optional)', 'price', d.price || '', 'Optional', 'min="0" step="any"')}${fNum('Cost per unit', 'cost', d.cost, 'Optional', 'min="0" step="any"')}</div>
+    <p class="hint" style="margin:-2px 0 10px">Only a reference for you. It is shown as a hint when you list this product, and never sets a listing's price.</p>
     <p class="hint" style="margin:-2px 0 10px">Cost is only used when the product has no components or supplies listed below. Otherwise cost comes from them.</p>
     <div class="grid2">${fNum('In stock', 'qty', d.qty, '0', 'step="1"')}${fNum('Low-stock alert', 'low', d.low, 'Default ' + state.settings.lowStock, 'min="0" step="1"')}</div>
     ${fCheck('One of a kind (no low-stock alert)', 'oneOff', p ? p.oneOff : Math.round(num(d.qty)) === 1)}
@@ -3306,7 +3304,7 @@ OPEN.product = id => {
     ${!p ? `${fNum('Cost per unit', 'paid', '', '0.00', 'min="0"')}${fDate('Date you got it', 'recvDate', today(), false)}<p class="hint" style="margin-top:-4px">For ready-made items you bought. Skip it if you made it yourself. Enter the cost of one unit, not the total.</p>` : ''}
     <div class="fld"><span class="lbl">Components &amp; supplies used in this product <small style="text-transform:none;letter-spacing:0;font-weight:600">optional</small></span>
       <div id="rec-rows">${(d.recipe || []).map(recRow).join('')}</div>
-      ${state.supplies.length ? `<div class="row" style="gap:16px"><button type="button" class="link" data-act="rec-add">${ic('plus')} Add component or supply</button><button type="button" class="link" data-act="rec-multi">${ic('layers')} Add several</button></div>` : `<p class="hint">Add items under Inventory &rsaquo; Components or Supplies first.</p>`}
+      ${state.supplies.length ? `<div class="row" style="gap:16px"><button type="button" class="link" data-act="rec-add">${ic('plus')} Add component or supply</button><button type="button" class="link" data-act="rec-multi">${ic('layers')} Add several</button></div>` : `<p class="hint">Add items under Inventory &rsaquo; Materials first.</p>`}
       <p class="hint">Enter the <b>total</b> you used. It comes off that supply's available count. Archive the product and it returns; unarchive and it comes off again; delete the product and it is back for good.</p></div>
     <div id="batch-wrap" ${(d.recipe || []).length ? '' : 'hidden'}>${fNum('Those supplies make how many units?', 'batch', d.batch || 1, '1', 'min="1" step="1"')}</div>
     <div class="fld"><span class="lbl">Bulk prices <small style="text-transform:none;letter-spacing:0;font-weight:600">optional</small></span>
@@ -3326,7 +3324,7 @@ FORMS.product = (f, fd, id) => {
   if (!old || !old.archived) {
     for (const r of recipe) { const free = freeFor(r.supplyId, id), s = find('supplies', r.supplyId); if (r.qty > free + 1e-9) return toast(`Only ${free} ${s.unit} of ${s.name} available. Add stock first or use less`); }
   }
-  const rec = { name, title: tidy(fd.get('title')), description: tidy(fd.get('description')), sku: tidy(fd.get('sku')), barcode: tidy(fd.get('barcode')), category: fd.get('category') || '', location: tidy(fd.get('location')), supplierId: fd.get('supplierId') || '', price: Math.max(0, num(fd.get('price'))), cost: fd.has('cost') ? Math.max(0, num(fd.get('cost'))) : (old ? old.cost : 0), qty: Math.round(num(fd.get('qty'))), low: fd.get('low') === '' ? '' : Math.max(0, Math.round(num(fd.get('low')))), oneOff: fd.get('oneOff') === 'on', valEst: fd.get('valEst') === '' ? '' : Math.max(0, num(fd.get('valEst'))), tags: tidy(fd.get('tags')), notes: tidy(fd.get('notes')), recipe, batch, tiers: readTiers(f) };
+  const rec = { name, sku: tidy(fd.get('sku')), barcode: tidy(fd.get('barcode')), category: fd.get('category') || '', location: tidy(fd.get('location')), supplierId: fd.get('supplierId') || '', price: Math.max(0, num(fd.get('price'))), cost: fd.has('cost') ? Math.max(0, num(fd.get('cost'))) : (old ? old.cost : 0), qty: Math.round(num(fd.get('qty'))), low: fd.get('low') === '' ? '' : Math.max(0, Math.round(num(fd.get('low')))), oneOff: fd.get('oneOff') === 'on', valEst: fd.get('valEst') === '' ? '' : Math.max(0, num(fd.get('valEst'))), tags: tidy(fd.get('tags')), notes: tidy(fd.get('notes')), recipe, batch, tiers: readTiers(f) };
   { const vs = readVariants(f), seen = new Set();
     for (const v of vs) { const k = lc(v.size) + '|' + lc(v.color); if (seen.has(k)) return toast('Two rows have the same size and color'); seen.add(k); }
     rec.variants = vs; if (vs.length) rec.qty = sum(vs, v => num(v.qty)); }
@@ -3743,9 +3741,9 @@ FORMS.mileage = (f, fd, id) => {
 };
 
 /* ---------- listings ---------- */
-const discRow = d => `<div class="disc-row" data-did="${esc(d.id || '')}"><div class="row" style="margin-bottom:8px"><label class="xs sub b grow">% off<input class="input sm d-pct" type="number" min="0" max="100" step="any" value="${esc(d.pct ?? '')}" placeholder="e.g. 15"></label><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove discount" style="margin-top:14px">${ic('x')}</button></div>
+const discRow = d => `<div class="disc-row" data-did="${esc(d.id || '')}" ${d.auto ? `data-auto="1" data-end0="${esc(d.end || '')}"` : ''}><div class="row" style="margin-bottom:8px"><label class="xs sub b grow">% off<input class="input sm d-pct" type="number" min="0" max="100" step="any" value="${esc(d.pct ?? '')}" placeholder="e.g. 15"></label><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove discount" style="margin-top:14px">${ic('x')}</button></div>
   <div class="grid2"><label class="xs sub b">Starts<input class="input sm d-start" type="date" value="${esc(d.start || '')}"></label><label class="xs sub b">Ends<input class="input sm d-end" type="date" value="${esc(d.noEnd ? '' : d.end || '')}" ${d.noEnd ? 'disabled' : ''}></label></div>
-  <label class="row b xs" style="margin-top:8px"><input type="checkbox" class="chk d-no" ${d.noEnd ? 'checked' : ''}> I don't know when it ends yet</label></div>`;
+  <label class="row b xs" style="margin-top:8px"><input type="checkbox" class="chk d-no" ${d.noEnd ? 'checked' : ''}> I don't know when it ends yet</label>${d.auto && d.end ? `<p class="hint" style="margin:6px 0 0">Ended automatically on ${fmtDate(d.end)}, the day before the next discount starts.</p>` : ''}</div>`;
 const urlRows = (chans, urls) => chans.length ? `<p class="eyebrow" style="margin:0 0 6px">Link on each platform <small style="text-transform:none;letter-spacing:0;font-weight:600">optional</small></p>` + chans.map(c => `<label class="xs sub b" style="display:block;margin-bottom:8px">${esc(c)}<input class="input sm" data-url="${esc(c)}" value="${esc((urls || {})[c] || '')}" placeholder="https://" maxlength="300"></label>`).join('') : '';
 const bundleRow = id => { const p = state.products.find(x => x.id === id); return `<div class="row bundle-row" data-bid="${esc(id)}" style="margin-bottom:6px"><span class="grow sm-t b trunc">${esc(p ? pLabel(p) : 'Missing product')}</span><button type="button" class="icon-btn" data-act="bundle-del" aria-label="Remove">${ic('x')}</button></div>`; };
 function listingProductField(d) {
@@ -3760,15 +3758,16 @@ OPEN.listing = id => {
   const chans = state.settings.channels.map(c => c.name); (d.channels || []).forEach(c => { if (!chans.includes(c)) chans.push(c); });
   const p = d.productId ? find('products', d.productId) : null;
   openSheet(l ? 'Edit listing' : 'New listing', formWrap('listing', id, `
-    ${!state.products.filter(active).length && !l ? `<p class="hint" style="margin:0 0 12px">Tip: add a product first (Inventory &rsaquo; Products) and its title, description and price fill in here for you.</p>` : `<p class="hint" style="margin:0 0 12px">Step 3 of 3: a listing is what buyers see, on one or more platforms.</p>`}
+    ${!state.products.filter(active).length && !l ? `<p class="hint" style="margin:0 0 12px">Tip: add a product first (Inventory &rsaquo; Products) and its name fills in here as the title. Its estimated price shows as a hint.</p>` : `<p class="hint" style="margin:0 0 12px">Step 3 of 3: a listing is what buyers see, on one or more platforms.</p>`}
     ${listingProductField(d)}
     <div class="fld"><span class="lbl">Listed on <small style="text-transform:none;letter-spacing:0;font-weight:600">pick all that apply</small></span><div class="mchips">${chans.map(c => `<label class="mchip"><input type="checkbox" name="chs" value="${esc(c)}" ${(d.channels || []).includes(c) ? 'checked' : ''}><span>${esc(c)}</span></label>`).join('')}</div></div>
-    <div class="fld"><span class="lbl">Listing title * <span class="row" style="gap:10px"><button type="button" class="link" data-act="use-ptitle" hidden>Use product title</button><button type="button" class="link" data-act="copy-field" data-f="title">${ic('copy')} Copy</button></span></span><input class="input" name="title" value="${esc(d.title)}" required maxlength="140" placeholder="What buyers see"></div>
-    <div class="fld"><span class="lbl">Description <span class="row" style="gap:10px"><button type="button" class="link" data-act="use-pdesc" hidden>Use product description</button><button type="button" class="link" data-act="copy-field" data-f="description">${ic('copy')} Copy</button></span></span><textarea class="textarea" name="description" maxlength="5000" style="min-height:120px" placeholder="Starts from the product's description. Reword it for this listing if you like">${esc(d.description)}</textarea></div>
+    <div class="fld"><span class="lbl">Listing title * <span class="row" style="gap:10px"><button type="button" class="link" data-act="copy-field" data-f="title">${ic('copy')} Copy</button></span></span><input class="input" name="title" value="${esc(d.title)}" required maxlength="140" placeholder="What buyers see"></div>
+    <div class="fld"><span class="lbl">Description <span class="row" style="gap:10px"><button type="button" class="link" data-act="copy-field" data-f="description">${ic('copy')} Copy</button></span></span><textarea class="textarea" name="description" maxlength="5000" style="min-height:120px" placeholder="Describe this listing">${esc(d.description)}</textarea></div>
     <div class="grid2">${fNum('Price *', 'price', d.price, '0.00', 'required min="0"')}${fSel('Status', 'status', LISTING_STATUSES, d.status)}</div>
+    <p class="hint" id="est-hint" style="margin:-6px 0 12px" hidden></p>
     <div class="grid2">${fText('Listing SKU', 'sku', d.sku, 'maxlength="30"')}${fDate('Listed on', 'listedDate', d.listedDate, false)}</div>
-    ${fDate('Renew on', 'relistDate', d.relistDate, false)}
-    <p class="hint" style="margin-top:-6px;margin-bottom:12px" id="renew-hint">Leave "Renew on" empty and it renews automatically.</p>
+    <div id="renew-box" ${d.status === 'Sold' ? 'hidden' : ''}>${fDate('Renew on', 'relistDate', d.relistDate, false)}
+    <p class="hint" style="margin-top:-6px;margin-bottom:12px" id="renew-hint">Leave "Renew on" empty and it renews automatically.</p></div>
     <div class="fld"><span class="lbl">Discounts <small style="text-transform:none;letter-spacing:0;font-weight:600">plan as many as you like</small></span>
       <div id="disc-rows">${(d.discounts || []).map(discRow).join('')}</div>
       <button type="button" class="link" data-act="disc-add">${ic('plus')} Add a discount</button>
@@ -3779,6 +3778,18 @@ OPEN.listing = id => {
     ${fArea('Notes', 'notes', d.notes)}`, foot('listing', id, 'Save', id ? `<button type="button" class="btn btn-soft ibtn" data-act="analytics" data-id="${id}" aria-label="Analytics" title="Analytics">${ic('bar-chart')}</button>` : '')));
   formLive($('form[data-form=listing]'));
 };
+/* ask which platform a listing sold on; resolves to the platform name, or null if cancelled */
+function askSoldPlatform(title, chans) {
+  if (chans.length <= 1) return Promise.resolve(chans[0] || '');
+  return dialog(`<div class="sheet-head"><h3>Which platform did it sell on?</h3></div><p class="sub" style="margin-bottom:12px">${esc(title)}<br>Only the platform you pick stays on the listing.</p>
+    <div class="stack-sm">${chans.map(c => `<button type="button" class="btn btn-line block" data-dlg="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+    <div class="sheet-foot" style="padding-top:12px"><button class="btn btn-line" data-dlg="no">Cancel</button></div>`).then(v => (typeof v === 'string' && chans.includes(v)) ? v : null);
+}
+/* what a Sold listing keeps: one platform and its link, and no renewal date */
+function applySold(rec, chan) {
+  if (chan) { rec.channels = [chan]; const u = {}; if ((rec.urls || {})[chan]) u[chan] = rec.urls[chan]; rec.urls = u; }
+  rec.relistDate = '';
+}
 function readListing(f) {
   const fd = new FormData(f), status = fd.get('status'), price = num(fd.get('price')), chans = fd.getAll('chs');
   let listed = fd.get('listedDate') || '', relist = fd.get('relistDate') || '';
@@ -3786,13 +3797,20 @@ function readListing(f) {
   if (status === 'Active' && !relist && listed) relist = addDays(listed, renewEvery(chans));
   const urls = {}; $$('[data-url]', f).forEach(i => { const v = tidy(i.value); if (v && chans.includes(i.dataset.url)) urls[i.dataset.url] = /^https?:\/\//i.test(v) ? v : 'https://' + v; });
   const discounts = $$('.disc-row', f).map(r => { const no = $('.d-no', r).checked; return { id: r.dataset.did || uid('d'), pct: Math.max(0, Math.min(100, num($('.d-pct', r).value))), start: $('.d-start', r).value || '', end: no ? '' : ($('.d-end', r).value || ''), noEnd: no }; }).filter(d => d.pct > 0);
+  discounts.forEach((d, i) => { const r = $$('.disc-row', f).filter(x => num($('.d-pct', x).value) > 0)[i]; if (r && r.dataset.auto === '1' && !d.noEnd && d.end === r.dataset.end0) d.auto = true; });
+  autoEndDiscounts(discounts);
+  if (status === 'Sold') relist = '';
   return { title: tidy(fd.get('title')), description: tidy(fd.get('description')), productId: fd.get('productId') || '', bundle: [...new Set($$('.bundle-row', f).map(r => r.dataset.bid).filter(id => id && id !== (fd.get('productId') || '') && state.products.some(p => p.id === id)))], channels: chans, sku: tidy(fd.get('sku')), price, status, listedDate: listed, relistDate: relist, urls, discounts, tags: tidy(fd.get('tags')), notes: tidy(fd.get('notes')) };
 }
-FORMS.listing = (f, fd, id) => {
+FORMS.listing = async (f, fd, id) => {
   const rec = readListing(f); if (!rec.title) return toast('Give the listing a title');
   if (rec.status !== 'Draft' && !rec.channels.length) return toast('Choose at least one platform it is listed on');
   if (rec.discounts.some(d => d.start && d.end && d.end < d.start)) return toast('A discount ends before it starts');
-  const p = find('products', rec.productId); rec.pTitleSeen = p ? productTitle(p) : ''; rec.pDescSeen = p ? p.description : '';
+  const prev = id ? find('listings', id) : null;
+  if (rec.status === 'Sold') {
+    if (!prev || prev.status !== 'Sold') { const c = await askSoldPlatform(rec.title, rec.channels); if (c === null) return; applySold(rec, c); }
+    else rec.relistDate = '';
+  }
   if (id) Object.assign(find('listings', id), rec); else { state.counters.listing++; state.listings.push({ id: uid('l'), createdDate: today(), snaps: [], ...rec }); }
   done('Listing saved', [`${id ? 'Updated' : 'New'} listing ${rec.title}${rec.channels.length ? ' on ' + rec.channels.join(', ') : ''}`, 'store']);
 };
@@ -3870,21 +3888,20 @@ function formLive0(f, target) {
     const m = num($('[name=miles]', f).value) * ($('[name=round]', f).checked ? 2 : 1);
     pv.innerHTML = `<div class="kv"><span>Deduction at ${money(state.settings.mileRate)}/${state.settings.mileUnit}</span><b class="num">${money(m * num(state.settings.mileRate))}</b></div>`;
   } else if (type === 'listing') {
-    const tEl = $('[name=title]', f), dEl = $('[name=description]', f), prEl = $('[name=price]', f);
+    const tEl = $('[name=title]', f), dEl = $('[name=description]', f);
     if (target && target.dataset.listprod !== undefined) {
       const p = find('products', target.value);
-      if (p) { if (!tEl.value.trim() || tEl.dataset.auto) { tEl.value = productTitle(p); tEl.dataset.auto = 1; } if (!dEl.value.trim() || dEl.dataset.auto) { dEl.value = p.description || ''; dEl.dataset.auto = 1; } if (prEl.value === '' || prEl.dataset.auto) { prEl.value = p.price || ''; prEl.dataset.auto = 1; } }
+      if (p) { if (!tEl.value.trim() || tEl.dataset.auto) { tEl.value = productTitle(p); tEl.dataset.auto = 1; } }
     }
     if (target && target.name === 'title') delete tEl.dataset.auto;
     if (target && target.name === 'description') delete dEl.dataset.auto;
-    if (target && target.name === 'price') delete prEl.dataset.auto;
     if (target && target.name === 'chs') { const cur = {}; $$('[data-url]', f).forEach(i => { cur[i.dataset.url] = i.value; }); $('#url-box', f).innerHTML = urlRows($$('[name=chs]:checked', f).map(c => c.value), cur); }
     if (target && target.classList && target.classList.contains('d-no')) { const row = target.closest('.disc-row'), e = $('.d-end', row); e.disabled = target.checked; if (target.checked) e.value = ''; }
     const r = readListing(f), p = find('products', r.productId), plist = listingProducts(r).map(id => find('products', id)).filter(Boolean), unit = plist.length ? sum(plist, unitCost) : null, lp = listingPrice(r);
-    const ut = $('[data-act=use-ptitle]', f), ud = $('[data-act=use-pdesc]', f);
-    ut.hidden = !p || tidy(tEl.value) === tidy(productTitle(p)); ud.hidden = !p || !(p.description) || tidy(dEl.value) === tidy(p.description);
+    { const rb = $('#renew-box', f); if (rb) rb.hidden = r.status === 'Sold'; }
     $('#renew-hint', f).textContent = `Leave "Renew on" empty and it renews automatically every ${renewEvery(r.channels)} days${r.channels.length ? ' (the shortest time among your platforms)' : ''}.`;
     const perChan = r.channels.map(c => { const fee = feeFor(c, lp), keep = lp - fee; return `<div class="kv"><span>${esc(c)}: you keep</span><b class="num ${unit != null && keep < unit ? 'bad-t' : ''}">${money(keep)}${unit != null && lp > 0 ? ' · ' + pct((keep - unit) / lp * 100) + ' margin' : ''}</b></div>`; }).join('');
+    const eh = $('#est-hint', f); if (eh) { const est = plist.length ? sum(plist, x => num(x.price)) : 0; eh.hidden = !(est > 0); if (est > 0) eh.textContent = (plist.length > 1 ? 'Your estimate for these products together: ' : 'Your estimate: ') + money(est); }
     pv.innerHTML = (r.bundle.length ? `<div class="kv"><span>Products if sold separately</span><b class="num">${money(sum(plist, x => num(x.price)))}</b></div>` : '') + `<div class="kv"><span>Price buyers see${lp !== price_(r) ? ' (discounted)' : ''}</span><b class="num">${money(lp)}</b></div>${perChan}${r.status === 'Active' && r.listedDate ? `<div class="kv"><span>Live for</span><b>${listingAge(r) == null ? 'Starts ' + fmtDate(r.listedDate) : listingAge(r) + ' days'} · renews ${fmtDate(r.relistDate)}</b></div>` : ''}${r.discounts.length ? r.discounts.map(d => `<div class="kv"><span>${discActive(d) ? 'Running' : discUpcoming(d) ? 'Scheduled' : 'Ended'}</span><b style="text-align:right">${esc(discText(d))}</b></div>`).join('') : ''}${unit != null ? `<p class="hint" style="margin:6px 0 0">Margins use your cost (${money(unit)}) and each platform's fees, before shipping.</p>` : ''}`;
   } else if (type === 'bulklist') {
     $('#combine-box', f).hidden = new FormData(f).get('combine') !== 'on';
@@ -4019,8 +4036,16 @@ OPEN.bulkEdit = () => {
   openSheet(`Edit ${n} ${plural(type, n)}`, formWrap('bulk', type, `<p class="hint" style="margin:0 0 14px">Only the fields you change are applied. Everything else stays as it is.</p>${bulkFields[type]()}`, foot('', '', `Apply to ${n}`)));
   $$('[data-newlist]', $('#modal')).forEach(s => { s.innerHTML = `<option value="">Keep as is</option>` + state.settings[s.dataset.newlist].map(o => `<option>${esc(o)}</option>`).join(''); s.value = ''; s.dataset.prev = ''; });
 };
-FORMS.bulk = (f, fd, type) => {
+FORMS.bulk = async (f, fd, type) => {
   const ids = [...ui.sel], g = k => fd.get(k) || '', n = ids.length; if (!n) return;
+  const soldPick = {};
+  if (type === 'listing' && g('status') === 'Sold') {
+    for (const id of ids) {
+      const r = find(COLL[type], id); if (!r || r.status === 'Sold') continue;
+      const chans = [...new Set(listingChans(r).concat(fd.getAll('addch')))];
+      const c = await askSoldPlatform(r.title, chans); if (c === null) return; soldPick[id] = c;
+    }
+  }
   closeSheet();
   undoable(`Updated ${n} ${plural(type, n)}`, () => {
     ids.forEach(id => {
@@ -4039,7 +4064,9 @@ FORMS.bulk = (f, fd, type) => {
         if (g('pmode')) r.price = adjust(r.price, g('pmode'), num(fd.get('pval')));
         const p = Math.max(0, Math.min(100, num(fd.get('dpct'))));
         if (p > 0) { r.discounts = r.discounts || []; r.discounts.push({ id: uid('d'), pct: p, start: g('dstart'), end: fd.get('dno') === 'on' ? '' : g('dend'), noEnd: fd.get('dno') === 'on' }); }
-        if (g('renew') === 'now') { r.listedDate = today(); r.relistDate = addDays(today(), renewEvery(listingChans(r))); if (r.status !== 'Draft') r.status = 'Active'; }
+        if (g('renew') === 'now' && r.status !== 'Sold') { r.listedDate = today(); r.relistDate = addDays(today(), renewEvery(listingChans(r))); if (r.status !== 'Draft') r.status = 'Active'; }
+        if (r.status === 'Sold') applySold(r, soldPick[id]);
+        autoEndDiscounts(r.discounts);
       } else if (type === 'expense') {
         if (g('cat') && g('cat') !== '__new') r.cat = g('cat'); if (g('vendor')) r.vendor = g('vendor').trim(); if (g('deductible')) r.deductible = g('deductible') === 'yes'; if (g('date')) r.date = g('date');
       } else if (type === 'task') {
@@ -4094,12 +4121,12 @@ FORMS.bulklist = (f, fd) => {
         const ps = x.pids.map(id => find('products', id)).filter(Boolean); if (ps.length < 2) return;
         state.counters.listing++;
         const base = sum(ps, q => num(q.price));
-        state.listings.push({ id: uid('l'), createdDate: today(), title: tidy(fd.get('btitle')), description: tidy(fd.get('bdesc')) || ps.map(q => q.name + (q.description ? ': ' + q.description : '')).join('\n\n'), pTitleSeen: productTitle(ps[0]), pDescSeen: ps[0].description || '', productId: ps[0].id, bundle: ps.slice(1).map(q => q.id), channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(base, mode, val) : base, status, listedDate: status === 'Active' ? listed : '', relistDate: status === 'Active' ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: '', notes: '' });
+        state.listings.push({ id: uid('l'), createdDate: today(), title: tidy(fd.get('btitle')), description: tidy(fd.get('bdesc')), productId: ps[0].id, bundle: ps.slice(1).map(q => q.id), channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(base, mode, val) : base, status, listedDate: status === 'Active' ? listed : '', relistDate: status === 'Active' ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: '', notes: '' });
         return;
       }
       const p = find('products', x.pid); if (!p) return;
       state.counters.listing++;
-      state.listings.push({ id: uid('l'), createdDate: today(), title: productTitle(p), description: p.description || '', pTitleSeen: productTitle(p), pDescSeen: p.description || '', productId: p.id, channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(p.price, mode, val) : num(p.price), status, listedDate: status === 'Active' ? listed : '', relistDate: status === 'Active' ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: p.tags || '', notes: '' });
+      state.listings.push({ id: uid('l'), createdDate: today(), title: productTitle(p), description: '', productId: p.id, channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(p.price, mode, val) : num(p.price), status, listedDate: status === 'Active' ? listed : '', relistDate: status === 'Active' ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: p.tags || '', notes: '' });
     });
     logAct(`Bulk created ${plan.length} listings`, 'layers'); ui.seg.stock = 'listings'; ui.filter = 'all';
   });
@@ -4188,7 +4215,7 @@ function exportCsv(kind) {
     orders: [['Order', 'Date', 'Customer', 'Platform', 'Status', 'Items', 'Sales', 'Discount', 'Shipping charged', 'Sales tax', 'Refunded', 'Fees', 'Postage', 'Cost of goods', 'Reimbursed to you', 'Profit after cost of goods', 'Money made before cost of goods', 'Estimated profit after cost of goods', 'Final amount entered', 'Bulk', 'PO', 'Deposit', 'Paid with', 'Carrier', 'Tracking', 'Archived'], by(S.orders, 'date').map(o => { const c = oc(o); return [orderNo(o), o.date, o.customer, o.channel, o.status, o.items.map(i => `${i.qty}x ${i.name}`).join('; '), r2(c.sub), r2(c.disc), r2(num(o.shipCharged)), r2(num(o.tax)), r2(c.refund), r2(c.fees), r2(c.post), r2(c.cogs), r2(c.reimb), r2(c.profit), r2(c.made), r2(c.calcProfit), c.hasFinal ? 'yes' : '', o.bulk ? 'yes' : '', o.po || '', r2(num(o.deposit)), o.payment || '', o.carrier || '', o.tracking, o.archived ? 'yes' : '']; })],
     expenses: [['Date', 'Description', 'Category', 'Vendor', 'Amount', 'Deductible', 'Notes'], by(S.expenses, 'date').map(e => [e.date, e.desc, e.cat, e.vendor || '', r2(num(e.amount)), e.deductible === false ? 'no' : 'yes', e.notes || ''])],
     income: [['Date', 'Source', 'Amount'], by(S.income, 'date').map(e => [e.date, e.desc, r2(num(e.amount))])],
-    products: [['Name', 'Listing title', 'Description', 'SKU', 'Barcode', 'Category', 'Price', 'Cost per unit', 'Estimated value per unit', 'In stock', 'Makes (batch)', 'Low alert', 'Location', 'Supplier', 'Tags', 'Notes', 'Archived'], S.products.map(p => [p.name, p.title || '', p.description || '', p.sku, p.barcode || '', p.category, p.price, r2(unitCost(p)), hasEst(p) ? p.valEst : '', p.qty, p.batch || 1, p.low, p.location || '', sup(p.supplierId), p.tags || '', p.notes || '', p.archived ? 'yes' : ''])],
+    products: [['Name', 'SKU', 'Barcode', 'Category', 'Price', 'Cost per unit', 'Estimated value per unit', 'In stock', 'Makes (batch)', 'Low alert', 'Location', 'Supplier', 'Tags', 'Notes', 'Archived'], S.products.map(p => [p.name, p.sku, p.barcode || '', p.category, p.price, r2(unitCost(p)), hasEst(p) ? p.valEst : '', p.qty, p.batch || 1, p.low, p.location || '', sup(p.supplierId), p.tags || '', p.notes || '', p.archived ? 'yes' : ''])],
     supplies: [['SKU', 'Name', 'Unit', 'In total', 'Used in products', 'Available', 'Cost per unit', 'Estimated value per unit', 'Low alert', 'Category', 'Location', 'Supplier', 'Notes', 'Archived'], S.supplies.map(p => [p.sku || '', p.name, p.unit, p.qty, r2(allocated(p.id)), r2(avail(p)), p.cost, hasEst(p) ? p.valEst : '', p.low, p.category, p.location || '', sup(p.supplierId), p.notes || '', p.archived ? 'yes' : ''])],
     listings: [['Title', 'Description', 'SKU', 'Platforms', 'Status', 'Price', 'Price now', 'Discounts', 'Listed', 'Renews', 'Age (days)', 'Bundle (extra products)'].concat(M.map(m => 'Total ' + m), ['Archived']), S.listings.map(l => { const t = listingTotals(l); return [l.title, l.description || '', l.sku, listingChans(l).join('; '), l.status, l.price, r2(listingPrice(l)), (l.discounts || []).map(d => discText(d)).join(' | '), l.listedDate, l.relistDate, listingAge(l) ?? '', (l.bundle || []).map(id => (state.products.find(p => p.id === id) || {}).name || '').filter(Boolean).join('; ')].concat(M.map(m => t[m] ?? ''), [l.archived ? 'yes' : '']); })],
     snaps: [['Listing', 'Platform', 'Date', 'Time', 'Note'].concat(M), S.listings.flatMap(l => (l.snaps || []).slice().sort((a, b) => snapKey(a).localeCompare(snapKey(b))).map(s => [l.title, s.channel, s.date, s.time, s.note || ''].concat(M.map(m => (s.m || {})[m] ?? ''))))],
@@ -4220,7 +4247,7 @@ function gresHtml(q) {
   const sections = [
     ['Sales', state.orders.filter(o => has(orderNo(o), o.customer, o.channel, o.tracking, o.po, o.items.map(i => i.name).join(' '))).slice(0, 5).map(o => ({ ico: 'receipt', t: `${orderNo(o)}${o.customer ? ' · ' + o.customer : ''}`, s: `${fmtDate(o.date)} · ${o.status} · ${money(oc(o).net)}`, a: `data-act="open-order" data-id="${o.id}"` }))],
     ['Supplies', state.supplies.filter(p => has(p.name, p.sku, p.location, p.category)).slice(0, 5).map(p => ({ ico: 'box', t: p.name, s: `${r2(avail(p))} ${p.unit} available`, a: `data-act="edit" data-type="supply" data-id="${p.id}"` }))],
-    ['Products', state.products.filter(p => has(p.name, p.title, p.sku, p.barcode, p.tags, p.location)).slice(0, 5).map(p => ({ ico: 'tag', t: p.name, s: `${p.qty} in stock · ${money(p.price)}${p.archived ? ' · archived' : ''}`, a: `data-act="edit" data-type="product" data-id="${p.id}"` }))],
+    ['Products', state.products.filter(p => has(p.name, p.sku, p.barcode, p.tags, p.location)).slice(0, 5).map(p => ({ ico: 'tag', t: p.name, s: `${p.qty} in stock · ${money(p.price)}${p.archived ? ' · archived' : ''}`, a: `data-act="edit" data-type="product" data-id="${p.id}"` }))],
     ['Listings', state.listings.filter(l => has(l.title, l.sku, listingChans(l).join(' '), l.tags)).slice(0, 5).map(l => ({ ico: 'store', t: l.title, s: `${listingChans(l).join(', ') || 'No platform'} · ${l.status} · ${money(listingPrice(l))}`, a: `data-act="edit" data-type="listing" data-id="${l.id}"` }))],
     ['Customers', state.customers.filter(c => has(c.name, c.email, c.phone, c.tags)).slice(0, 5).map(c => ({ ico: 'user', t: c.name, s: c.email || c.phone || '', a: `data-act="edit" data-type="customer" data-id="${c.id}"` }))],
     ['Expenses', state.expenses.filter(e => has(e.desc, e.vendor, e.cat)).slice(0, 5).map(e => ({ ico: 'wallet', t: e.desc, s: `${fmtDate(e.date)} · ${money(e.amount)}`, a: `data-act="edit" data-type="expense" data-id="${e.id}"` }))],
@@ -4246,6 +4273,7 @@ function askRange() {
    ===================================================================== */
 let lastView = null;
 function render() {
+  normStock();
   const v = ui.sub || ui.tab, sc = $('#scroll'), keep = lastView === v ? sc.scrollTop : 0;
   $('#hdr').innerHTML = renderHeader();
   $('#nav').innerHTML = renderNav();
@@ -4270,7 +4298,8 @@ function navTo(g) {
   else if (g[0] === 'listings') { ui.seg.stock = 'listings'; go('stock'); ui.filter = f || 'all'; render(); }
   else if (g[0] === 'stock') {
     const flt = f === 'need' ? 'low' : (f || 'all'), hit = x => !x.archived && (flt === 'all' || stockState(x) === flt);
-    ui.seg.stock = state.products.some(hit) ? 'products' : state.supplies.some(x => hit(x) && x.kind !== 'component') ? 'supplies' : state.supplies.some(x => hit(x) && x.kind === 'component') ? 'components' : 'products';
+    const hs = state.supplies.some(x => hit(x) && x.kind !== 'component'), hc = state.supplies.some(x => hit(x) && x.kind === 'component');
+    if (!state.products.some(hit) && (hs || hc)) { ui.seg.stock = 'materials'; ui.matf = hs && hc ? 'all' : hs ? 'supplies' : 'components'; } else ui.seg.stock = 'products';
     go('stock'); ui.filter = flt; render(); }
   else if (g[0] === 'taxes') go('more', 'taxes');
   else if (g[0] === 'bills') { ui.seg.bills = f || 'bills'; go('more', 'bills'); }
@@ -4303,7 +4332,7 @@ const XP_PAGES = {
   customers: ['customers'], suppliers: ['suppliers'], notes: ['notes'], mileage: ['mileage'], plan: ['tasks', 'events'],
   goals: ['goals'], bills: ['bills'], taxes: ['taxPayments', 'income', 'expenses'], activity: ['activity']
 };
-const XP_NAMES = { orders: 'Sales', products: 'Products', supplies: 'Supplies', listings: 'Listings', expenses: 'Expenses', income: 'Income', accounts: 'Accounts', transfers: 'Transfers', customers: 'Customers', suppliers: 'Suppliers', notes: 'Notes', mileage: 'Mileage', tasks: 'Tasks', events: 'Events', goals: 'Goals', bills: 'Bills', taxPayments: 'Tax payments', activity: 'Activity' };
+const XP_NAMES = { orders: 'Sales', products: 'Products', supplies: 'Materials (supplies & components)', listings: 'Listings', expenses: 'Expenses', income: 'Income', accounts: 'Accounts', transfers: 'Transfers', customers: 'Customers', suppliers: 'Suppliers', notes: 'Notes', mileage: 'Mileage', tasks: 'Tasks', events: 'Events', goals: 'Goals', bills: 'Bills', taxPayments: 'Tax payments', activity: 'Activity' };
 const xpSets = v => (XP_PAGES[v] || []).filter(k => Array.isArray(state[k]));
 const xpLabel = k => String(k).replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').replace(/ Id$/, '').replace(/\bSku\b/i, 'SKU').replace(/^./, c => c.toUpperCase());
 function xpIdMap() {
@@ -4401,8 +4430,9 @@ const ACT = {
     aiSay({ t: `Done. ${aiN(all.length, 'task')} ${all.length === 1 ? 'is' : 'are'} on your list${due ? ` for ${fmtDate(due)}` : ''}, and nothing else. Everything I suggested but you didn\u2019t tick is left alone.`, opts: ui.mtg ? meetCtl() : null, next: ['cal', 'focus'] });
   },
   back: () => { if (ui.sub === 'inbox' && ui.ret) { const r = ui.ret; ui.ret = null; ui.tab = r.tab; ui.sub = r.sub; render(); } else { ui.sub = null; ui.ret = null; resetFilters(); render(); } },
-  'seg-go': el => { ui.seg[el.dataset.k] = el.dataset.v; go(el.dataset.tab); },
-  seg: el => { ui.seg[el.dataset.k] = el.dataset.v; resetFilters(); render(); },
+  'seg-go': el => { setSeg(el.dataset.k, el.dataset.v); go(el.dataset.tab); },
+  seg: el => { if (el.dataset.k === 'stock' && el.dataset.v === 'materials' && ui.seg.stock !== 'materials') ui.matf = 'all'; setSeg(el.dataset.k, el.dataset.v); resetFilters(); render(); },
+  matf: el => { ui.matf = el.dataset.v === 'supplies' || el.dataset.v === 'components' ? el.dataset.v : 'all'; ui.limit = 60; ui.sel.clear(); render(); },
   chip: el => { ui.filter = el.dataset.v; ui.limit = 60; ui.sel.clear(); render(); },
   'go-sales': el => { go('sales'); ui.filter = el.dataset.v; render(); },
   'more-rows': () => { ui.limit += 60; refreshList(); },
@@ -4501,7 +4531,7 @@ const ACT = {
   delete: el => confirmDelete(el.dataset.type, [el.dataset.id]),
   'archive-sold': async () => {
     const seg_ = ui.seg.stock, type = seg_ === 'products' ? 'product' : seg_ === 'listings' ? 'listing' : 'supply';
-    const items = state[COLL[type]].filter(r => !r.archived && (type !== 'supply' || (r.kind === 'component') === (seg_ === 'components')) && (type === 'listing' ? /sold/i.test(r.status || '') : stockQty(r) <= 0));
+    const items = state[COLL[type]].filter(r => !r.archived && (type !== 'supply' || matMatch(r)) && (type === 'listing' ? /sold/i.test(r.status || '') : stockQty(r) <= 0));
     const all_ = items.slice(); items.length = 0; const skipped = [];
     all_.forEach(r => { const why = archiveBlock(type, r); why ? skipped.push(r) : items.push(r); });
     if (!all_.length) return toast('Nothing sold out to archive. Items that still have stock are never archived');
@@ -4528,18 +4558,12 @@ const ACT = {
     putOrder(setOrderStatus(o, n)); logAct(`${orderNo(o)} marked ${n}`, 'truck'); save(); render(); OPEN.orderDetail(o.id); toast('Marked as ' + n);
   },
 
-  /* listings: copy buttons, product text sync, renewal, analytics */
+  /* listings: copy buttons, renewal, analytics */
   'copy-title': el => { const l = find('listings', el.dataset.id); if (l) copyText(l.title, 'Title'); },
   'copy-desc': el => { const l = find('listings', el.dataset.id); if (l) copyText(l.description, 'Description'); },
   'copy-field': el => { const f = formOf(el), i = $(`[name=${el.dataset.f}]`, f); if (i) copyText(i.value, el.dataset.f); },
-  'use-ptitle': el => { const f = formOf(el), p = find('products', $('[name=productId]', f).value); if (p) { const i = $('[name=title]', f); i.value = productTitle(p); delete i.dataset.auto; formLive(f); } },
-  'use-pdesc': el => { const f = formOf(el), p = find('products', $('[name=productId]', f).value); if (p) { const i = $('[name=description]', f); i.value = p.description || ''; delete i.dataset.auto; formLive(f); } },
-  'sync-title': el => { const l = find('listings', el.dataset.id), p = l && find('products', l.productId); if (p) { l.title = productTitle(p); l.pTitleSeen = productTitle(p); save(); render(); toast('Title updated to match'); } },
-  'sync-desc': el => { const l = find('listings', el.dataset.id), p = l && find('products', l.productId); if (p) { l.description = p.description || ''; l.pDescSeen = p.description || ''; save(); render(); toast('Description updated to match'); } },
-  'keep-title': el => { const l = find('listings', el.dataset.id), p = l && find('products', l.productId); if (p) { l.pTitleSeen = productTitle(p); save(); render(); toast('Keeping your title'); } },
-  'keep-desc': el => { const l = find('listings', el.dataset.id), p = l && find('products', l.productId); if (p) { l.pDescSeen = p.description || ''; save(); render(); toast('Keeping your description'); } },
   relist: async el => {
-    const l = find('listings', el.dataset.id); if (!l) return;
+    const l = find('listings', el.dataset.id); if (!l || l.status === 'Sold') return;
     if (!await confirmBox('Mark as renewed?', `Use this after you have actually renewed or relisted "${l.title}" on its platform. It restarts the listing's age and sets the next renewal date.`, 'Yes, I renewed it', false)) return;
     l.listedDate = today(); l.relistDate = addDays(today(), renewEvery(listingChans(l))); if (l.status !== 'Draft') l.status = 'Active';
     logAct(`Renewed listing ${l.title}`, 'refresh'); save(); render(); toast('Renewed. Next renewal ' + fmtDate(l.relistDate));
@@ -4753,21 +4777,17 @@ const HELP = {
     example: 'Sell 2 Beaded Bracelets at $24 on Etsy: 2 come off the product’s stock, Etsy’s fee is subtracted, and the cost of the supplies is counted, so you see the real profit.',
     links: [['Products', 'Sold products lose stock automatically', 't:stock:products'], ['Listings', 'Link a sale to the listing it came from', 't:stock:listings'], ['Customers', 'Customers are created from sales', 's:customers'], ['Money › Accounts', 'Choose which account the cash lands in', 't:money:accounts'], ['Bills & invoices', 'Unpaid sales show up as invoices', 's:bills:invoices'], ['Settings › Platforms & fees', 'Where fees come from', 's:settings:channels:channels']], tip: 'Cancelled and failed orders do not count as sales and do not take stock.' },
   'stock.home': { title: 'Inventory › Home', purpose: 'Everything in your inventory on one page: supplies, components and products, with what it is all worth and what needs restocking.',
-    steps: ['The big number is the total value of what you own at cost.', 'Tap Supplies, Components, Products or Listings to open that page.', 'Needs restock lists everything that is low or out. Tap + to adjust stock or open the item.', 'Each page also has its own dashboard at the top.'],
+    steps: ['The big number is the total value of what you own at cost.', 'Tap Materials, Products or Listings to open that page. The Supplies and Components cards open Materials with that filter already chosen.', 'Needs restock lists everything that is low or out. Tap + to adjust stock or open the item.', 'Each page also has its own dashboard at the top.'],
     example: 'Beads are low, mailers are out. Both show under Needs restock so you can reorder in one go.',
-    links: [['Supplies', 'Packing and extras', 't:stock:supplies'], ['Components', 'Parts that go into products', 't:stock:components'], ['Products', 'What you sell', 't:stock:products'], ['Listings', 'What buyers see', 't:stock:listings']], tip: 'Tap the Inventory tab at the bottom any time to come back here.' },
-  'stock.supplies': { title: 'Inventory › Supplies', purpose: 'The extras you use up around your products: packing, tape, mailers, labels, gift boxes, ink. These are not the parts of the product itself. Those go in Components.',
-    steps: ['Tap + Supply. Enter the name, the unit (pcs, roll, pack…), how many you have, and the cost per unit.', 'Don’t know the cost per unit? Divide what you paid by how many you got and enter that.', 'Set a low-stock level. When you drop to it, the item shows “Low” and appears in your Inbox and the Reorder list.', 'Tap the + on a card when more arrives. Enter how many, the cost per unit and the date.', 'Pick a supply in a product’s recipe if each product uses some (for example 1 mailer and 0.2 m of tape).', 'Mixed something up? Open the item and change “This is a” to Supply or Component to move it between tabs.'],
-    example: 'Bubble mailers · 120 pcs · $0.20 each · low at 25. A bracelet recipe that uses 1 mailer adds $0.20 to its cost.',
-    links: [['Components', 'The parts that go into products', 't:stock:components'], ['Products', 'Recipes can use supplies', 't:stock:products'], ['Orders & deliveries', 'Order more and track it until it arrives', 's:purchases'], ['Suppliers', 'Who you buy each supply from', 's:suppliers']], tip: 'Don’t log supplies you resell as expenses. Their cost is counted when sold, so it would count twice.' },
-  'stock.components': { title: 'Inventory › Components', purpose: 'The parts that go INTO what you sell: beads, chain, clasps, wire, fabric, or a handmade charm you make ahead of time. Supplies (packing, tape) stay on the Supplies tab.',
-    steps: ['Tap + Component. Name it, choose the unit, and enter how many you have.', 'Enter the cost per unit (what you paid divided by how many you got).', 'When you make or buy more, tap the + on the card. Enter how many, the cost per unit and the date.', 'In a product’s recipe, pick components and supplies together. Cost per unit is worked out from them.'],
-    example: 'Glass beads · 18 packs · $3.50 per pack. A bracelet uses 1 pack for every 2 bracelets, so each bracelet carries $1.75 in beads.',
-    links: [['Supplies', 'Packing, tape and other extras', 't:stock:supplies'], ['Products', 'Recipes use components', 't:stock:products'], ['Orders & deliveries', 'Track components you ordered', 's:purchases'], ['Suppliers', 'Who you buy from', 's:suppliers']], tip: 'Components and supplies are counted the same way: what you own, minus what products already use, is what is available.' },
+    links: [['Materials', 'Supplies and components together', 't:stock:materials'], ['Materials › Supplies', 'Packing and extras', 't:stock:supplies'], ['Materials › Components', 'Parts that go into products', 't:stock:components'], ['Products', 'What you sell', 't:stock:products'], ['Listings', 'What buyers see', 't:stock:listings']], tip: 'Tap the Inventory tab at the bottom any time to come back here.' },
+  'stock.materials': { title: 'Inventory › Materials', purpose: 'Everything you use to make and pack what you sell, in one list. Components are the parts that go INTO a product (beads, chain, clasps, wire, fabric, or a handmade charm you make ahead of time). Supplies are the extras you use up around your products (packing, tape, mailers, labels, gift boxes, ink).',
+    steps: ['Use the All / Supplies / Components filter under the tabs to see everything or just one type.', 'Tap + (Material, Supply or Component, depending on the filter). Enter the name, choose Supply or Component under “This is a”, the unit (pcs, roll, pack…), how many you have, and the cost per unit.', 'Don’t know the cost per unit? Divide what you paid by how many you got and enter that.', 'Set a low-stock level. When you drop to it, the item shows “Low” and appears in your Inbox and the Reorder list.', 'Tap the + on a card when more arrives. Enter how many, the cost per unit and the date.', 'In a product’s recipe, pick components and supplies together (for example 1 mailer and 0.2 m of tape, or 1 pack of beads for every 2 bracelets). Cost per unit is worked out from them.', 'Mixed something up? Open the item and change “This is a” to Supply or Component. It moves to the right filter straight away.'],
+    example: 'Bubble mailers (Supply) · 120 pcs · $0.20 each · low at 25. Glass beads (Component) · 18 packs · $3.50 per pack. A bracelet that uses 1 mailer and half a pack of beads carries $0.20 + $1.75 in materials.',
+    links: [['Products', 'Recipes use materials', 't:stock:products'], ['Orders & deliveries', 'Order more and track it until it arrives', 's:purchases'], ['Suppliers', 'Who you buy each item from', 's:suppliers']], tip: 'Components and supplies are counted the same way: what you own, minus what products already use, is what is available. Don’t log supplies you resell as expenses. Their cost is counted when sold, so it would count twice.' },
   'stock.products': { title: 'Inventory › Products', purpose: 'What you actually sell. A product has a price, a quantity in stock and a cost. The cost comes from the components and supplies in its recipe, or you type it in if you buy it ready-made.',
-    steps: ['Tap + Product. Add a name, SKU and price.', 'Made it yourself? Add a recipe: pick components and supplies together and how much of each the whole batch uses, plus how many units the batch makes. Unit cost is calculated.', 'Bought it ready-made? Type its cost per unit when you add it, and set the date you got it.', 'More arrives later? Tap the + on the card and enter how many, the cost per unit and the date.', 'Optional extras: price tiers (cheaper in bulk), sizes & colors, a listing title and description.'],
+    steps: ['Tap + Product. Add a name and SKU. A price estimate is optional.', 'Made it yourself? Add a recipe: pick components and supplies together and how much of each the whole batch uses, plus how many units the batch makes. Unit cost is calculated.', 'Bought it ready-made? Type its cost per unit when you add it, and set the date you got it.', 'More arrives later? Tap the + on the card and enter how many, the cost per unit and the date.', 'Optional extras: price tiers (cheaper in bulk) and sizes & colors.'],
     example: 'Wire Ring · batch of 22 uses 13.2 m of wire ($0.90/m) → cost $0.54 each. Price $18 → margin about 97%.',
-    links: [['Components', 'Parts that go into the recipe', 't:stock:components'], ['Supplies', 'Packing and extras in the recipe', 't:stock:supplies'], ['Listings', 'Create listings for a product', 't:stock:listings'], ['Sales', 'Selling a product lowers its stock', 't:sales']], tip: 'Margin turns amber under 20%, a hint to raise the price or lower the cost.' },
+    links: [['Materials › Components', 'Parts that go into the recipe', 't:stock:components'], ['Materials › Supplies', 'Packing and extras in the recipe', 't:stock:supplies'], ['Listings', 'Create listings for a product', 't:stock:listings'], ['Sales', 'Selling a product lowers its stock', 't:sales']], tip: 'Margin turns amber under 20%, a hint to raise the price or lower the cost.' },
   'stock.listings': { title: 'Inventory › Listings (step 3)', purpose: 'What buyers see on each platform: title, description, price and link. One listing can sit on several platforms at once, and the app tracks renewals, discounts and analytics.',
     steps: ['Tap + Listing, pick the product, then tick the platforms it is on.', 'Bulk create makes many listings at once from your products.', 'Renewed… resets the renewal clock. Listings 30+ days old get flagged.', 'Add discounts with start and end dates. The live price on the card updates by itself.', 'Analytics lets you save snapshots of views, favorites and offers per platform to see what works.', 'Copy title / Copy description puts the text on your clipboard to paste into the platform.'],
     example: 'Bracelet on eBay + Etsy + Mercari, 15% off from Friday to the 20th. The card shows the sale price and the app reminds you before the discount ends.',
@@ -4806,6 +4826,7 @@ const HELP = {
     steps: ['Tap Start to begin a shift and Stop to end it. Add breaks if you take them.', 'Add an entry by hand for time you forgot to track.', 'Totals show hours by day and week.'],
     example: 'Packed orders from 9:00 to 11:30 with a 15 min break → 2h 15m logged.',
     links: [['Home', 'Quick action: Time', 'h']], tip: 'Divide your profit by your hours to see what you are really earning per hour.' },
+  'plan.sheet': { title: 'Plan › Timesheet', purpose: 'Plan your work day in time blocks, run it with a floating tracker, and see hours worked.', steps: ['Add time blocks (weekly, bi-weekly, monthly or one-time).', 'Tap Start my day; the tracker floats over every page.', 'Finish ✓ & next moves through blocks; use Break, Pause, Skip.', 'Edit real start/finish times on any block or past day.', 'Set reminders and sounds at the bottom.'], example: 'Photography 9:00–10:30 every Mon–Fri with steps to tick off.', links: [['Plan › Time', 'Finished days are added to your time totals', 's:plan:time']], tip: 'Reminders work while the app is open.' },
   goals: { title: 'Goals', purpose: 'Targets such as monthly revenue, profit, orders, items sold or listings added, with live progress.',
     steps: ['Tap + Goal. Pick what to measure, the target number and the period (this month, or custom dates).', 'The ring shows progress. It says whether you are on pace or behind and projects where you will finish.', 'The first goal in the list shows on Home.'],
     example: 'Goal: revenue $3,000 this month. $1,200 earned by day 10 → “On pace for $3,600”.',
@@ -4825,7 +4846,7 @@ const HELP = {
   purchases: { title: 'Orders & deliveries', purpose: 'Everything you bought from suppliers. Tap where it is now (bought, shipped, in transit, out for delivery, delayed, delivered) and the dates are kept. When it is delivered, receiving it adds the items to your stock.',
     steps: ['Tap + Order. Pick a saved supplier, or type the store or website (Amazon, a craft fair seller…).', 'Add the items: pick a supply, component or product, or type a name for anything else. Enter the quantity and the cost per unit.', 'Add the carrier and tracking number if you have them. Open the order to tap Track package.', 'Open an order and tap where it is now: Ordered, In Transit, Out for Delivery or Delayed. The On the way filter shows only what has not arrived.', 'When it shows up, tap Delivered (or Receive items). Enter how many came. You can receive in parts. Stock goes up and a bill can be made so you remember to pay.'],
     example: '200 mailers from PackRight, USPS 9400… → In Transit → Delivered: Mailers +200, a bill for the invoice, and the delivery dates on the order.',
-    links: [['Supplies', 'Supplies increase here', 't:stock:supplies'], ['Components', 'Components increase here', 't:stock:components'], ['Products', 'Ready-made products increase here', 't:stock:products'], ['Suppliers', 'Who the order is with', 's:suppliers'], ['Bills & invoices', 'The bill it creates', 's:bills']], tip: 'Didn’t order through here? Add the stock with the + on the item instead and enter the cost per unit.' },
+    links: [['Materials › Supplies', 'Supplies increase here', 't:stock:supplies'], ['Materials › Components', 'Components increase here', 't:stock:components'], ['Products', 'Ready-made products increase here', 't:stock:products'], ['Suppliers', 'Who the order is with', 's:suppliers'], ['Bills & invoices', 'The bill it creates', 's:bills']], tip: 'Didn’t order through here? Add the stock with the + on the item instead and enter the cost per unit.' },
   customers: { title: 'Customers', purpose: 'Everyone who buys from you, with their order history, lifetime spend and contact details.',
     steps: ['Customers are created automatically when you type a name on a sale. You can also tap + Customer.', 'Open one to see orders, total spent and profit, and to start a new sale for them.', 'Add email, phone, address and tags such as vip.'],
     example: 'Maya R. has 6 orders and $210 spent, which makes her a repeat buyer.',
@@ -4833,7 +4854,7 @@ const HELP = {
   suppliers: { title: 'Suppliers', purpose: 'The people and shops you buy from, with contact details and notes such as terms.',
     steps: ['Tap + Supplier and add a name and contact.', 'Pick a supplier on supplies and products so you know who to reorder from.', 'Purchase orders use this list.'],
     example: 'PackRight, free shipping over $75, supplies mailers and boxes.',
-    links: [['Supplies', 'Link each supply to a supplier', 't:stock:supplies'], ['Purchase orders', 'Order from them', 's:purchases']], tip: 'Archive suppliers you no longer use.' },
+    links: [['Materials › Supplies', 'Link each supply to a supplier', 't:stock:supplies'], ['Purchase orders', 'Order from them', 's:purchases']], tip: 'Archive suppliers you no longer use.' },
   mileage: { title: 'Mileage', purpose: 'Business trips and the tax deduction they are worth.',
     steps: ['Tap + Trip, add date, purpose, from, to and distance.', 'The deduction = distance × your mileage rate (Settings).', 'Totals feed the Taxes page.'],
     example: '22.5 mi supplier pickup × $0.70 = $15.75 deduction.',
@@ -4858,7 +4879,7 @@ const FAQ_GUIDE = [
   ['Set up the basics', 'Open the app and tap Get Started (or Explore with sample data to practice first). Enter your business name, currency, the platforms you sell on and, if you like, a monthly revenue goal.', 's:settings:business', 'Business settings'],
   ['Add your platforms and fees', 'In More › Settings › Platforms & fees, add each place you sell (Etsy, eBay, markets, your own site). Enter its fee % and fixed fee so every sale works out your real profit.', 's:settings:channels', 'Platforms & fees'],
   ['Add suppliers (optional)', 'In More › Suppliers, save the shops and people you buy from so you can pick them later on supplies and orders.', 's:suppliers', 'Suppliers'],
-  ['Enter components and supplies', 'In Inventory, use the Components tab for parts that go INTO your products (beads, wire, fabric) and the Supplies tab for extras like mailers and tape. Enter how many you have and the cost per unit.', 't:stock:components', 'Components'],
+  ['Enter components and supplies', 'In Inventory, open the Materials tab. Mark each item as a Component (parts that go INTO your products: beads, wire, fabric) or a Supply (extras like mailers and tape), and use the All / Supplies / Components filter to view them separately. Enter how many you have and the cost per unit.', 't:stock:materials', 'Materials'],
   ['Enter your products', 'In Inventory › Products tap + Product. Add the name, SKU, price and quantity. If you make it yourself, add a recipe so the cost is worked out for you. If you bought it ready-made, type its cost.', 't:stock:products', 'Products'],
   ['Create listings (optional)', 'In Inventory › Listings, record where each product is for sale, the price on each platform and when it needs renewing.', 't:stock:listings', 'Listings'],
   ['Record a sale', 'In Sales tap + Sale, pick the products, the platform and the customer. Stock goes down and the fee, cost and profit are worked out.', 't:sales', 'Sales'],
@@ -4876,7 +4897,7 @@ const FAQ = [
     ['What is this app?', 'Grimms Business Tracker keeps your sales, inventory, money, listings, goals, plans and taxes in one place. It works out fees, costs, stock and profit for you.'],
     ['Do I need an account or internet?', 'No account and no sign-in. Your data is saved on this device. Fonts and a few online extras (like some widgets or package tracking links) need internet, but the tracker itself is yours to use any time.'],
     ['What is “Explore with sample data”?', 'It fills the app with a pretend shop so you can click around safely. When you are done, go to More › Settings › Your data & backups and erase everything, then start fresh with your own details.'],
-    ['Where do I find things?', 'The bottom bar has five tabs:\n• Home: your dashboard\n• Sales: every order you take\n• Inventory: products, components, supplies and listings\n• Money: overview, expenses, income and accounts\n• More: everything else (Plan, Goals, Taxes, Bills, Orders & deliveries, Customers, Suppliers, Mileage, Notes, Activity, Settings, this FAQ)'],
+    ['Where do I find things?', 'The bottom bar has five tabs:\n• Home: your dashboard\n• Sales: every order you take\n• Inventory: materials (supplies and components), products and listings\n• Money: overview, expenses, income and accounts\n• More: everything else (Plan, Goals, Taxes, Bills, Orders & deliveries, Customers, Suppliers, Mileage, Notes, Activity, Settings, this FAQ)'],
     ['What is the “?” button at the top?', 'Every page has a ? button. It explains what that page is for, how to use it, gives an example and shows which other pages it connects to.'],
     ['Does the app work on my phone?', 'Yes, it is built for phones and also works on tablets and computers. On a computer it is shown in a phone-style frame (you can change that in Settings › Colors & looks).'],
     ['In what order should I enter things?', 'Settings and platforms first, then components and supplies, then products, then sales. See the Start to finish guide at the top of this page.'],
@@ -4892,11 +4913,11 @@ const FAQ = [
     ['Can I add my own payment methods or carriers?', 'Yes: Settings › Payment methods & carriers.'],
   ]},
   { id: 'inventory', t: 'Products, components & supplies', ic: 'package', q: [
-    ['What is the difference between a product, a component and a supply?', '• Product: what you sell.\n• Component: a part that goes INTO a product (beads, wire, fabric, a charm you make ahead).\n• Supply: an extra you use up around products (mailers, tape, labels, gift boxes).\nIf you picked the wrong one, open the item and change “This is a” to move it between tabs.'],
-    ['How do I enter a product?', 'Inventory › Products › + Product. Add a name, SKU, price and how many you have. Choose the date you got them. Optional: price tiers, sizes & colors, a listing title and description.'],
+    ['What is the difference between a product, a component and a supply?', '• Product: what you sell.\n• Component: a part that goes INTO a product (beads, wire, fabric, a charm you make ahead).\n• Supply: an extra you use up around products (mailers, tape, labels, gift boxes).\nComponents and supplies both live under Inventory › Materials. If you picked the wrong one, open the item and change “This is a” and it moves to the other filter (All / Supplies / Components).'],
+    ['How do I enter a product?', 'Inventory › Products › + Product. Add a name, SKU and how many you have. An estimated selling price is optional. Choose the date you got them. Optional: price tiers and sizes & colors.'],
     ['How do I enter a product I make myself?', 'Add a recipe on the product: pick the components and supplies it uses, how much the whole batch uses, and how many units the batch makes. The cost per unit is worked out for you.'],
     ['How do I enter a product I bought ready-made?', 'Enter its cost per unit when you add it.'],
-    ['How do I enter components or supplies?', 'Inventory › Components or Supplies › + button. Enter the name, unit (pcs, roll, pack…), how many you have and the cost per unit.'],
+    ['How do I enter components or supplies?', 'Inventory › Materials › + button. Choose Supply or Component under “This is a”, then enter the name, unit (pcs, roll, pack…), how many you have and the cost per unit.'],
     ['I got more stock. How do I add it?', 'Tap the + on the item’s card and enter how many, the cost per unit and the date. If you ordered it through Orders & deliveries, receive it there instead.'],
     ['How do I get low-stock warnings?', 'Set a low-stock level on the item (or a default in Settings). At that level it shows “Low”, appears in your Inbox and in the Reorder list.'],
     ['How is stock reduced?', 'Selling a product lowers its stock. If the product has a recipe, the components and supplies it uses are counted as used up too. Cancelled and failed orders do not take stock, and a returned order that you receive back puts it back.'],
@@ -5040,7 +5061,7 @@ HELP.faq = { title: 'Help & FAQ', purpose: 'A start-to-finish guide and answers 
 
 const helpKey = () => {
   const v = ui.sub || ui.tab, s = ui.seg;
-  if (v === 'stock') return 'stock.' + s.stock;
+  if (v === 'stock') return 'stock.' + (s.stock === 'supplies' || s.stock === 'components' ? 'materials' : s.stock);
   if (v === 'money') return 'money.' + s.money;
   if (v === 'plan') return 'plan.' + s.plan;
   return v;
@@ -5063,7 +5084,7 @@ function helpGo(t) {
   const p = String(t || '').split(':'); closeSheet();
   if (p[0] === 'i') return openInbox();
   if (p[0] === 'h') return go('home');
-  if (p[0] === 't') { if (p[2]) ui.seg[p[1]] = p[2]; return go(p[1]); }
+  if (p[0] === 't') { if (p[1] === 'stock' && p[2] === 'materials') ui.matf = 'all'; if (p[2]) setSeg(p[1], p[2]); return go(p[1]); }
   if (p[0] === 's') { if (p[2] && ['plan', 'bills'].includes(p[1])) ui.seg[p[1]] = p[2]; if (p[2] && !['plan', 'bills'].includes(p[1])) ui.setOpen[p[2]] = true; if (p[3]) ui.setOpen[p[3]] = true; return go('more', p[1]); }
 }
 
@@ -5910,12 +5931,13 @@ function initSetup() {
   $('#su-channels').innerHTML = suChan('In person', '0', 0, false);
   $('#su-presets').innerHTML = PLATFORM_PRESETS.filter(p => p.name !== 'In person').map(p => `<button type="button" class="mchip-btn" data-act="su-preset" data-n="${esc(p.name)}">${esc(p.name)}</button>`).join('');
   $('#su-cats').innerHTML = d.expenseCats.slice(0, 4).map(suCat).join('');
-  ['su-name', 'su-industry', 'su-goal'].forEach(i => $('#' + i).value = '');
+  ['su-name', 'su-industry', 'su-goal'].forEach(i => $('#' + i).value = ''); $('#su-mode').value = 'resell';
 }
 $('#su-font').addEventListener('change', e => applyTheme(setupTheme, e.target.value));
 function finishSetup() {
   const s = state.settings, name = $('#su-name').value.trim(); if (!name) return;
   s.name = name; s.industry = $('#su-industry').value.trim(); s.currency = $('#su-currency').value; s.theme = setupTheme; s.font = $('#su-font').value;
+  s.valueBasis = $('#su-mode').value === 'make' ? 'cost' : 'est';
   const seen = new Set();
   s.channels = $$('#su-channels .row').map(r => ({ id: uid('c'), name: $('.su-ch', r).value.trim(), pct: Math.max(0, num($('.su-fee', r).value)), fixed: (PLATFORM_PRESETS.find(p => p.name === $('.su-ch', r).value.trim()) || {}).fixed || 0, renew: num(r.dataset.renew), tax: r.dataset.tax === '1' })).filter(c => c.name && !seen.has(c.name.toLowerCase()) && seen.add(c.name.toLowerCase()));
   if (!s.channels.length) s.channels = [{ id: uid('c'), name: 'Direct', pct: 0, fixed: 0, renew: 0, tax: false }];
@@ -6000,7 +6022,7 @@ function genSample() {
   d.goals = [{ id: uid('g'), name: 'Monthly revenue', metric: 'revenue', target: 3000, period: 'month' }, { id: uid('g'), name: 'Orders this month', metric: 'orders', target: 30, period: 'month' }, { id: uid('g'), name: 'New listings this month', metric: 'listings', target: 6, period: 'month' }];
   const pd = id => d.products.find(p => p.id === id);
   const snap = (ago, ch, m, note) => ({ id: uid('n'), date: addDays(t, -ago), time: ['09:15', '12:40', '18:05'][ri(0, 2)], channel: ch, m, note: note || '' });
-  const L = (id, pid, chans, price, status, age, extra = {}) => { const p = pid && pd(pid); return { id, createdDate: addDays(t, -age), title: p ? productTitle(p) : 'Listing', description: p ? p.description : '', pTitleSeen: p ? productTitle(p) : '', pDescSeen: p ? p.description : '', productId: pid, channels: chans, sku: 'LIST-' + String(++d.counters.listing).padStart(3, '0'), price, status, listedDate: status === 'Draft' ? '' : addDays(t, -age), relistDate: status === 'Draft' ? '' : addDays(t, 30 - age), urls: {}, discounts: [], snaps: [], tags: '', notes: '', ...extra }; };
+  const L = (id, pid, chans, price, status, age, extra = {}) => { const p = pid && pd(pid); return { id, createdDate: addDays(t, -age), title: p ? productTitle(p) : 'Listing', description: '', productId: pid, channels: chans, sku: 'LIST-' + String(++d.counters.listing).padStart(3, '0'), price, status, listedDate: status === 'Draft' ? '' : addDays(t, -age), relistDate: status === 'Draft' ? '' : addDays(t, 30 - age), urls: {}, discounts: [], snaps: [], tags: '', notes: '', ...extra }; };
   d.listings = [
     L('l1', 'p1', ['eBay', 'Etsy', 'Mercari'], 24, 'Active', 5, { snaps: [snap(4, 'eBay', { Views: 38, Favorites: 3, Watchers: 2 }), snap(1, 'eBay', { Views: 71, Favorites: 6, Watchers: 4, Offers: 1 }, 'after weekend promo'), snap(3, 'Etsy', { Views: 55, Favorites: 9, Clicks: 22 }), snap(1, 'Mercari', { Views: 20, Likes: 5, Offers: 1 })] }),
     L('l2', 'p1', ['Vinted'], 22, 'Active', 24, { title: 'Bracelet · glass beads · handmade' }),
@@ -6014,8 +6036,7 @@ function genSample() {
     L('l10', 'p3', ['Mercari'], 19, 'Paused', 40),
     L('l11', 'p1', ['eBay'], 24, 'Sold', 60),
     L('l12', 'p7', ['Mercari'], 9, 'Expired', 70, { archived: true })];
-  /* the product title was edited after the listing was made, so the listing shows the "update to match" prompt */
-  pd('p1').description = 'Handmade glass bead bracelet on silver-tone wire. Fits most wrists (6.5–7.5 in). Ships in a gift box with a thank-you card.';
+  d.listings.filter(l => l.productId === 'p1').forEach(l => { l.description = 'Handmade glass bead bracelet on silver-tone wire. Fits most wrists (6.5–7.5 in). Ships in a gift box with a thank-you card.'; });
   d.mileage = [[3, 'Post office run', 'Studio', 'Post office', 4.2], [10, 'Supplier pickup', 'Studio', 'Northside Supply Co.', 22.5], [17, 'Craft fair', 'Studio', 'City Hall', 14], [29, 'Post office run', 'Studio', 'Post office', 4.2], [47, 'Bank deposit', 'Studio', 'Bank', 6.1]].map(m => ({ id: uid('m'), date: addDays(t, -m[0]), purpose: m[1], from: m[2], to: m[3], miles: m[4] }));
   for (let i = 1; i <= 6; i++) { const day = addDays(t, -i), s = new Date(day + 'T09:00').getTime() + ri(0, 3) * 36e5; d.shifts.push({ id: uid('h'), date: day, startMs: s, endMs: s + ri(4, 7) * 36e5, breakMs: 30 * 6e4, note: pick(['Packing orders', 'Making stock', 'Photos & listings', 'Admin']) }); }
   /* sample sizes & colors, bills, an unpaid invoice and a purchase order */
@@ -6041,7 +6062,7 @@ function genSample() {
 /* =====================================================================
    16. START
    ===================================================================== */
-window.GBT = { get state() { return state; }, save, openOrders: aiOpenOrders, oc, summary, periodRange, goalInfo, feeFor, putOrder, removeOrder, setOrderStatus, processRecurring, unitCost, allocated, avail, genSample, enterApp, render, ui, ACT, OPEN, FORMS, alerts, visibleAlerts, archiveBlock, archiveRecords, deleteRecords, parseCsv, csvProducts, exportCsv, curType, dupRecord, listingPrice, listingTotals, taxInfo, normalize, textSync, bulkListPlan };
+window.GBT = { get state() { return state; }, save, openOrders: aiOpenOrders, oc, summary, periodRange, goalInfo, feeFor, putOrder, removeOrder, setOrderStatus, processRecurring, unitCost, allocated, avail, genSample, enterApp, render, ui, ACT, OPEN, FORMS, alerts, visibleAlerts, archiveBlock, archiveRecords, deleteRecords, parseCsv, csvProducts, exportCsv, curType, dupRecord, listingPrice, listingTotals, taxInfo, normalize, bulkListPlan };
 $$('[data-ic]').forEach(el => { el.outerHTML = ic(el.dataset.ic); });
 load();
 applyTheme(state.settings.theme, state.settings.font);
@@ -6231,6 +6252,554 @@ document.addEventListener('click', e => {
   else if (a === 'tab') { activeTab = id; $$('#gw-dock .gw-pane').forEach(p => p.classList.toggle('on', p.dataset.pid === id)); $$('#gw-dock [data-gw=tab]').forEach(t => t.classList.toggle('on', t.dataset.id === id)); }
 });
 new MutationObserver(inject).observe($('#scroll'), { childList: true });
+inject();
+})();
+</script>
+
+<!-- =====================================================================
+  TIMESHEET ADD-ON for Grimms Business Tracker
+  Merged into the app just before the closing body tag (after the widgets script).
+  Adds: More > Plan > "Timesheet" tab, a floating work tracker on every page,
+  reminders, repeating schedules (weekly / bi-weekly / monthly), editable times.
+  Saved inside your normal app data, so backups and restores include it.
+===================================================================== -->
+<style>
+.ts-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.ts-btn svg{flex:none}
+/* floating tracker */
+#ts-bar{position:absolute;left:8px;right:8px;z-index:8;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:18px;box-shadow:0 14px 34px -10px rgba(0,0,0,.30),0 2px 6px rgba(0,0,0,.08);padding:14px 14px 10px 18px;max-height:62%;display:flex;flex-direction:column;overflow:hidden}
+#ts-bar::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--p)}
+#ts-bar.brk::before{background:var(--warn)}
+#ts-bar .tsb{overflow-y:auto;min-height:0;scrollbar-width:thin}
+.ts-stat{display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)}
+.ts-dot{width:7px;height:7px;border-radius:50%;background:var(--sub);display:inline-block;flex:none}
+.ts-dot.live{background:var(--ok);box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 50%,transparent);animation:tspulse 1.8s infinite}
+.ts-bar-brk .ts-dot.live,#ts-bar.brk .ts-dot{background:var(--warn)}
+@keyframes tspulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 45%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.ts-big{font-size:32px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.05;margin-top:4px}
+.ts-mini{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;flex:none}
+.ts-meta{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--sub);font-weight:600;margin-top:6px}
+.ts-meta b{color:var(--text);font-weight:700}
+.ts-prog{height:4px;border-radius:99px;background:color-mix(in srgb,var(--sub) 18%,transparent);margin-top:10px;overflow:hidden}
+.ts-prog i{display:block;height:100%;background:var(--p);border-radius:99px;transition:width .6s linear}
+#ts-bar.brk .ts-prog i{background:var(--warn)}
+.ts-sh{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);margin-bottom:8px}
+.ts-sh span{letter-spacing:0;text-transform:none;font-size:11px}
+.ts-act{display:flex;gap:8px;margin-top:12px}
+.ts-links{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+.ts-links .link{color:var(--sub);font-weight:600;display:inline-flex;align-items:center;gap:5px}
+.ts-links .link:hover{color:var(--text);text-decoration:none}
+.ts-links .link.bad{color:var(--bad)}
+.ts-next{font-size:11.5px;color:var(--sub);margin-top:8px}
+.ts-next b{color:var(--text)}
+/* steps */
+.ts-cb{position:relative;display:inline-flex;flex:none}
+.ts-cb input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.ts-cb i{width:20px;height:20px;border-radius:6px;border:1.5px solid color-mix(in srgb,var(--sub) 55%,transparent);display:flex;align-items:center;justify-content:center;color:transparent;transition:all .15s;background:var(--card)}
+.ts-cb input:checked+i{background:var(--p);border-color:var(--p);color:var(--on-p)}
+.ts-cb input:focus-visible+i{box-shadow:0 0 0 3px color-mix(in srgb,var(--p) 25%,transparent)}
+.ts-task{display:flex;align-items:center;gap:11px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;margin-bottom:6px;font-size:13px;font-weight:600;cursor:pointer;background:var(--card)}
+.ts-task .tt{flex:1;min-width:0;line-height:1.3}
+.ts-task.done{background:color-mix(in srgb,var(--sub) 7%,transparent)}
+.ts-task.done .tt{text-decoration:line-through;color:var(--sub);font-weight:500}
+.ts-addstep{display:flex;gap:6px;margin-top:2px}
+.ts-trow{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ts-trow .input{flex:1}
+/* alert banner */
+#ts-alert{position:absolute;left:10px;right:10px;top:10px;z-index:75;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:16px;padding:12px 12px 12px 16px;box-shadow:0 16px 36px -10px rgba(0,0,0,.35);animation:up .22s ease;overflow:hidden}
+#ts-alert::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--p)}
+.ts-al{display:flex;align-items:flex-start;gap:11px}
+.ts-al-i{width:32px;height:32px;border-radius:10px;background:var(--p-soft);color:var(--p);display:flex;align-items:center;justify-content:center;flex:none}
+.ts-al b{display:block;font-size:13.5px;font-weight:700;line-height:1.3}
+/* modals */
+#ts-modal{z-index:65}#ts-dlg{z-index:85;align-items:center;padding:24px}
+#ts-modal .sheet{border-radius:22px 22px 0 0;padding:18px 18px 14px}
+#ts-modal .sheet-head{align-items:flex-start;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+#ts-modal .sheet-head h3{font-size:16px;font-weight:700;letter-spacing:-.01em}
+#ts-modal .sheet-head p{margin-top:2px}
+#ts-modal .sheet-foot{border-top:1px solid var(--line);margin-top:10px;padding-top:12px;align-items:center}
+#ts-modal .sheet-foot .btn-primary{flex:1}
+#ts-modal .fld>span,#ts-modal .fld>.lbl{font-size:10.5px;letter-spacing:.07em}
+.ts-s{margin-bottom:6px}
+.ts-s+.ts-s{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.ts-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:8px}
+.ts-dow .chip{padding:9px 0;border-radius:10px;text-align:center;font-size:11px}
+.ts-ghost{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:44px;min-width:44px;padding:0 12px;border-radius:14px;border:1px solid var(--line);color:var(--sub);font-weight:700;font-size:12px;flex:none}
+.ts-ghost.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+#ts-dlg .sheet{border-radius:20px;max-width:340px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+#ts-dlg .sheet-head h3{font-size:16px;font-weight:700}
+#ts-dlg .sheet-foot .btn{flex:1}
+/* plan page */
+.ts-stats{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.ts-stats>div{padding:11px 12px}
+.ts-stats>div+div{border-left:1px solid var(--line)}
+.ts-stats b{display:block;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.ts-stats span{display:block;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);margin-top:2px}
+.ts-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ts-head h3{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.ts-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid var(--line);border-left:3px solid var(--p);border-radius:12px;padding:10px 12px;background:var(--card)}
+.ts-item.k-break{border-left-color:var(--warn)}
+.ts-item.k-meeting{border-left-color:var(--sub)}
+.ts-item.now{background:var(--p-soft)}
+.ts-item.miss{opacity:.7}
+button.ts-item:hover{border-color:color-mix(in srgb,var(--p) 50%,var(--line));border-left-color:inherit}
+.ts-time{width:60px;flex:none;font-variant-numeric:tabular-nums}
+.ts-time b{display:block;font-size:12px;font-weight:700}
+.ts-time span{display:block;font-size:11px;color:var(--sub);font-weight:600}
+.ts-main{flex:1;min-width:0;text-align:left}
+.ts-main b{display:block;font-size:13.5px;font-weight:700}
+.ts-main span{display:block;font-size:11.5px;color:var(--sub);font-weight:500;margin-top:1px}
+.ts-end{flex:none;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.ts-end .num{font-size:12px}
+.ts-list{display:flex;flex-direction:column;gap:8px}
+.ts-dayh{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px}
+.ts-dayh b{font-size:12px;font-weight:700;letter-spacing:.02em}
+.ts-dayh b.tod{color:var(--p)}
+.ts-add{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--p)}
+.ts-empty{font-size:12px;color:var(--sub);padding:2px 2px}
+.ts-wk{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:12px;padding:4px}
+.ts-wk b{font-size:12.5px;font-weight:700}
+.ts-setrow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);font-size:13px;font-weight:600;cursor:pointer}
+.ts-setrow small{display:block;font-size:11.5px;color:var(--sub);font-weight:500;margin-top:2px}
+.ts-sw{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:99px;background:color-mix(in srgb,var(--sub) 30%,transparent);position:relative;flex:none;cursor:pointer;transition:background .15s;margin:0}
+.ts-sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.ts-sw:checked{background:var(--p)}
+.ts-sw:checked::after{transform:translateX(16px)}
+</style>
+<script>
+(() => {
+'use strict';
+const G = window.GBT; if (!G) return;
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const uid = p => p + Math.random().toString(36).slice(2, 9);
+const dkey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => dkey(new Date());
+const dparse = k => { const [y, m, d] = String(k).split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+const addDays = (k, n) => { const d = dparse(k); d.setDate(d.getDate() + n); return dkey(d); };
+const toMin = t => { const [h, m] = String(t || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60; };
+const tLab = t => { if (!t) return ''; const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${pad(m)} ${h >= 12 ? 'PM' : 'AM'}`; };
+const msLab = ms => ms ? new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+const msHM = ms => { const d = new Date(ms); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const dLab = k => dparse(k).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+const fdur = ms => { const s = Math.max(0, Math.floor(ms / 1000)); if (s < 60) return s + ' sec'; if (s < 3600) return Math.floor(s / 60) + ':' + pad(s % 60) + ' min'; return Math.floor(s / 3600) + 'h ' + pad(Math.floor(s % 3600 / 60)) + 'm ' + pad(s % 60) + 's'; };
+const fhm = ms => { const m = Math.round(Math.max(0, ms) / 60000); return m >= 60 ? Math.floor(m / 60) + 'h ' + pad(m % 60) + 'm' : m + 'm'; };
+const DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const KINDS = [['work', 'Work'], ['break', 'Break'], ['meeting', 'Meeting']];
+const REPS = [['w1', 'Every week'], ['w2', 'Every 2 weeks (bi-weekly)'], ['w3', 'Every 3 weeks'], ['w4', 'Every 4 weeks'], ['m', 'Every month (same date)'], ['once', 'One time only']];
+const KTONE = { work: 'brand', break: 'warn', meeting: 'mute' };
+const pill = (t, tone) => `<span class="pill ${tone || 'mute'}">${esc(t)}</span>`;
+const toast = m => { const t = $('#toast'); if (!t) return; t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2600); };
+const ICO = { check: '<polyline points="20 6 9 17 4 12"/>', x: '<path d="M18 6 6 18M6 6l12 12"/>', chevL: '<path d="m15 18-6-6 6-6"/>', chevR: '<path d="m9 18 6-6-6-6"/>', chevD: '<path d="m6 9 6 6 6-6"/>', chevU: '<path d="m18 15-6-6-6 6"/>', trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/>', plus: '<path d="M12 5v14M5 12h14"/>', play: '<polygon points="6 4 20 12 6 20 6 4"/>', pause: '<path d="M8 5v14M16 5v14"/>', cup: '<path d="M17 8h1a3 3 0 0 1 0 6h-1M3 8h14v6a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5zM7 2v3M11 2v3"/>', bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/>', bellOff: '<path d="M13.7 21a2 2 0 0 1-3.4 0M18.6 13A17 17 0 0 1 18 8a6 6 0 0 0-9.3-5M6.3 6.3A6 6 0 0 0 6 8c0 7-3 9-3 9h14M2 2l20 20"/>', copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>', stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>', skip: '<path d="m5 4 10 8-10 8zM19 5v14"/>', clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', minus: '<path d="M5 12h14"/>', rotate: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>' };
+const I = (n, s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none">${ICO[n] || ''}</svg>`;
+const kindSeg = v => `<input type="hidden" data-f="kind" value="${esc(v)}"><div class="seg">${KINDS.map(k => `<button type="button" class="${k[0] === v ? 'on' : ''}" data-ts="kindset" data-v="${k[0]}">${k[1]}</button>`).join('')}</div>`;
+const sec = (h, inner) => `<div class="ts-s"><div class="ts-sh">${h}</div>${inner}</div>`;
+const fldD = (l, inner) => `<div class="fld"><span>${l}</span>${inner}</div>`;
+
+/* ---------- data (lives in the app's own saved data) ---------- */
+function T() {
+  const s = G.state; if (!s.tsheet || typeof s.tsheet !== 'object') s.tsheet = {}; const t = s.tsheet;
+  if (!Array.isArray(t.blocks)) t.blocks = []; if (!t.runs || typeof t.runs !== 'object') t.runs = {};
+  if (t.sound === undefined) t.sound = true; if (t.notify === undefined) t.notify = true; if (t.remind === undefined) t.remind = 5;
+  if (t.day === undefined) t.day = null; if (t.collapsed === undefined) t.collapsed = false;
+  if (!t.notified || typeof t.notified !== 'object') t.notified = { date: '', k: [] };
+  return t;
+}
+const save = () => { try { G.save(); } catch (e) { } };
+
+/* ---------- repeating schedule ---------- */
+const weekMon = k => addDays(k, -((dparse(k).getDay() + 6) % 7));
+const weeksBetween = (a, b) => Math.round((dparse(weekMon(b)) - dparse(weekMon(a))) / (7 * 864e5));
+function occurs(b, date) {
+  if (b.off) return false;
+  if (b.rep === 'once') return date === b.anchor;
+  if (date < b.anchor) return false;
+  if (b.rep === 'm') { const d = dparse(date), want = dparse(b.from || b.anchor).getDate(), last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); return d.getDate() === Math.min(want, last); }
+  const n = parseInt(String(b.rep).slice(1)) || 1;
+  if (!(b.days || []).includes(dparse(date).getDay())) return false;
+  return weeksBetween(b.anchor, date) % n === 0;
+}
+const schedFor = date => T().blocks.filter(b => occurs(b, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
+const ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : Math.min(n % 10, 4) % 4] || 'th');
+function repSum(b) {
+  if (b.rep === 'once') return 'Once · ' + dLab(b.anchor);
+  if (b.rep === 'm') return 'Monthly on the ' + ord(dparse(b.from || b.anchor).getDate());
+  const n = parseInt(String(b.rep).slice(1)) || 1;
+  return (n === 1 ? 'Weekly' : 'Every ' + n + ' weeks') + ' · ' + (b.days || []).slice().sort().map(d => DN[d]).join(', ');
+}
+
+/* ---------- a day being worked ---------- */
+const mkEntry = b => ({ id: uid('e'), bid: b.id || '', title: b.title, kind: b.kind || 'work', pStart: b.start || '', pEnd: b.end || '', tasks: (b.tasks || []).map(t => ({ t, done: false })), notes: '', status: 'pending', accMs: 0, startMs: null, endMs: null, lastStart: null });
+const el = (e, now) => e.accMs + (e.status === 'active' ? now - e.lastStart : 0);
+const runOf = date => T().runs[date];
+const running = () => { const t = T(), r = t.day && t.runs[t.day]; return r && !r.endedMs ? r : null; };
+const lastPaused = run => { for (let i = run.entries.length - 1; i >= 0; i--) if (run.entries[i].status === 'paused') return i; return -1; };
+const shownIdx = run => { const a = run.entries.findIndex(e => e.status === 'active'); return a >= 0 ? a : lastPaused(run); };
+function nextPending(run, nonBreak) {
+  const es = run.entries, nm = nowMin(), isT = run.date === today();
+  const pend = es.map((e, i) => i).filter(i => es[i].status === 'pending');
+  const ok = pend.filter(i => !(isT && es[i].pEnd && toMin(es[i].pEnd) < nm)), pool = ok.length ? ok : pend;
+  if (nonBreak) { const nb = pool.find(i => es[i].kind !== 'break'); if (nb !== undefined) return nb; }
+  return pool.length ? pool[0] : -1;
+}
+const workedMs = (run, now) => run.entries.filter(e => e.kind !== 'break').reduce((s, e) => s + el(e, now), 0);
+const breakMs = (run, now) => run.entries.filter(e => e.kind === 'break').reduce((s, e) => s + el(e, now), 0);
+const entKey = e => e.startMs ? new Date(e.startMs).getHours() * 60 + new Date(e.startMs).getMinutes() : toMin(e.pStart || '23:59');
+
+function pauseActive(run, now) { run.entries.forEach(e => { if (e.status === 'active') { e.accMs += now - e.lastStart; e.lastStart = null; e.status = 'paused'; } }); }
+function startEntry(run, i) {
+  const now = Date.now(), e = run.entries[i]; if (!e) return;
+  pauseActive(run, now);
+  if (!e.startMs) e.startMs = now; e.endMs = null; e.status = 'active'; e.lastStart = now;
+  if (e.kind === 'break') sound('brk');
+}
+function closeEntry(e, status, now) { if (e.status === 'active') e.accMs += now - e.lastStart; e.lastStart = null; e.status = status; e.endMs = now; if (!e.startMs) e.startMs = now; }
+function advance(run) {
+  const pz = lastPaused(run);
+  if (pz >= 0) return startEntry(run, pz);
+  const n = nextPending(run, false);
+  if (n >= 0) return startEntry(run, n);
+  showAlert('All blocks done', 'Add another block, or end your day.', 'End day', { a: 'endday' });
+}
+function startDay(noAuto) {
+  const t = T(), date = today(); if (t.day && t.day !== date && t.runs[t.day]) endDay(t.day, true);
+  let run = t.runs[date];
+  if (!run) { run = { date, startedMs: Date.now(), endedMs: null, entries: schedFor(date).map(mkEntry) }; t.runs[date] = run; }
+  else { run.endedMs = null; removeShift(date); }
+  t.day = date;
+  if (!noAuto && !run.entries.some(e => e.status === 'active')) { const pz = lastPaused(run), n = pz >= 0 ? pz : nextPending(run, true); if (n >= 0) startEntry(run, n); }
+  sound('start');
+}
+function writeShift(run) {
+  const now = Date.now(), w = workedMs(run, now), b = breakMs(run, now), S = G.state; if (!Array.isArray(S.shifts)) S.shifts = [];
+  S.shifts = S.shifts.filter(x => x.id !== 'ts_' + run.date);
+  if (w + b > 0) S.shifts.push({ id: 'ts_' + run.date, date: run.date, startMs: run.startedMs, endMs: run.startedMs + w + b, breakMs: b, note: 'Timesheet · ' + run.entries.filter(e => e.status === 'done').length + ' blocks done' });
+}
+const removeShift = date => { const S = G.state; if (Array.isArray(S.shifts)) S.shifts = S.shifts.filter(x => x.id !== 'ts_' + date); };
+function endDay(date, silent) {
+  const t = T(), run = t.runs[date]; if (!run) return; const now = Date.now();
+  run.entries.forEach(e => { if (e.status === 'active' || e.status === 'paused') closeEntry(e, 'done', now); });
+  run.endedMs = now; if (t.day === date) t.day = null; writeShift(run);
+  if (!silent) { sound('end'); toast('Day ended · worked ' + fhm(workedMs(run, now))); }
+}
+function startBlockNow(bid) {
+  const t = T(), date = today(); if (!running()) startDay(true);
+  const run = t.runs[date]; let i = run.entries.findIndex(e => e.bid === bid);
+  if (i < 0) { const b = t.blocks.find(x => x.id === bid); if (!b) return; run.entries.push(mkEntry(b)); run.entries.sort((a, c) => entKey(a) - entKey(c)); i = run.entries.findIndex(e => e.bid === bid); }
+  startEntry(run, i);
+}
+function takeBreak() {
+  const run = running(); if (!run) return; const now = Date.now();
+  const nm = nowMin(), sb = run.entries.findIndex(e => e.status === 'pending' && e.kind === 'break' && Math.abs(toMin(e.pStart) - nm) <= 45);
+  if (sb >= 0) return startEntry(run, sb);
+  const si = shownIdx(run), e = mkEntry({ title: 'Break', kind: 'break' }); e.adhoc = true;
+  run.entries.splice(si >= 0 ? si + 1 : run.entries.length, 0, e); startEntry(run, run.entries.indexOf(e));
+}
+function commit() { save(); paintBar(true); paintSheet(); tick(); }
+
+/* ---------- sounds ---------- */
+let AC = null;
+const SND = { done: [[523, .1], [659, .1], [784, .2]], alert: [[880, .12], [660, .12], [880, .22]], start: [[392, .1], [523, .18]], brk: [[659, .14], [523, .14], [392, .26]], end: [[784, .1], [659, .1], [523, .1], [392, .32]] };
+function sound(k, force) {
+  try {
+    if (!force && !T().sound) return; const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+    if (!AC) AC = new C(); if (AC.state === 'suspended') AC.resume(); let t = AC.currentTime + .005;
+    (SND[k] || SND.done).forEach(n => { const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sine'; o.frequency.value = n[0]; g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.22, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + n[1] + .08); o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + n[1] + .1); t += n[1] * .9; });
+  } catch (e) { }
+}
+
+/* ---------- alerts (banner + sound + phone notification while the app is open) ---------- */
+let pend = null, alertT = 0;
+function showAlert(msg, sub, label, act) {
+  let a = $('#ts-alert'); if (!a) { a = document.createElement('div'); a.id = 'ts-alert'; $('#frame').appendChild(a); }
+  pend = act || null;
+  a.innerHTML = `<div class="ts-al"><span class="ts-al-i">${I('bell', 16)}</span><div class="grow" style="min-width:0"><b>${esc(msg)}</b>${sub ? `<span class="xs sub" style="display:block;margin-top:2px">${esc(sub)}</span>` : ''}</div><button class="icon-btn" style="width:30px;height:30px" data-ts="alert-x" aria-label="Dismiss">${I('x', 14)}</button></div>${label ? `<button class="btn btn-primary btn-sm block ts-btn" style="margin-top:10px" data-ts="alert-go">${esc(label)}</button>` : ''}`;
+  clearTimeout(alertT); alertT = setTimeout(() => { const x = $('#ts-alert'); if (x) x.remove(); }, 60000);
+}
+function fire(title, body, label, act) {
+  sound('alert'); try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) { }
+  showAlert(title, body, label, act);
+  try { const t = T(); if (t.notify && 'Notification' in window && Notification.permission === 'granted' && document.hidden) new Notification(title, { body, tag: 'gbt-ts' }); } catch (e) { }
+}
+function checkAlerts() {
+  const t = T(), date = today(); if (!$('#screen-app.on')) return;
+  if (t.notified.date !== date) t.notified = { date, k: [] };
+  const run = runOf(date), live = running(), seen = k => t.notified.k.includes(k), mark = k => t.notified.k.push(k), nm = nowMin();
+  if (!(run && run.endedMs)) for (const b of schedFor(date)) {
+    const ent = run && run.entries.find(e => e.bid === b.id); if (ent && ent.status !== 'pending') continue;
+    const mins = toMin(b.start) - nm, r = (b.remind === '' || b.remind == null) ? t.remind : +b.remind;
+    const act = { a: 'start', bid: b.id }, lab = live ? (b.kind === 'break' ? 'Start break' : 'Start now') : 'Start my day';
+    if (r > 0 && mins > 0 && mins <= r && !seen(b.id + 'p')) { mark(b.id + 'p'); return fire(({ work: 'Work', break: 'Break', meeting: 'Meeting' }[b.kind] || 'Work') + ' in ' + Math.ceil(mins) + ' min', b.title + ' at ' + tLab(b.start), lab, act); }
+    if (mins <= 0 && mins > -10 && !seen(b.id + 's')) { mark(b.id + 's'); return fire(b.kind === 'break' ? 'Break time' : b.kind === 'meeting' ? 'Meeting time: ' + b.title : 'Time to start: ' + b.title, tLab(b.start) + ' – ' + tLab(b.end), lab, act); }
+  }
+  if (live) { const e = live.entries.find(x => x.status === 'active'); if (e && e.pEnd && nm >= toMin(e.pEnd) && !seen(e.id + 'e')) { mark(e.id + 'e'); fire(e.title + ' was planned to end', 'Finish it, or keep going if you are not done.', 'Finish & next', { a: 'finish' }); } }
+}
+
+/* ---------- modals ---------- */
+const mk = id => { const m = document.createElement('div'); m.id = id; m.className = 'modal-root'; $('#frame').appendChild(m); return m; };
+function modal(title, body, foot, sub) { const m = $('#ts-modal') || mk('ts-modal'); m.innerHTML = `<div class="sheet"><div class="sheet-head"><div class="grow" style="min-width:0"><h3>${title}</h3>${sub ? `<p class="xs sub">${sub}</p>` : ''}</div><button class="icon-btn" data-ts="mclose" aria-label="Close">${I('x', 15)}</button></div><div class="sheet-body">${body}</div><div class="sheet-foot">${foot || ''}</div></div>`; m.classList.add('on'); }
+const closeModal = () => { const m = $('#ts-modal'); if (m) { m.classList.remove('on'); m.innerHTML = ''; } };
+function ask(title, msg, ok, danger) {
+  return new Promise(res => { const d = $('#ts-dlg') || mk('ts-dlg'); d.innerHTML = `<div class="sheet small"><div class="sheet-head"><h3>${esc(title)}</h3></div><p class="sub" style="margin-bottom:16px;white-space:pre-line">${esc(msg)}</p><div class="sheet-foot" style="padding-top:0"><button class="btn btn-line" data-r="0">Cancel</button><button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-r="1">${esc(ok)}</button></div></div>`; d.classList.add('on'); d.onclick = e => { const b = e.target.closest('[data-r]'); if (b || e.target === d) { d.classList.remove('on'); d.innerHTML = ''; res(!!b && b.dataset.r === '1'); } }; });
+}
+const F = (k, r = $('#ts-modal')) => $(`[data-f="${k}"]`, r);
+const fld = (l, inner) => `<label class="fld"><span>${l}</span>${inner}</label>`;
+const sel = (k, opts, v) => `<select class="select" data-f="${k}">${opts.map(o => `<option value="${esc(o[0])}" ${String(o[0]) === String(v) ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`;
+
+/* ---------- time block editor ---------- */
+function openBlock(id, pre) {
+  const t = T(), b = id ? t.blocks.find(x => x.id === id) : null; pre = pre || {};
+  const d = b || { title: '', kind: 'work', start: '09:00', end: '10:00', rep: 'w1', days: pre.date ? [dparse(pre.date).getDay()] : [1, 2, 3, 4, 5], from: pre.date || today(), remind: '', tasks: [], notes: '' };
+  const kindOpts = sel('remind', [['', 'Default (' + t.remind + ' min)'], ['0', 'No reminder'], ['5', '5 min before'], ['10', '10 min before'], ['15', '15 min before'], ['30', '30 min before']], d.remind == null ? '' : d.remind);
+  modal(b ? 'Edit time block' : 'New time block', `
+    ${sec('Details', `${fld('Name *', `<input class="input" data-f="title" maxlength="80" value="${esc(d.title)}" placeholder="e.g. Photography, Listing, Research">`)}${fldD('Type', kindSeg(d.kind))}`)}
+    ${sec('Schedule', `<div class="grid2">${fld('Starts', `<input class="input" type="time" data-f="start" value="${esc(d.start)}">`)}${fld('Ends', `<input class="input" type="time" data-f="end" value="${esc(d.end)}">`)}</div>
+    ${fld('Repeats', sel('rep', REPS, d.rep))}
+    <div id="ts-dowbox" ${/^w/.test(d.rep) ? '' : 'hidden'}><span class="ts-sh" style="margin-bottom:6px">On these days</span><div class="ts-dow">${[1, 2, 3, 4, 5, 6, 0].map(n => `<button type="button" class="chip ${(d.days || []).includes(n) ? 'on' : ''}" data-ts="dow" data-d="${n}">${DN[n]}</button>`).join('')}</div><div class="row" style="gap:14px;margin-bottom:12px"><button type="button" class="link" data-ts="dpreset" data-v="12345">Mon–Fri</button><button type="button" class="link" data-ts="dpreset" data-v="0123456">Every day</button><button type="button" class="link" data-ts="dpreset" data-v="06">Weekends</button></div></div>
+    <label class="fld"><span id="ts-fromlbl">${d.rep === 'once' ? 'Date' : d.rep === 'm' ? 'Repeats on the date of' : 'Pattern starts the week of'}</span><input class="input" type="date" data-f="from" value="${esc(d.from || d.anchor)}"></label>
+    <p class="hint" style="margin-top:-6px" id="ts-rephint">${d.rep === 'w2' ? 'Week 1 is the week of the date above. Make a second block starting one week later for your “other” week.' : ''}</p>
+    ${fld('Reminder', kindOpts)}`)}
+    ${sec('Checklist', `<span class="xs sub" style="display:block;margin:-2px 0 8px">One step per line. They appear as tick-off items while you work.</span><textarea class="textarea" data-f="tasks" style="min-height:96px" placeholder="Review photography&#10;Review title&#10;Enter into database">${esc((d.tasks || []).join('\n'))}</textarea>`)}
+    ${sec('Notes', `${fld('Notes or meeting link', `<input class="input" data-f="notes" maxlength="200" value="${esc(d.notes || '')}">`)}${b ? `<label class="ts-setrow" style="border:0;padding:4px 0"><span>Pause this block<small>Keep it, but skip it for now</small></span><input type="checkbox" class="ts-sw" data-f="off" ${b.off ? 'checked' : ''}></label>` : ''}`)}`,
+    `${b ? `<button class="ts-ghost bad" data-ts="blk-del" data-id="${b.id}" aria-label="Delete">${I('trash', 16)}</button><button class="ts-ghost" data-ts="blk-dup" data-id="${b.id}">${I('copy', 15)}Copy</button>` : ''}<button class="btn btn-primary" data-ts="blk-save" data-id="${id || ''}">Save time block</button>`, b ? esc(repSum(b)) : 'Add it to your work schedule');
+}
+function saveBlock(id) {
+  const t = T(), title = F('title').value.trim(); if (!title) return toast('Give it a name');
+  const start = F('start').value, end = F('end').value; if (!start || !end) return toast('Set a start and end time');
+  if (toMin(end) <= toMin(start)) return toast('End time must be after the start');
+  const rep = F('rep').value, days = $$('#ts-dowbox .chip.on').map(c => +c.dataset.d), from = F('from').value || today();
+  if (/^w/.test(rep) && !days.length) return toast('Pick at least one day');
+  const old = id ? t.blocks.find(x => x.id === id) : null;
+  const b = { id: id || uid('b'), title, kind: F('kind').value, start, end, rep, days: /^w/.test(rep) ? days : [], from, anchor: /^w/.test(rep) ? weekMon(from) : from, remind: F('remind').value, tasks: F('tasks').value.split('\n').map(x => x.trim()).filter(Boolean), notes: F('notes').value.trim(), off: !!(F('off') && F('off').checked) };
+  if (old) Object.assign(old, b); else t.blocks.push(b);
+  const run = running(); if (run && run.date === today() && occurs(b, today()) && !run.entries.some(e => e.bid === b.id)) { run.entries.push(mkEntry(b)); run.entries.sort((a, c) => entKey(a) - entKey(c)); }
+  closeModal(); commit(); toast('Time block saved');
+}
+
+/* ---------- entry editor (change times, tick things, add forgotten blocks) ---------- */
+const trow = x => `<div class="ts-trow" data-tr><span class="ts-cb"><input type="checkbox" data-tc ${x.done ? 'checked' : ''}><i>${I('check', 13)}</i></span><input class="input sm" data-tt maxlength="100" value="${esc(x.t)}" placeholder="Step"><button type="button" class="icon-btn" style="width:30px;height:30px" data-ts="trow-del" aria-label="Remove">${I('x', 14)}</button></div>`;
+function openEntry(date, i) {
+  const t = T(), run = t.runs[date]; if (!run) return; const e = i >= 0 ? run.entries[i] : { title: '', kind: 'work', pStart: '', pEnd: '', tasks: [], notes: '', status: 'done', startMs: null, endMs: null };
+  modal(i >= 0 ? 'Edit block' : 'Add a block', `
+    ${sec('Details', `${fld('Name', `<input class="input" data-f="title" maxlength="80" value="${esc(e.title)}">`)}${fldD('Type', kindSeg(e.kind))}${fld('Status', sel('status', [['pending', 'Not done yet'], ['active', 'Running now'], ['paused', 'Paused'], ['done', 'Done'], ['skipped', 'Skipped']].filter(o => i >= 0 || ['done', 'skipped', 'pending'].includes(o[0])), e.status))}`)}
+    ${sec('Actual time', `<div class="grid2">${fld('Started', `<input class="input" type="time" data-f="s" value="${e.startMs ? msHM(e.startMs) : ''}">`)}${fld('Finished', `<input class="input" type="time" data-f="e" value="${e.endMs ? msHM(e.endMs) : ''}">`)}</div><p class="hint" style="margin-top:-6px">Planned: ${e.pStart ? tLab(e.pStart) + ' – ' + tLab(e.pEnd) : 'not scheduled'}. Correct the real times here if you forgot to clock in or out.</p>`)}
+    ${sec('Steps', `<div id="ts-trows">${(e.tasks || []).map(trow).join('')}</div><button type="button" class="ts-add" data-ts="trow-add">${I('plus', 14)}Add a step</button>`)}
+    ${sec('Notes', `<textarea class="textarea" data-f="notes" style="min-height:70px">${esc(e.notes || '')}</textarea>`)}`,
+    `${i >= 0 ? `<button class="ts-ghost bad" data-ts="ent-del" data-d="${date}" data-i="${i}" aria-label="Delete">${I('trash', 16)}</button>` : ''}<button class="btn btn-primary" data-ts="ent-save" data-d="${date}" data-i="${i}">Save</button>`, dLab(date));
+}
+function saveEntry(date, i) {
+  const run = T().runs[date]; if (!run) return; const title = F('title').value.trim(); if (!title) return toast('Give it a name');
+  const status = F('status').value, sv = F('s').value, ev = F('e').value, at = v => v ? new Date(date + 'T' + v).getTime() : null;
+  let sm = at(sv), em = at(ev); if (status === 'done' && (!sm || !em)) return toast('Set when you started and finished');
+  if (sm && em && em <= sm) return toast('Finish must be after start');
+  const tasks = $$('[data-tr]').map(r => ({ t: $('[data-tt]', r).value.trim(), done: $('[data-tc]', r).checked })).filter(x => x.t);
+  const old = i >= 0 ? run.entries[i] : null, now = Date.now(), e = old || { id: uid('e'), bid: '', pStart: '', pEnd: '', accMs: 0, lastStart: null, adhoc: true };
+  if (status === 'active' && !run.endedMs) pauseActive(run, now);
+  if (old && old.status === 'active' && status !== 'active') { old.accMs += now - old.lastStart; old.lastStart = null; }
+  const oldStart = e.startMs;
+  Object.assign(e, { title, kind: F('kind').value, status, tasks: tasks.map(x => { const p = (e.tasks || []).find(y => y.t === x.t); return { t: x.t, done: x.done, at: x.done ? (p && p.at) || now : 0 }; }), notes: F('notes').value.trim(), startMs: sm, endMs: status === 'done' || status === 'skipped' ? em : null });
+  if (status === 'done' && sm && em) e.accMs = em - sm;
+  if ((status === 'active' || status === 'paused') && sm && oldStart && sm !== oldStart) e.accMs = Math.max(0, e.accMs + (oldStart - sm));
+  if (status === 'active') { if (!e.startMs) e.startMs = now; e.lastStart = now; }
+  if (!old) run.entries.push(e); run.entries.sort((a, c) => entKey(a) - entKey(c));
+  if (run.date === today() && status !== 'active' && run.endedMs) writeShift(run);
+  closeModal(); commit(); toast('Saved');
+}
+
+/* ---------- start something that is not on the schedule ---------- */
+function openAdhoc() {
+  modal('Start a task', `${fld('What are you working on? *', `<input class="input" data-f="title" maxlength="80" placeholder="e.g. Packing orders">`)}${fldD('Type', kindSeg('work'))}${sec('Checklist (optional)', `<textarea class="textarea" data-f="tasks" style="min-height:80px" placeholder="One step per line"></textarea>`)}`, `<button class="btn btn-primary ts-btn" data-ts="adhoc-go">${I('play', 14)}Start timer</button>`, 'Track something that is not on your schedule');
+}
+function adhocGo() {
+  const title = F('title').value.trim(); if (!title) return toast('Say what you are doing');
+  if (!running()) startDay(true); const run = running(), si = shownIdx(run);
+  const e = mkEntry({ title, kind: F('kind').value, tasks: F('tasks').value.split('\n').map(x => x.trim()).filter(Boolean) }); e.adhoc = true;
+  run.entries.splice(si >= 0 ? si + 1 : run.entries.length, 0, e); startEntry(run, run.entries.indexOf(e)); closeModal(); commit();
+}
+
+/* ---------- the floating work frame (shows on every page) ---------- */
+let barSig = '', padNow = -1;
+function barHtml(run) {
+  const t = T(), now = Date.now(), es = run.entries, si = shownIdx(run), e = si >= 0 ? es[si] : null, ni = nextPending(run, false), nx = ni >= 0 ? es[ni] : null;
+  const next = `<div class="ts-next">${nx ? 'Next · <b>' + esc(nx.title) + '</b>' + (nx.pStart ? ' at ' + tLab(nx.pStart) : '') : 'Nothing else scheduled today'}</div>`;
+  const kLab = x => x.status === 'paused' ? 'Paused' : x.kind === 'break' ? 'On break' : x.kind === 'meeting' ? 'In meeting' : 'In progress';
+  if (t.collapsed) return `<div class="row" style="gap:10px"><div class="grow" style="min-width:0"><div class="ts-stat"><i class="ts-dot ${e && e.status === 'active' ? 'live' : ''}"></i>${e ? kLab(e) : 'Day running'}</div><b class="trunc" style="display:block;font-size:14px;margin-top:2px">${e ? esc(e.title) : 'No block running'}</b></div>${e ? `<b class="ts-mini" data-tsel="cur">${fdur(el(e, now))}</b>` : ''}${e && e.status === 'active' ? `<button class="btn btn-primary btn-sm ts-btn" data-ts="finish">${I('check', 14)}Finish</button>` : e ? `<button class="btn btn-primary btn-sm ts-btn" data-ts="resume">${I('play', 12)}Resume</button>` : nx ? `<button class="btn btn-primary btn-sm ts-btn" data-ts="start-next">${I('play', 12)}Start</button>` : ''}<button class="icon-btn" data-ts="collapse" aria-label="Expand">${I('chevU', 16)}</button></div>`;
+  let top;
+  if (e) {
+    const isB = e.kind === 'break', tk = e.tasks || [], dn = tk.filter(x => x.done).length, pm = e.pStart && e.pEnd ? (toMin(e.pEnd) - toMin(e.pStart)) * 60000 : 0;
+    const tasks = tk.map((x, i) => `<label class="ts-task ${x.done ? 'done' : ''}"><span class="ts-cb"><input type="checkbox" data-tsf="task" data-i="${i}" ${x.done ? 'checked' : ''}><i>${I('check', 13)}</i></span><span class="tt">${esc(x.t)}</span></label>`).join('');
+    top = `<div class="row between" style="gap:8px"><div class="ts-stat"><i class="ts-dot ${e.status === 'active' ? 'live' : ''}"></i>${kLab(e)}</div><button class="icon-btn" style="width:30px;height:30px" data-ts="collapse" aria-label="Collapse">${I('chevD', 16)}</button></div>
+      <b class="trunc" style="display:block;font-size:15px;margin-top:4px">${esc(e.title)}</b>
+      <div class="ts-big" data-tsel="cur">${fdur(el(e, now))}</div>
+      ${pm ? `<div class="ts-prog"><i data-tsel="pct" style="width:${Math.min(100, el(e, now) / pm * 100)}%"></i></div>` : ''}
+      <div class="ts-meta"><span>${e.pStart ? tLab(e.pStart) + ' – ' + tLab(e.pEnd) + ' · <b data-tsel="left"></b>' : 'Unscheduled'}</span><span>Day <b data-tsel="day"></b></span></div>
+      <div class="tsb">${tk.length ? `<div class="ts-sh" style="margin:12px 0 8px">Steps<span>${dn} of ${tk.length} complete</span></div>${tasks}` : ''}${isB ? '' : `<div class="ts-addstep" ${tk.length ? '' : 'style="margin-top:12px"'}><input class="input sm" data-tsin placeholder="Add a step" maxlength="100"><button class="btn btn-soft btn-sm ts-btn" data-ts="task-add" aria-label="Add step">${I('plus', 14)}Add</button></div>`}${next}</div>
+      <div class="ts-act">${e.status === 'active' ? `<button class="btn btn-primary grow ts-btn" data-ts="finish">${I('check', 16)}${isB ? 'End break' : 'Finish &amp; next'}</button><button class="btn btn-line ts-btn" data-ts="pause">${I('pause', 15)}Pause</button>${isB ? '' : `<button class="btn btn-line ts-btn" data-ts="break">${I('cup', 15)}Break</button>`}` : `<button class="btn btn-primary grow ts-btn" data-ts="resume">${I('play', 14)}Resume</button><button class="btn btn-line ts-btn" data-ts="finish">${I('check', 15)}Finish</button>`}</div>`;
+  } else {
+    top = `<div class="row between"><div class="ts-stat"><i class="ts-dot live"></i>Day running</div><button class="icon-btn" style="width:30px;height:30px" data-ts="collapse" aria-label="Collapse">${I('chevD', 16)}</button></div><b style="display:block;font-size:15px;margin-top:4px">${nx ? 'No block running' : 'All blocks complete'}</b><div class="ts-meta"><span>${nx ? 'Choose what to work on next' : 'Add another block or end your day'}</span><span>Day <b data-tsel="day"></b></span></div>${next}<div class="ts-act">${nx ? `<button class="btn btn-primary grow ts-btn" data-ts="start-next">${I('play', 14)}Start ${esc(nx.title.length > 16 ? nx.title.slice(0, 15) + '…' : nx.title)}</button>` : ''}<button class="btn btn-line ts-btn ${nx ? '' : 'grow'}" data-ts="adhoc">Other task</button></div>`;
+  }
+  return top + `<div class="ts-links"><button class="link" data-ts="skip">${I('skip', 13)}Skip</button>${e ? `<button class="link" data-ts="ent-edit-cur">${I('clock', 13)}Edit times</button>` : ''}<button class="link" data-ts="snd">${I(t.sound ? 'bell' : 'bellOff', 13)}Sound ${t.sound ? 'on' : 'off'}</button><button class="link bad" data-ts="endday">${I('stop', 13)}End day</button></div>`;
+}
+function paintBar(force) {
+  const t = T(), run = running(), vis = !!run && !!$('#screen-app.on'); let bar = $('#ts-bar');
+  if (!vis) { if (bar) bar.remove(); barSig = ''; setPad(0); return; }
+  if (!bar) { bar = document.createElement('div'); bar.id = 'ts-bar'; $('#frame').appendChild(bar); barSig = ''; }
+  const sig = JSON.stringify([t.collapsed, t.sound, run.entries.map(e => [e.id, e.status, e.title, (e.tasks || []).map(x => (x.done ? 1 : 0) + x.t).join('|')])]);
+  if (sig !== barSig || force) { barSig = sig; bar.innerHTML = barHtml(run); }
+  const si = shownIdx(run), e = si >= 0 ? run.entries[si] : null; bar.classList.toggle('brk', !!e && (e.kind === 'break' || e.status === 'paused'));
+}
+function setPad(px) { if (px === padNow) return; padNow = px; const s = $('#scroll'); if (s) s.style.paddingBottom = px ? px + 'px' : ''; }
+
+/* ---------- the Timesheet tab (More > Plan) ---------- */
+let weekOff = 0;
+const entRow = (run, e, i, now) => {
+  const miss = e.status === 'pending' && run.date === today() && e.pEnd && toMin(e.pEnd) < nowMin(), act = e.status === 'active' || e.status === 'paused';
+  const tk = e.tasks || [], dn = tk.filter(x => x.done).length;
+  const t1 = e.pStart ? tLab(e.pStart) : e.startMs ? msLab(e.startMs) : '—', t2 = e.pEnd ? tLab(e.pEnd) : e.endMs ? msLab(e.endMs) : '';
+  const real = e.startMs ? 'Actual ' + msLab(e.startMs) + (e.endMs ? ' – ' + msLab(e.endMs) : ' – now') : '';
+  const meta = [KINDS.find(k => k[0] === e.kind)[1], real, tk.length ? dn + '/' + tk.length + ' steps' : ''].filter(Boolean).join(' · ');
+  const st = act ? pill(e.status === 'paused' ? 'Paused' : 'In progress', e.status === 'paused' ? 'warn' : 'brand') : e.status === 'done' ? pill('Done', 'ok') : e.status === 'skipped' ? pill('Skipped') : miss ? pill('Missed', 'bad') : '';
+  return `<div class="ts-item k-${e.kind} ${act ? 'now' : ''} ${miss ? 'miss' : ''}"><div class="ts-time"><b>${t1}</b><span>${t2}</span></div><button class="ts-main" data-ts="ent-edit" data-d="${run.date}" data-i="${i}"><b class="trunc">${esc(e.title)}</b><span class="trunc">${esc(meta)}</span></button><div class="ts-end">${st}${e.startMs || el(e, now) ? `<span class="b num" ${e.status === 'active' ? `data-tsel="e:${e.id}"` : ''}>${fhm(el(e, now))}</span>` : ''}${e.status === 'pending' && running() && run.date === today() ? `<button class="link" data-ts="ent-start" data-i="${i}">Start</button>` : ''}</div></div>`;
+};
+function statsHtml(run, now, live) {
+  return `<div class="ts-stats"><div><b ${live ? 'data-tsel="day"' : ''}>${fhm(workedMs(run, now))}</b><span>Worked</span></div><div><b>${run.entries.filter(e => e.status === 'done').length}/${run.entries.length}</b><span>Blocks done</span></div><div><b>${fhm(breakMs(run, now))}</b><span>Breaks</span></div></div>`;
+}
+function todayCard() {
+  const t = T(), date = today(), run = t.runs[date], now = Date.now(), live = running();
+  if (live && live.date !== date) return `<div class="card"><p class="sm-t">A day from <b>${dLab(live.date)}</b> is still running.</p><div class="row" style="gap:8px;margin-top:12px"><button class="btn btn-primary btn-sm grow" data-ts="startday">End it &amp; start today</button><button class="btn btn-line btn-sm" data-ts="endday">End it</button></div></div>`;
+  if (live) {
+    return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Today</span><h3>Running since ${msLab(live.startedMs)}</h3></div>${pill('Live', 'ok')}</div>${statsHtml(live, now, true)}<div class="ts-list">${live.entries.map((e, i) => entRow(live, e, i, now)).join('')}</div><div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow ts-btn" data-ts="ent-new" data-d="${date}">${I('plus', 14)}Add block</button><button class="btn btn-soft btn-sm grow ts-btn" data-ts="adhoc">${I('play', 12)}Start task</button></div><button class="btn btn-danger btn-sm block ts-btn" data-ts="endday">${I('stop', 13)}End day</button></div>`;
+  }
+  if (run && run.endedMs) return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Today</span><h3>Ended ${msLab(run.endedMs)}</h3></div>${pill('Complete')}</div>${statsHtml(run, now, false)}<div class="ts-list">${run.entries.map((e, i) => entRow(run, e, i, now)).join('')}</div><button class="btn btn-line block ts-btn" data-ts="startday">${I('rotate', 15)}Continue my day</button></div>`;
+  const sc = schedFor(date);
+  return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Today</span><h3>${dLab(date)}</h3></div>${pill(sc.length + (sc.length === 1 ? ' block' : ' blocks'))}</div>${sc.length ? `<div class="ts-list">${sc.map(b => `<button class="ts-item k-${b.kind}" data-ts="blk" data-id="${b.id}"><div class="ts-time"><b>${tLab(b.start)}</b><span>${tLab(b.end)}</span></div><div class="ts-main"><b class="trunc">${esc(b.title)}</b><span class="trunc">${KINDS.find(k => k[0] === b.kind)[1]}${(b.tasks || []).length ? ' · ' + b.tasks.length + ' steps' : ''}</span></div>${I('chevR', 16)}</button>`).join('')}</div>` : '<p class="ts-empty">Nothing is scheduled for today. You can still start a day and add tasks as you go.</p>'}<button class="btn btn-primary block ts-btn" style="padding:14px" data-ts="startday">${I('play', 14)}Start my day</button><button class="btn btn-line btn-sm block" data-ts="adhoc">Start a task not on the schedule</button></div>`;
+}
+function weekCard() {
+  const t = T(), ws = G.state.settings.weekStart === 'sun' ? 0 : 1, td = today(), s = addDays(td, weekOff * 7 - ((dparse(td).getDay() - ws + 7) % 7));
+  const days = [...Array(7)].map((_, i) => addDays(s, i));
+  return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Schedule</span><h3>Work schedule</h3></div><button class="btn btn-primary btn-sm ts-btn" data-ts="blk-new">${I('plus', 14)}Time block</button></div>
+    <div class="ts-wk"><button class="icon-btn" data-ts="wk" data-d="-1" aria-label="Previous week">${I('chevL', 16)}</button><b>${weekOff === 0 ? 'This week · ' : ''}${dLab(s)} – ${dLab(days[6])}</b><button class="icon-btn" data-ts="wk" data-d="1" aria-label="Next week">${I('chevR', 16)}</button></div>
+    <div>${days.map(d => { const bs = schedFor(d); return `<div class="ts-dayh" style="${d === days[0] ? 'margin-top:4px' : ''}"><b class="${d === td ? 'tod' : ''}">${dLab(d)}${d === td ? ' · Today' : ''}</b><button class="ts-add" data-ts="blk-new" data-date="${d}">${I('plus', 13)}Add</button></div>${bs.length ? `<div class="ts-list">${bs.map(b => `<button class="ts-item k-${b.kind}" data-ts="blk" data-id="${b.id}"><div class="ts-time"><b>${tLab(b.start)}</b><span>${tLab(b.end)}</span></div><div class="ts-main"><b class="trunc">${esc(b.title)}</b><span class="trunc">${KINDS.find(k => k[0] === b.kind)[1]} · ${esc(repSum(b))}${(b.tasks || []).length ? ' · ' + b.tasks.length + ' steps' : ''}</span></div>${I('chevR', 16)}</button>`).join('')}</div>` : '<p class="ts-empty">Nothing scheduled</p>'}`; }).join('')}</div>
+    <p class="hint">Different things on different weeks? Make a block “Every 2 weeks” starting this week, then another that starts next week. Use the arrows above to check both.</p></div>`;
+}
+function histCard() {
+  const t = T(), td = today(), list = Object.values(t.runs).filter(r => r.date !== td).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14), now = Date.now();
+  return `<div class="card stack-sm"><div><span class="eyebrow">History</span><h3 style="font-size:15px;font-weight:700">Past days</h3></div>${list.length ? `<div class="ts-list">${list.map(r => `<button class="ts-item" style="border-left-width:1px" data-ts="day" data-d="${r.date}"><div class="ts-main"><b>${dLab(r.date)}</b><span>${r.entries.filter(e => e.status === 'done').length} of ${r.entries.length} blocks done${r.endedMs ? '' : ' · not ended'}</span></div><b class="num" style="font-size:13px">${fhm(workedMs(r, now))}</b>${I('chevR', 16)}</button>`).join('')}</div>` : '<p class="ts-empty">Days you work will show up here, and you can edit any of them.</p>'}</div>`;
+}
+function setHtml() {
+  const t = T(), perm = 'Notification' in window ? Notification.permission : 'unsupported';
+  return `<div><label class="ts-setrow"><span>Sounds<small>Play a tone when a block finishes or a reminder appears</small></span><input type="checkbox" class="ts-sw" data-tsf="sound" ${t.sound ? 'checked' : ''}></label>
+    <label class="ts-setrow"><span>Notifications<small>Phone or computer alerts while the app is open</small></span><input type="checkbox" class="ts-sw" data-tsf="notify" ${t.notify ? 'checked' : ''}></label>
+    ${perm === 'default' ? `<button class="btn btn-soft btn-sm block" style="margin-top:10px" data-ts="perm">Allow notifications</button>` : perm === 'denied' ? '<p class="hint" style="margin-top:8px">Notifications are blocked in your browser settings.</p>' : perm === 'unsupported' ? '<p class="hint" style="margin-top:8px">This browser does not support notifications. Banners and sounds still work.</p>' : ''}
+    <label class="fld" style="margin:12px 0 0"><span>Default reminder</span><select class="select sm" data-tsf="remind">${[0, 5, 10, 15, 30].map(n => `<option value="${n}" ${t.remind === n ? 'selected' : ''}>${n ? n + ' minutes before a block' : 'No reminder'}</option>`).join('')}</select></label>
+    <div class="row" style="gap:8px;margin-top:12px"><button class="btn btn-line btn-sm grow ts-btn" data-ts="test" data-k="done">${I('play', 12)}Test sound</button><button class="btn btn-line btn-sm grow ts-btn" data-ts="test" data-k="alert">${I('bell', 13)}Test reminder</button></div>
+    <p class="hint" style="margin-top:10px">Reminders and sounds work while the app is open (including in the background on most phones). They cannot wake a fully closed app.</p></div>`;
+}
+function paintSheet() {
+  const h = $('#ts-host'); if (!h || !h.isConnected) return;
+  h.innerHTML = todayCard() + weekCard() + histCard() + `<div class="card"><span class="eyebrow">Preferences</span><h3 style="font-size:15px;font-weight:700;margin-bottom:4px">Alerts &amp; sounds</h3>${setHtml()}</div>`;
+}
+
+/* ---------- day detail (past days) ---------- */
+function openDay(date) {
+  const run = T().runs[date]; if (!run) return; const now = Date.now(), isT = date === today();
+  modal(dLab(date), `${statsHtml(run, now, false)}<div class="ts-list" style="margin-top:14px">${run.entries.map((e, i) => entRow(run, e, i, now)).join('') || '<p class="ts-empty">Nothing recorded.</p>'}</div>`,
+    `<button class="ts-ghost bad" data-ts="day-del" data-d="${date}" aria-label="Delete day">${I('trash', 16)}</button><button class="ts-ghost" data-ts="ent-new" data-d="${date}">${I('plus', 14)}Add block</button>${isT && run.endedMs ? `<button class="btn btn-primary" data-ts="startday">Continue</button>` : ''}`, 'Day summary');
+}
+
+/* ---------- live updates every second ---------- */
+let tk = 0;
+function tick() {
+  const t = T(), now = Date.now(); tk++; const run = running();
+  if (t.day && !t.runs[t.day]) t.day = null;
+  if (run) { const si = shownIdx(run), e = si >= 0 ? run.entries[si] : null;
+    $$('[data-tsel]').forEach(x => { const k = x.dataset.tsel;
+      if (k === 'cur' && e) x.textContent = fdur(el(e, now));
+      else if (k === 'day') x.textContent = fhm(workedMs(run, now));
+      else if (k === 'left' && e && e.pEnd) { const ms = new Date(run.date + 'T00:00').getTime() + toMin(e.pEnd) * 60000 - now; x.textContent = ms >= 0 ? fhm(ms) + ' left' : fhm(-ms) + ' over'; x.className = ms < 0 ? 'bad-t' : ''; }
+      else if (k === 'pct' && e && e.pStart && e.pEnd) x.style.width = Math.min(100, el(e, now) / ((toMin(e.pEnd) - toMin(e.pStart)) * 60000) * 100) + '%';
+      else if (k.startsWith('e:')) { const en = run.entries.find(y => y.id === k.slice(2)); if (en) x.textContent = fhm(el(en, now)); } });
+  }
+  const bar = $('#ts-bar'), fr = $('#frame'), nav = $('#nav');
+  if (bar && fr && nav) { const fb = fr.getBoundingClientRect().bottom, nt = nav.getBoundingClientRect().top, d = $('#gw-dock'); bar.style.bottom = Math.max(0, fb - nt + 6 + (d ? d.offsetHeight + 6 : 0)) + 'px'; setPad(bar.offsetHeight + 12 + (d ? d.offsetHeight + 6 : 0)); }
+  if (tk % 4 === 0) checkAlerts();
+}
+setInterval(tick, 1000);
+
+/* ---------- plug into the page ---------- */
+function inject() {
+  const ui = G.ui;
+  if (ui.sub === 'plan') {
+    const seg = $('#scroll .seg');
+    if (seg && !$('[data-v=sheet]', seg)) { const b = document.createElement('button'); b.className = ui.seg.plan === 'sheet' ? 'on' : ''; b.dataset.act = 'seg'; b.dataset.k = 'plan'; b.dataset.v = 'sheet'; b.setAttribute('role', 'tab'); b.textContent = 'Timesheet'; seg.appendChild(b); }
+    if (ui.seg.plan === 'sheet') { const host = $('#scroll .page > .stack'); if (host) { host.id = 'ts-host'; paintSheet(); } const ab = $('#hdr .btn-primary'); if (ab) ab.style.display = 'none'; }
+  }
+  if ($('[data-act=acc][data-k=data]') && !$('#ts-set')) { const p = $$('.page > p.hint').pop(), d = document.createElement('div'); d.id = 'ts-set'; d.className = 'card'; d.innerHTML = `<h3 style="font-size:14px;font-weight:800;margin-bottom:10px">Timesheet alerts &amp; sounds</h3>${setHtml()}`; if (p) p.parentNode.insertBefore(d, p); }
+  paintBar(false); tick();
+}
+new MutationObserver(inject).observe($('#scroll'), { childList: true });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { paintBar(true); tick(); checkAlerts(); } });
+
+/* ---------- clicks ---------- */
+const H = {
+  mclose: closeModal,
+  'alert-x': () => { const a = $('#ts-alert'); if (a) a.remove(); pend = null; },
+  'alert-go': () => { const p = pend; pend = null; const a = $('#ts-alert'); if (a) a.remove(); if (!p) return;
+    if (p.a === 'start') { startBlockNow(p.bid); commit(); } else if (p.a === 'startday') { startDay(); commit(); } else if (p.a === 'finish') H.finish(); else if (p.a === 'endday') H.endday(); },
+  collapse: () => { const t = T(); t.collapsed = !t.collapsed; save(); paintBar(true); tick(); },
+  finish: () => { const run = running(); if (!run) return; const si = shownIdx(run); if (si < 0) return; const e = run.entries[si], b = e.kind === 'break'; closeEntry(e, 'done', Date.now()); sound(b ? 'start' : 'done'); advance(run); commit(); },
+  skip: () => { const run = running(); if (!run) return; const si = shownIdx(run); if (si >= 0) { closeEntry(run.entries[si], 'skipped', Date.now()); advance(run); } else { const n = nextPending(run, false); if (n >= 0) run.entries[n].status = 'skipped'; } commit(); },
+  pause: () => { const run = running(); if (!run) return; pauseActive(run, Date.now()); commit(); },
+  resume: () => { const run = running(); if (!run) return; const i = shownIdx(run); if (i >= 0) startEntry(run, i); commit(); },
+  break: () => { takeBreak(); commit(); },
+  'start-next': () => { const run = running(); if (!run) return; const n = nextPending(run, false); if (n >= 0) startEntry(run, n); commit(); },
+  startday: () => { startDay(); commit(); },
+  adhoc: openAdhoc, 'adhoc-go': adhocGo,
+  endday: async () => { const run = running(); if (!run) return; if (await ask('End your day?', `You have worked ${fhm(workedMs(run, Date.now()))} so far. Anything still running will be stopped. You can continue the day later from Plan, then Timesheet.`, 'Yes, end day', true)) { endDay(run.date); commit(); } },
+  snd: () => { const t = T(); t.sound = !t.sound; save(); paintBar(true); if (t.sound) sound('done'); },
+  'task-add': el => { const run = running(), i = run && shownIdx(run); const inp = $('[data-tsin]'); if (!run || i < 0 || !inp || !inp.value.trim()) return; run.entries[i].tasks.push({ t: inp.value.trim(), done: false }); commit(); },
+  'ent-edit-cur': () => { const run = running(); if (!run) return; const i = shownIdx(run); if (i >= 0) openEntry(run.date, i); },
+  'ent-edit': el => openEntry(el.dataset.d, +el.dataset.i),
+  'ent-new': el => openEntry(el.dataset.d, -1),
+  'ent-save': el => saveEntry(el.dataset.d, +el.dataset.i),
+  'ent-del': async el => { if (!await ask('Delete this block?', 'It is removed from the day.', 'Delete', true)) return; const run = T().runs[el.dataset.d]; run.entries.splice(+el.dataset.i, 1); if (run.endedMs) writeShift(run); closeModal(); commit(); },
+  'ent-start': el => { const run = running(); if (!run) return; startEntry(run, +el.dataset.i); commit(); },
+  'trow-add': () => $('#ts-trows').insertAdjacentHTML('beforeend', trow({ t: '', done: false })),
+  'trow-del': el => el.closest('[data-tr]').remove(),
+  blk: el => openBlock(el.dataset.id),
+  'blk-new': el => openBlock('', { date: el.dataset.date }),
+  'blk-save': el => saveBlock(el.dataset.id),
+  'blk-del': async el => { if (!await ask('Delete this time block?', 'It is removed from every day it repeats on. Days you already worked keep their records.', 'Delete', true)) return; T().blocks = T().blocks.filter(b => b.id !== el.dataset.id); closeModal(); commit(); },
+  'blk-dup': el => { const b = T().blocks.find(x => x.id === el.dataset.id); if (!b) return; const c = JSON.parse(JSON.stringify(b)); c.id = uid('b'); c.title += ' (copy)'; T().blocks.push(c); closeModal(); commit(); openBlock(c.id); },
+  dow: el => el.classList.toggle('on'),
+  kindset: el => { const seg = el.closest('.seg'), h = seg.previousElementSibling; if (h) h.value = el.dataset.v; $$('button', seg).forEach(x => x.classList.toggle('on', x === el)); },
+  dpreset: el => { const on = el.dataset.v.split('').map(Number); $$('#ts-dowbox .chip').forEach(c => c.classList.toggle('on', on.includes(+c.dataset.d))); },
+  wk: el => { weekOff += +el.dataset.d; paintSheet(); },
+  day: el => openDay(el.dataset.d),
+  'day-del': async el => { if (!await ask('Delete this whole day?', 'All its blocks and times are removed.', 'Delete', true)) return; const d = el.dataset.d, t = T(); if (t.day === d) t.day = null; delete t.runs[d]; removeShift(d); closeModal(); commit(); },
+  perm: async () => { try { await Notification.requestPermission(); } catch (e) { } paintSheet(); const s = $('#ts-set'); if (s) { s.remove(); inject(); } },
+  test: el => { sound(el.dataset.k, true); if (el.dataset.k === 'alert') showAlert('Reminder test', 'This is how reminders look.', 'Got it', null); },
+};
+document.addEventListener('click', e => {
+  if (e.target.id === 'ts-modal') return closeModal();
+  const b = e.target.closest('[data-ts]'); if (!b || b.type === 'checkbox') return; const f = H[b.dataset.ts]; if (f) f(b);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('#ts-modal.on')) closeModal();
+  if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-tsin]')) { e.preventDefault(); H['task-add'](e.target); }
+});
+document.addEventListener('change', e => {
+  const t = e.target, k = t.dataset && t.dataset.tsf, T_ = T();
+  if (t.dataset && t.dataset.f === 'rep') { const v = t.value, m = $('#ts-modal'); $('#ts-dowbox', m).hidden = !/^w/.test(v); $('#ts-fromlbl', m).textContent = v === 'once' ? 'Date' : v === 'm' ? 'Repeats on the date of' : 'Pattern starts the week of'; $('#ts-rephint', m).textContent = v === 'w2' ? 'Week 1 is the week of the date above. Make a second block starting one week later for your “other” week.' : ''; return; }
+  if (!k) return;
+  if (k === 'sound') { T_.sound = t.checked; if (t.checked) sound('done'); }
+  else if (k === 'notify') T_.notify = t.checked;
+  else if (k === 'remind') T_.remind = +t.value;
+  else if (k === 'task') { const run = running(), si = run ? shownIdx(run) : -1; if (si < 0) return; const x = run.entries[si].tasks[+t.dataset.i]; if (x) { x.done = t.checked; x.at = t.checked ? Date.now() : 0; } save(); paintBar(true); paintSheet(); return; }
+  save(); $$('[data-tsf=sound]').forEach(x => x.checked = T_.sound); $$('[data-tsf=notify]').forEach(x => x.checked = T_.notify); if (k === 'sound') paintBar(true);
+});
 inject();
 })();
 </script>
