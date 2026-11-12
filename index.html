@@ -950,7 +950,7 @@ const PERIOD_TITLE = { today: "Today's Revenue", week: "This Week's Revenue", la
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'NZD', 'JPY', 'INR', 'MXN', 'BRL', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN', 'ZAR', 'SGD', 'HKD', 'AED'];
 const PRIORITIES = ['Normal', 'High', 'Urgent', 'Low'];
 const EVENT_KINDS = ['Deadline', 'Market / event', 'Launch', 'Payment due', 'Meeting', 'Other'];
-const METRICS = [['revenue', 'Revenue', 'money'], ['profit', 'Net profit', 'money'], ['orders', 'Orders', 'count'], ['items', 'Items sold', 'count'], ['listings', 'Listings added', 'count']];
+const METRICS = [['revenue', 'Revenue', 'money'], ['profit', 'Net profit', 'money'], ['orders', 'Orders', 'count'], ['items', 'Items sold', 'count'], ['listings', 'Listings added', 'count'], ['hours', 'Hours worked', 'hours']];
 const UNITS = ['pcs', 'pack', 'box', 'roll', 'sheet', 'm', 'ft', 'yd', 'g', 'kg', 'oz', 'lb', 'ml', 'L'];
 const TERMS = ['Due on receipt', 'Net 7', 'Net 15', 'Net 30', 'Net 60'];
 const HOME_WIDGETS = [['pipeline', 'Order pipeline'], ['goals', 'Goals'], ['attention', 'Needs attention'], ['upcoming', 'Coming up'], ['lowstock', 'Low stock'], ['quick', 'Quick actions']];
@@ -1496,17 +1496,18 @@ function processRecurring() {
 }
 
 /* ----- goals ----- */
+const hoursNow = r => { try { return window.GBT && window.GBT.hoursIn ? window.GBT.hoursIn(r[0], r[1]) : 0; } catch (e) { return 0; } };
 function goalInfo(g) {
   const t = today();
-  const r = g.period === 'month' ? periodRange('month') : [g.start, g.end];
+  const r = g.period === 'month' || g.period === 'week' ? periodRange(g.period) : [g.start, g.end];
   const s = summary(r);
-  const value = g.metric === 'profit' ? s.profit : g.metric === 'orders' ? s.orders : g.metric === 'items' ? s.units : g.metric === 'listings' ? state.listings.filter(l => inR(l.listedDate || l.createdDate, r)).length : s.net;
+  const value = g.metric === 'profit' ? s.profit : g.metric === 'hours' ? hoursNow(r) : g.metric === 'orders' ? s.orders : g.metric === 'items' ? s.units : g.metric === 'listings' ? state.listings.filter(l => inR(l.listedDate || l.createdDate, r)).length : s.net;
   const target = num(g.target), ratio = target > 0 ? Math.max(0, value / target) : 0;
   const total = Math.max(1, daysBetween(r[0], r[1]) + 1), elapsed = Math.min(total, Math.max(0, daysBetween(r[0], t) + 1));
   const ended = r[1] < t, notStarted = r[0] > t;
   const projected = elapsed > 0 && !ended ? value / elapsed * total : value;
   const isMoney = (METRICS.find(m => m[0] === g.metric) || [])[2] === 'money';
-  const f = v => isMoney ? money(v, true) : String(Math.round(v));
+  const f = v => isMoney ? money(v, true) : g.metric === 'hours' ? (Math.round(v * 10) / 10) + 'h' : String(Math.round(v));
   let status;
   if (value >= target && target > 0) status = 'Goal reached';
   else if (ended) status = 'Ended at ' + Math.round(ratio * 100) + '%';
@@ -1943,7 +1944,7 @@ V.home = () => {
     ${show('pipeline') ? `<div class="card sm" data-w="pipeline"><h4 class="eyebrow" style="margin-bottom:12px">Order Pipeline</h4>
       <div class="grid3">${FLOW.map(st => { const n = cntS(st); return `<button class="tile ${n && ['In Preparation', 'Packaged'].includes(st) ? 'hot' : ''}" data-act="go-sales" data-v="${esc(st)}"><b class="num">${n}</b><span>${st}</span></button>`; }).join('')}${['issues', 'closed'].map(k => { const n = cnt(k), lab = GROUPS.find(x => x[0] === k)[1]; return `<button class="tile ${n && k === 'issues' ? 'issue' : ''}" data-act="go-sales" data-v="g:${k}"><b class="num">${n}</b><span>${lab}</span></button>`; }).join('')}</div></div>` : ''}
     ${show('goals') ? `<div class="card" data-w="goals"><div class="row between" style="margin-bottom:14px"><h3 style="font-size:14px;font-weight:800">Your Goals</h3><button class="link" data-act="sub" data-sub="goals">View All ${ic('chevron-right')}</button></div>
-      ${g ? `<div class="row" style="gap:16px">${ring(gi.ratio, 64)}<div class="grow"><h4 class="b trunc">${esc(g.name)}</h4><p class="xs sub" style="margin:2px 0 8px">${gi.f(gi.value)} of ${gi.f(gi.target)}${g.period === 'month' ? ' this month' : ''}</p><div class="bar"><i style="width:${Math.min(100, gi.ratio * 100)}%"></i></div></div></div>`
+      ${g ? `<div class="row" style="gap:16px">${ring(gi.ratio, 64)}<div class="grow"><h4 class="b trunc">${esc(g.name)}</h4><p class="xs sub" style="margin:2px 0 8px">${gi.f(gi.value)} of ${gi.f(gi.target)}${g.period === 'month' ? ' this month' : g.period === 'week' ? ' this week' : ''}</p><div class="bar"><i style="width:${Math.min(100, gi.ratio * 100)}%"></i></div></div></div>`
         : `<div class="row" style="gap:14px"><div class="grow"><p class="sm-t sub">Set a target like monthly revenue and see your progress here.</p></div><button class="btn btn-soft btn-sm" data-act="add" data-type="goal">Set a goal</button></div>`}</div>` : ''}
     ${show('attention') && att.length ? `<div class="card sm" data-w="attention"><div class="row between" style="margin-bottom:8px"><h4 class="eyebrow">Needs your attention</h4><button class="link" data-act="bell">Open inbox</button></div><div class="stack-sm">${att.slice(0, 4).map(a => `<button class="row" style="width:100%;text-align:left;padding:6px 0" data-act="alert-go" data-k="${esc(a.key)}"><span class="icon-btn p">${ic(a.icon)}</span><span class="grow b sm-t">${esc(a.title)}</span>${ic('chevron-right', 'xs sub')}</button>`).join('')}</div>${att.length > 4 ? `<button class="link" style="margin-top:8px" data-act="bell">See all ${att.length}</button>` : ''}</div>` : ''}
     ${show('lowstock') && lows.length ? `<div class="card sm" data-w="lowstock"><div class="row between" style="margin-bottom:8px"><h4 class="eyebrow">Low stock</h4><button class="link" data-act="reorder">Reorder list</button></div><div class="stack-sm">${lows.map(i => `<button class="row between" style="width:100%;text-align:left;padding:4px 0" data-act="edit" data-type="${i.k}" data-id="${i.x.id}"><span class="trunc b sm-t">${esc(i.x.name)}</span><span class="row" style="gap:8px;flex:none"><span class="num xs sub b">${esc(String(stockQty(i.x)))} left</span>${stockPill(i.x)}</span></button>`).join('')}</div></div>` : ''}
@@ -2860,7 +2861,7 @@ function calendarView() {
   for (let i = 0; i < lead; i++) cells += '<span></span>';
   for (let d = 1; d <= dim; d++) {
     const k = `${m}-${pad(d)}`;
-    cells += `<button class="${k === t ? 'today' : ''} ${k === ui.calSel ? 'sel' : ''}" data-act="cal-day" data-k="${k}">${d}<span class="dots">${evBy.has(k) ? '<i></i>' : ''}${tkBy.has(k) ? '<i class="t"></i>' : ''}${shBy.has(k) ? '<i class="s"></i>' : ''}${(lm.get(k) || []).some(e => e.kind === 'listed') ? '<i class="l"></i>' : ''}${(lm.get(k) || []).some(e => e.kind === 'relist') ? '<i class="r"></i>' : ''}${(lm.get(k) || []).some(e => e.kind.startsWith('d')) ? '<i class="d"></i>' : ''}</span></button>`;
+    cells += `<button class="${k === t ? 'today' : ''} ${k === ui.calSel ? 'sel' : ''}" data-act="cal-day" data-k="${k}">${d}<span class="dots">${F.items && evBy.has(k) ? '<i></i>' : ''}${F.items && tkBy.has(k) ? '<i class="t"></i>' : ''}${F.items && shBy.has(k) ? '<i class="s"></i>' : ''}${(lm.get(k) || []).some(e => e.kind === 'listed') ? '<i class="l"></i>' : ''}${(lm.get(k) || []).some(e => e.kind === 'relist') ? '<i class="r"></i>' : ''}${(lm.get(k) || []).some(e => e.kind.startsWith('d')) ? '<i class="d"></i>' : ''}</span></button>`;
   }
   const sel = ui.calSel, selL = (sel.slice(0, 7) === m ? lm.get(sel) : (() => { const a = calListingMap(sel.slice(0, 7)).get(sel) || []; return a.filter(e => e.kind === 'listed' ? F.listed : e.kind === 'relist' ? F.relist : F.disc); })()) || [], evs = (evBy.get(sel) || []).sort((a, b) => (a.time || '').localeCompare(b.time || '')), tks = tkBy.get(sel) || [], ords = state.orders.filter(o => o.date === sel && !NOT_SALE.includes(o.status)), ships = shBy.get(sel) || [];
   const agenda = [
@@ -2870,7 +2871,7 @@ function calendarView() {
     ...selL.map(calListingRow),
   ].join('');
   const mUniq = new Set(), mRel = new Set(), mList = new Set(); let dSum = 0;
-  lm.forEach(a => a.forEach(e => { if (e.kind === 'relist') mRel.add(e.l.id); else if (e.kind === 'listed') mList.add(e.l.id); else if (!mUniq.has(e.d)) { mUniq.add(e.d); dSum += num(e.d.pct); } }));
+  lm.forEach((a, k) => { if (k.slice(0, 7) !== m) return; a.forEach(e => { if (e.kind === 'relist') mRel.add(e.l.id); else if (e.kind === 'listed') mList.add(e.l.id); else if (!mUniq.has(e.d)) { mUniq.add(e.d); dSum += num(e.d.pct); } }); });
   const sumTxt = [mList.size ? `${mList.size} listed` : '', mRel.size ? `${mRel.size} to relist` : '', mUniq.size ? `${mUniq.size} discount${mUniq.size > 1 ? 's' : ''} active or scheduled, averaging ${pct(dSum / mUniq.size)} off` : ''].filter(Boolean).join(' · ');
   return `<div class="card"><div class="row between" style="margin-bottom:10px"><button class="icon-btn" data-act="cal-nav" data-d="-1" aria-label="Previous month">${ic('chevron-left')}</button><b>${first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</b><button class="icon-btn" data-act="cal-nav" data-d="1" aria-label="Next month">${ic('chevron-right')}</button></div>
     <div class="cal">${dows.map(x => `<span class="dow">${x}</span>`).join('')}${cells}</div>
@@ -2881,25 +2882,14 @@ function calendarView() {
 }
 const sessionMs = s => Math.max(0, s.endMs - s.startMs - num(s.breakMs));
 const activeMs = (a, now) => Math.max(0, now - a.startMs - num(a.breakMs) - (a.breakStart ? now - a.breakStart : 0));
-function timeView() {
-  const a = state.activeShift, t = today(), now = Date.now();
-  const tot = r => sum(state.shifts.filter(s => inR(s.date, r)), sessionMs) + (a && inR(dkey(new Date(a.startMs)), r) ? activeMs(a, now) : 0);
-  const act = !a
-    ? `<button class="btn btn-primary block" style="padding:16px" data-act="clock-in">${ic('play')} Clock in</button>`
-    : `<div class="clock" id="clock">${fmtClock(activeMs(a, now))}</div><p class="xs sub" style="text-align:center;margin:-4px 0 14px">${a.breakStart ? 'On break' : 'Working since ' + fmtStamp(a.startMs)}</p>
-       <div class="grid2"><button class="btn btn-line" data-act="clock-break">${ic(a.breakStart ? 'play' : 'pause')} ${a.breakStart ? 'End break' : 'Break'}</button><button class="btn btn-primary" data-act="clock-out">${ic('stop')} Clock out</button></div>`;
-  const recent = state.shifts.slice().sort((x, y) => y.startMs - x.startMs).slice(0, 25);
-  return `<div class="card">${act}</div>
-    <div class="grid3"><div class="tile"><b class="num">${fmtDur(tot([t, t]))}</b><span>Today</span></div><div class="tile"><b class="num">${fmtDur(tot(periodRange('week')))}</b><span>This week</span></div><div class="tile"><b class="num">${fmtDur(tot(periodRange('month')))}</b><span>This month</span></div></div>
-    <div class="stack-sm"><h4 class="eyebrow" style="padding:0 4px">Recent sessions</h4>${recent.length ? recent.map(s => `<button class="card sm item click" data-act="edit" data-type="shift" data-id="${s.id}"><div class="ava">${ic('clock')}</div><div class="grow"><h4 class="trunc">${fmtDate(s.date)} · ${fmtDur(sessionMs(s))}</h4><div class="meta trunc">${fmtStamp(s.startMs)} – ${fmtStamp(s.endMs)}${s.breakMs ? ' · ' + Math.round(s.breakMs / 60000) + 'm break' : ''}${s.note ? ' · ' + esc(s.note) : ''}</div></div></button>`).join('') : '<p class="sm-t sub" style="padding:6px 4px">Clock in to start tracking your working hours.</p>'}</div>`;
-}
+function timeView() { return ''; } /* the Timesheet add-on (end of file) fills this tab: clock in/out, blocks, totals and hand-made entries all live there now */
 V.plan = () => `<div class="page stack-sm fade">${seg('plan', [['tasks', 'Tasks'], ['calendar', 'Calendar'], ['time', 'Time']], ui.seg.plan)}<div class="stack" style="margin-top:4px">${ui.seg.plan === 'tasks' ? `<div id="list" class="stack-sm">${tasksList()}</div>` : ui.seg.plan === 'calendar' ? calendarView() : timeView()}</div></div>`;
 
 /* ---------------- GOALS ---------------- */
 V.goals = () => `<div class="page stack fade">${state.goals.length ? state.goals.map(g => {
   const i = goalInfo(g);
   return `<button class="card" style="text-align:left;width:100%" data-act="edit" data-type="goal" data-id="${g.id}"><div class="row" style="gap:16px">${ring(i.ratio, 76)}<div class="grow"><h4 class="b trunc" style="font-size:15px">${esc(g.name)}</h4><p class="xs sub" style="margin:2px 0 8px">${i.f(i.value)} of ${i.f(i.target)}</p><div class="bar"><i style="width:${Math.min(100, i.ratio * 100)}%"></i></div></div></div>
-    <div class="row between" style="margin-top:12px">${pill(i.status, i.tone)}<span class="xs sub b">${g.period === 'month' ? 'Every month' : fmtDate(g.start) + ' – ' + fmtDate(g.end)}${i.daysLeft ? ' · ' + i.daysLeft + 'd left' : ''}</span></div></button>`;
+    <div class="row between" style="margin-top:12px">${pill(i.status, i.tone)}<span class="xs sub b">${g.period === 'month' ? 'Every month' : g.period === 'week' ? 'Every week' : fmtDate(g.start) + ' – ' + fmtDate(g.end)}${i.daysLeft ? ' · ' + i.daysLeft + 'd left' : ''}</span></div></button>`;
 }).join('') : `<div class="card">${empty('target', 'No goals yet', 'Pick a target and the app tracks your pace automatically.', emptyBtn('Set your first goal', 'goal'))}</div>`}</div>`;
 
 /* ---------------- CUSTOMERS / SUPPLIERS / NOTES / MILEAGE / ACTIVITY ---------------- */
@@ -3670,10 +3660,10 @@ OPEN.goal = id => {
   const g = id ? find('goals', id) : null, d = g || { name: '', metric: 'revenue', target: '', period: 'month', start: monthStart(today()), end: monthEnd(today()) };
   openSheet(g ? 'Edit goal' : 'New goal', formWrap('goal', id, `${fText('Name *', 'name', d.name, 'required maxlength="60" placeholder="e.g. Monthly revenue"')}
     <div class="grid2">${fSel('What to track', 'metric', METRICS.map(m => [m[0], m[1]]), d.metric)}${fNum('Target *', 'target', d.target, '0', 'required min="0"')}</div>
-    ${fSel('Period', 'period', [['month', 'Every month (resets automatically)'], ['custom', 'Custom date range']], d.period, 'data-goal-period')}
-    <div class="grid2" id="goal-dates" ${d.period === 'month' ? 'hidden' : ''}>${fDate('Start', 'start', d.start)}${fDate('End', 'end', d.end)}</div>
+    ${fSel('Period', 'period', [['month', 'Every month (resets automatically)'], ['week', 'Every week (resets automatically)'], ['custom', 'Custom date range']], d.period, 'data-goal-period')}
+    <div class="grid2" id="goal-dates" ${d.period === 'month' || d.period === 'week' ? 'hidden' : ''}>${fDate('Start', 'start', d.start)}${fDate('End', 'end', d.end)}</div>
     <p class="hint" style="margin-top:-4px">Progress and whether you're on pace are worked out from your sales.</p>`, foot('goal', id)));
-  if (d.period === 'month') $$('#goal-dates input').forEach(i => i.required = false);
+  if (d.period === 'month' || d.period === 'week') $$('#goal-dates input').forEach(i => i.required = false);
 };
 FORMS.goal = (f, fd, id) => {
   const name = tidy(fd.get('name')); if (!name) return toast('Name the goal');
@@ -4609,16 +4599,9 @@ const ACT = {
   'toggle-done': () => { ui.showDone = !ui.showDone; render(); },
   'cal-f': el => { ui.calF[el.dataset.v] = !ui.calF[el.dataset.v]; render(); },
   'cal-day': el => { ui.calSel = el.dataset.k; render(); },
-  'cal-nav': el => { ui.cal = addMonths(ui.cal + '-01', Number(el.dataset.d)).slice(0, 7); render(); },
+  'cal-nav': el => { ui.cal = addMonths(ui.cal + '-01', Number(el.dataset.d)).slice(0, 7); ui.calSel = ui.cal === today().slice(0, 7) ? today() : ui.cal + '-01'; render(); },
   'plan-go': () => navTo(['plan', 'tasks']),
   'time-go': () => navTo(['plan', 'time']),
-  'clock-in': () => { state.activeShift = { startMs: Date.now(), breakMs: 0, breakStart: null }; save(); render(); },
-  'clock-break': () => { const a = state.activeShift; if (a.breakStart) { a.breakMs += Date.now() - a.breakStart; a.breakStart = null; } else a.breakStart = Date.now(); save(); render(); },
-  'clock-out': () => {
-    const a = state.activeShift, now = Date.now(); if (a.breakStart) { a.breakMs += now - a.breakStart; a.breakStart = null; }
-    state.shifts.push({ id: uid('h'), date: dkey(new Date(a.startMs)), startMs: a.startMs, endMs: now, breakMs: a.breakMs, note: '' });
-    state.activeShift = null; save(); render(); toast('Clocked out · ' + fmtDur(now - a.startMs - a.breakMs));
-  },
 
   /* taxes */
   'tax-rate': async () => { const v = await askText('Income tax set-aside %', 'Percent of profit to put aside (e.g. 25)', String(state.settings.taxRate || ''), '25'); if (v == null) return; state.settings.taxRate = Math.max(0, Math.min(100, num(v))); save(); render(); },
@@ -4822,11 +4805,7 @@ const HELP = {
     steps: ['Tap + Event, choose a date, time and type.', 'Tap a day to see what is on it.', 'Tasks with due dates and bills show here too.', 'Events today or tomorrow appear in your Inbox.'],
     example: 'Craft market on the 14th at 9:00 → alert the day before.',
     links: [['Tasks', 'Due dates', 's:plan:tasks'], ['Business Assistant', 'Books quick meetings', 's:assistant'], ['Taxes', 'Add tax dates to the calendar', 's:taxes']], tip: 'Add tax dates from Taxes › Add to calendar.' },
-  'plan.time': { title: 'Plan › Time', purpose: 'A work timer. Start when you begin, stop when you finish, and see how many hours the business takes.',
-    steps: ['Tap Start to begin a shift and Stop to end it. Add breaks if you take them.', 'Add an entry by hand for time you forgot to track.', 'Totals show hours by day and week.'],
-    example: 'Packed orders from 9:00 to 11:30 with a 15 min break → 2h 15m logged.',
-    links: [['Home', 'Quick action: Time', 'h']], tip: 'Divide your profit by your hours to see what you are really earning per hour.' },
-  'plan.sheet': { title: 'Plan › Timesheet', purpose: 'Plan your work day in time blocks, run it with a floating tracker, and see hours worked.', steps: ['Add time blocks (weekly, bi-weekly, monthly or one-time).', 'Tap Start my day; the tracker floats over every page.', 'Finish ✓ & next moves through blocks; use Break, Pause, Skip.', 'Edit real start/finish times on any block or past day.', 'Set reminders and sounds at the bottom.'], example: 'Photography 9:00–10:30 every Mon–Fri with steps to tick off.', links: [['Plan › Time', 'Finished days are added to your time totals', 's:plan:time']], tip: 'Reminders work while the app is open.' },
+  'plan.time': { title: 'Plan › Time', purpose: 'Your work hours in one place. Plan your day in time blocks, run it with a floating tracker, and see your hours.', steps: ['Tap Clock in (or Start my day if you have blocks scheduled). The tracker floats over every page.', 'Finish ✓ & next moves through blocks; use Break, Pause, Skip. If a block runs long, tap Add time or Take my time.', 'End day is your clock out. Your hours show in Today, This week and This month.', 'Add time blocks (weekly, bi-weekly, monthly or one-time) in the schedule.', 'Forgot to track? Edit a past day, or add an entry by hand under Other time entries.', 'Hours worked shows any week or month with a bar per day. Copy text or Download CSV exports it; tap a day for that day on its own.', 'Profit per hour divides your net profit by your tracked hours for this week and this month. A weekly hours goal also shows on Goals.', 'Set reminders and sounds at the bottom.'], example: 'Photography 9:00–10:30 every Mon–Fri with steps to tick off.', links: [['Home', 'Quick action: Time', 'h']], tip: 'Divide your profit by your hours to see what you are really earning per hour.' },
   goals: { title: 'Goals', purpose: 'Targets such as monthly revenue, profit, orders, items sold or listings added, with live progress.',
     steps: ['Tap + Goal. Pick what to measure, the target number and the period (this month, or custom dates).', 'The ring shows progress. It says whether you are on pace or behind and projects where you will finish.', 'The first goal in the list shows on Home.'],
     example: 'Goal: revenue $3,000 this month. $1,200 earned by day 10 → “On pace for $3,600”.',
@@ -4991,7 +4970,7 @@ const FAQ = [
   { id: 'plan', t: 'Plan, goals, notes & time', ic: 'list-checks', q: [
     ['How do I add a task?', 'More › Plan › Tasks › + Task. Add a title, due date and priority. Tick the circle when done. Repeating tasks come back on their own.'],
     ['How do I add an event?', 'More › Plan › Calendar › + Event. Choose date, time and type. Tasks with due dates and ship-by dates also show on the calendar.'],
-    ['How do I track my working hours?', 'More › Plan › Time. Clock in, take breaks, clock out. You can also add a session by hand.'],
+    ['How do I track my working hours?', 'More › Plan › Time. Tap Clock in (or Start my day), take breaks, then End day. You can also add time by hand.'],
     ['How do I set a goal?', 'More › Goals › + Goal. Pick what to measure (revenue, profit, orders…), the target and the period. The ring shows progress and whether you are on pace. The first goal shows on Home.'],
     ['How do I keep notes?', 'More › Notes › + Note. Pin important ones and use search to find any note.'],
     ['What is the Business Assistant?', 'More › Business Assistant answers questions about your own numbers, suggests tasks and books short meetings. It runs on your device and nothing is sent anywhere. Suggestions only add tasks you tick.'],
@@ -5881,7 +5860,7 @@ document.addEventListener('change', async e => {
     else if (k === 'metrics') state.listings.forEach(l => (l.snaps || []).forEach(s => { if (s.m && old in s.m) { s.m[nv] = s.m[old]; delete s.m[old]; } }));
     arr[i] = nv; save(); toast('Saved'); render(); return;
   }
-  if (d.goalPeriod !== undefined) { const box = $('#goal-dates'); box.hidden = t.value === 'month'; $$('input', box).forEach(i => i.required = t.value !== 'month'); return; }
+  if (d.goalPeriod !== undefined) { const box = $('#goal-dates'); box.hidden = t.value !== 'custom'; $$('input', box).forEach(i => i.required = t.value === 'custom'); return; }
   if ((d.newlist || d.newsupplier !== undefined) && t.value === '__new') {
     const sup = d.newsupplier !== undefined, label = sup ? 'supplier' : d.label;
     const v = await askText('New ' + label, 'Name');
@@ -6365,6 +6344,12 @@ button.ts-item:hover{border-color:color-mix(in srgb,var(--p) 50%,var(--line));bo
 .ts-sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
 .ts-sw:checked{background:var(--p)}
 .ts-sw:checked::after{transform:translateX(16px)}
+.ts-rep-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:6px 2px;font-size:12.5px;font-weight:600;background:none;border:0;color:var(--text)}
+.ts-rep-row.now .ts-rd{color:var(--p)}
+.ts-rd{width:92px;flex:none}
+.ts-rb{flex:1;height:7px;border-radius:99px;background:color-mix(in srgb,var(--sub) 15%,transparent);overflow:hidden}
+.ts-rb i{display:block;height:100%;background:var(--p);border-radius:99px}
+.ts-rep-row b{width:62px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
 </style>
 <script>
 (() => {
@@ -6431,7 +6416,25 @@ function repSum(b) {
 }
 
 /* ---------- a day being worked ---------- */
-const mkEntry = b => ({ id: uid('e'), bid: b.id || '', title: b.title, kind: b.kind || 'work', pStart: b.start || '', pEnd: b.end || '', tasks: (b.tasks || []).map(t => ({ t, done: false })), notes: '', status: 'pending', accMs: 0, startMs: null, endMs: null, lastStart: null });
+/* ---------- business categories and links ---------- */
+const CATS = ['Photography', 'Listing', 'Packing', 'Shipping', 'Sourcing'];
+const ordNo = o => 'ORD-' + String(o.no || 0).padStart(3, '0');
+function linkLbl(k) {
+  if (!k) return ''; const [ty, id] = String(k).split(':'), S = G.state;
+  if (ty === 'order') { const o = (S.orders || []).find(x => x.id === id); return o ? ordNo(o) + (o.customer ? ' · ' + o.customer : '') : 'Removed order'; }
+  if (ty === 'product') { const x = (S.products || []).find(y => y.id === id); return x ? x.name : 'Removed product'; }
+  if (ty === 'listing') { const x = (S.listings || []).find(y => y.id === id); return x ? x.title : 'Removed listing'; }
+  return '';
+}
+const catSel = v => fld('Category', `<select class="select" data-f="cat"><option value="">None</option>${CATS.map(c => `<option ${c === v ? 'selected' : ''}>${c}</option>`).join('')}</select>`);
+function linkSel(v) {
+  const S = G.state, o = (x, t, l) => `<option value="${t}:${esc(x.id)}" ${v === t + ':' + x.id ? 'selected' : ''}>${esc(l)}</option>`;
+  const ords = (S.orders || []).slice().sort((a, b) => (b.no || 0) - (a.no || 0)).slice(0, 80), ps = (S.products || []).slice(0, 150), ls = (S.listings || []).slice(0, 150);
+  const known = new Set([...ords.map(x => 'order:' + x.id), ...ps.map(x => 'product:' + x.id), ...ls.map(x => 'listing:' + x.id)]);
+  return fld('Linked to (optional)', `<select class="select" data-f="link"><option value="">Nothing</option>${v && !known.has(v) ? `<option value="${esc(v)}" selected>${esc(linkLbl(v))}</option>` : ''}${ords.length ? `<optgroup label="Orders">${ords.map(x => o(x, 'order', ordNo(x) + (x.customer ? ' · ' + x.customer : ''))).join('')}</optgroup>` : ''}${ps.length ? `<optgroup label="Products">${ps.map(x => o(x, 'product', x.name)).join('')}</optgroup>` : ''}${ls.length ? `<optgroup label="Listings">${ls.map(x => o(x, 'listing', x.title)).join('')}</optgroup>` : ''}</select>`);
+}
+const bizSec = d => sec('Business', `<div class="grid2">${catSel(d.cat || '')}${linkSel(d.link || '')}</div>`);
+const mkEntry = b => ({ id: uid('e'), bid: b.id || '', cat: b.cat || '', link: b.link || '', title: b.title, kind: b.kind || 'work', pStart: b.start || '', pEnd: b.end || '', tasks: (b.tasks || []).map(t => ({ t, done: false })), notes: '', status: 'pending', accMs: 0, startMs: null, endMs: null, lastStart: null });
 const el = (e, now) => e.accMs + (e.status === 'active' ? now - e.lastStart : 0);
 const runOf = date => T().runs[date];
 const running = () => { const t = T(), r = t.day && t.runs[t.day]; return r && !r.endedMs ? r : null; };
@@ -6446,6 +6449,26 @@ function nextPending(run, nonBreak) {
 }
 const workedMs = (run, now) => run.entries.filter(e => e.kind !== 'break').reduce((s, e) => s + el(e, now), 0);
 const breakMs = (run, now) => run.entries.filter(e => e.kind === 'break').reduce((s, e) => s + el(e, now), 0);
+/* ---------- today's real work from Plan ---------- */
+const SHIPPABLE = ['Order Received', 'In Preparation', 'Packaged'];
+const hhmm = m => String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+function realWork(date) {
+  const S = G.state, out = [];
+  (S.tasks || []).forEach(t => { if (!t.done && t.due && t.due <= date) out.push({ key: 'task:' + t.id, title: t.title, kind: 'work', tag: t.due < date ? 'Task · overdue' : 'Task', prio: t.priority || '' }); });
+  (S.events || []).forEach(ev => { if (ev.date !== date) return; const st = ev.time ? toMin(ev.time) : null, du = +ev.dur || +ev.mt || 60;
+    out.push({ key: 'event:' + ev.id, title: ev.title, kind: /meeting/i.test(ev.kind || '') ? 'meeting' : 'work', start: ev.time ? ev.time : '', end: st != null ? hhmm(Math.min(st + du, 1439)) : '', tag: 'Calendar' + (ev.kind ? ' · ' + ev.kind : ''), notes: ev.notes || '' }); });
+  (S.orders || []).forEach(o => { if (SHIPPABLE.includes(o.status) && o.shipBy && o.shipBy <= date) out.push({ key: 'order:' + o.id, title: 'Ship ' + 'ORD-' + String(o.no || 0).padStart(3, '0') + (o.customer ? ' · ' + o.customer : ''), kind: 'work', tag: o.shipBy < date ? 'Order · late' : 'Order to ship', cat: 'Shipping', link: 'order:' + o.id, tasks: ['Pack order', 'Print label', 'Hand to ' + (o.carrier || 'carrier')] }); });
+  return out;
+}
+const mkWork = w => { const e = mkEntry({ title: w.title, kind: w.kind, start: w.start, end: w.end, tasks: w.tasks, cat: w.cat, link: w.link }); e.src = w.key; e.tag = w.tag; e.notes = w.notes || ''; return e; };
+function syncWork(run) {
+  const have = new Set(run.entries.map(e => e.src).filter(Boolean)), add = realWork(run.date).filter(w => !have.has(w.key));
+  add.forEach(w => run.entries.push(mkWork(w))); run.entries.sort((a, c) => entKey(a) - entKey(c)); return add.length;
+}
+function doneSrc(e) {
+  if (!e.src) return; const [k, id] = e.src.split(':'); if (k !== 'task') return;
+  const t = (G.state.tasks || []).find(x => x.id === id); if (t && !t.done) { try { G.ACT['toggle-task']({ dataset: { id } }); } catch (x) { t.done = true; } }
+}
 const entKey = e => e.startMs ? new Date(e.startMs).getHours() * 60 + new Date(e.startMs).getMinutes() : toMin(e.pStart || '23:59');
 
 function pauseActive(run, now) { run.entries.forEach(e => { if (e.status === 'active') { e.accMs += now - e.lastStart; e.lastStart = null; e.status = 'paused'; } }); }
@@ -6466,16 +6489,19 @@ function advance(run) {
 function startDay(noAuto) {
   const t = T(), date = today(); if (t.day && t.day !== date && t.runs[t.day]) endDay(t.day, true);
   let run = t.runs[date];
-  if (!run) { run = { date, startedMs: Date.now(), endedMs: null, entries: schedFor(date).map(mkEntry) }; t.runs[date] = run; }
-  else { run.endedMs = null; removeShift(date); }
+  if (!run) { run = { date, startedMs: Date.now(), endedMs: null, entries: schedFor(date).map(mkEntry) }; t.runs[date] = run; syncWork(run); }
+  else { run.endedMs = null; removeShift(date); syncWork(run); }
   t.day = date;
+  if (!noAuto && !run.entries.length) { const w = mkEntry({ title: 'Working', kind: 'work' }); w.adhoc = true; run.entries.push(w); }
   if (!noAuto && !run.entries.some(e => e.status === 'active')) { const pz = lastPaused(run), n = pz >= 0 ? pz : nextPending(run, true); if (n >= 0) startEntry(run, n); }
   sound('start');
 }
 function writeShift(run) {
   const now = Date.now(), w = workedMs(run, now), b = breakMs(run, now), S = G.state; if (!Array.isArray(S.shifts)) S.shifts = [];
   S.shifts = S.shifts.filter(x => x.id !== 'ts_' + run.date);
-  if (w + b > 0) S.shifts.push({ id: 'ts_' + run.date, date: run.date, startMs: run.startedMs, endMs: run.startedMs + w + b, breakMs: b, note: 'Timesheet · ' + run.entries.filter(e => e.status === 'done').length + ' blocks done' });
+  const ss = run.entries.map(e => e.startMs).filter(Boolean), ee = run.entries.map(e => e.status === 'active' || e.status === 'paused' ? now : e.endMs).filter(Boolean);
+  const st = Math.min(run.startedMs, ...ss), en = Math.max(run.endedMs || now, ...ee, st + w);
+  if (w + b > 0) S.shifts.push({ id: 'ts_' + run.date, date: run.date, startMs: st, endMs: en, breakMs: Math.max(0, en - st - w), note: 'Timesheet · ' + run.entries.filter(e => e.status === 'done').length + ' blocks done' });
 }
 const removeShift = date => { const S = G.state; if (Array.isArray(S.shifts)) S.shifts = S.shifts.filter(x => x.id !== 'ts_' + date); };
 function endDay(date, silent) {
@@ -6497,7 +6523,7 @@ function takeBreak() {
   const si = shownIdx(run), e = mkEntry({ title: 'Break', kind: 'break' }); e.adhoc = true;
   run.entries.splice(si >= 0 ? si + 1 : run.entries.length, 0, e); startEntry(run, run.entries.indexOf(e));
 }
-function commit() { save(); paintBar(true); paintSheet(); tick(); }
+function commit() { const r = running(); if (r) writeShift(r); save(); paintBar(true); paintSheet(); tick(); }
 
 /* ---------- sounds ---------- */
 let AC = null;
@@ -6511,30 +6537,31 @@ function sound(k, force) {
 }
 
 /* ---------- alerts (banner + sound + phone notification while the app is open) ---------- */
-let pend = null, alertT = 0;
-function showAlert(msg, sub, label, act) {
+let pend = null, pend2 = null, alertT = 0;
+function showAlert(msg, sub, label, act, label2) {
   let a = $('#ts-alert'); if (!a) { a = document.createElement('div'); a.id = 'ts-alert'; $('#frame').appendChild(a); }
-  pend = act || null;
-  a.innerHTML = `<div class="ts-al"><span class="ts-al-i">${I('bell', 16)}</span><div class="grow" style="min-width:0"><b>${esc(msg)}</b>${sub ? `<span class="xs sub" style="display:block;margin-top:2px">${esc(sub)}</span>` : ''}</div><button class="icon-btn" style="width:30px;height:30px" data-ts="alert-x" aria-label="Dismiss">${I('x', 14)}</button></div>${label ? `<button class="btn btn-primary btn-sm block ts-btn" style="margin-top:10px" data-ts="alert-go">${esc(label)}</button>` : ''}`;
+  pend = act || null; pend2 = label2 || null;
+  a.innerHTML = `<div class="ts-al"><span class="ts-al-i">${I('bell', 16)}</span><div class="grow" style="min-width:0"><b>${esc(msg)}</b>${sub ? `<span class="xs sub" style="display:block;margin-top:2px">${esc(sub)}</span>` : ''}</div><button class="icon-btn" style="width:30px;height:30px" data-ts="alert-x" aria-label="Dismiss">${I('x', 14)}</button></div>${label ? `<button class="btn btn-primary btn-sm block ts-btn" style="margin-top:10px" data-ts="alert-go">${esc(label)}</button>` : ''}${label2 ? `<button class="btn btn-line btn-sm block ts-btn" style="margin-top:6px" data-ts="alert-go2">${esc(label2)}</button>` : ''}`;
   clearTimeout(alertT); alertT = setTimeout(() => { const x = $('#ts-alert'); if (x) x.remove(); }, 60000);
 }
-function fire(title, body, label, act) {
+function fire(title, body, label, act, label2) {
   sound('alert'); try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) { }
-  showAlert(title, body, label, act);
+  showAlert(title, body, label, act, label2);
   try { const t = T(); if (t.notify && 'Notification' in window && Notification.permission === 'granted' && document.hidden) new Notification(title, { body, tag: 'gbt-ts' }); } catch (e) { }
 }
 function checkAlerts() {
   const t = T(), date = today(); if (!$('#screen-app.on')) return;
   if (t.notified.date !== date) t.notified = { date, k: [] };
   const run = runOf(date), live = running(), seen = k => t.notified.k.includes(k), mark = k => t.notified.k.push(k), nm = nowMin();
+  const freeNow = !!(live && live.entries.some(x => x.status === 'active' && x.free));
   if (!(run && run.endedMs)) for (const b of schedFor(date)) {
-    const ent = run && run.entries.find(e => e.bid === b.id); if (ent && ent.status !== 'pending') continue;
+    const ent = run && run.entries.find(e => e.bid === b.id); if (ent && ent.status !== 'pending') continue; if (freeNow) continue;
     const mins = toMin(b.start) - nm, r = (b.remind === '' || b.remind == null) ? t.remind : +b.remind;
     const act = { a: 'start', bid: b.id }, lab = live ? (b.kind === 'break' ? 'Start break' : 'Start now') : 'Start my day';
     if (r > 0 && mins > 0 && mins <= r && !seen(b.id + 'p')) { mark(b.id + 'p'); return fire(({ work: 'Work', break: 'Break', meeting: 'Meeting' }[b.kind] || 'Work') + ' in ' + Math.ceil(mins) + ' min', b.title + ' at ' + tLab(b.start), lab, act); }
     if (mins <= 0 && mins > -10 && !seen(b.id + 's')) { mark(b.id + 's'); return fire(b.kind === 'break' ? 'Break time' : b.kind === 'meeting' ? 'Meeting time: ' + b.title : 'Time to start: ' + b.title, tLab(b.start) + ' – ' + tLab(b.end), lab, act); }
   }
-  if (live) { const e = live.entries.find(x => x.status === 'active'); if (e && e.pEnd && nm >= toMin(e.pEnd) && !seen(e.id + 'e')) { mark(e.id + 'e'); fire(e.title + ' was planned to end', 'Finish it, or keep going if you are not done.', 'Finish & next', { a: 'finish' }); } }
+  if (live) { const e = live.entries.find(x => x.status === 'active'); const ek = e ? e.id + 'e' + Math.round((e.extraMs || 0) / 60000) : ''; if (e && e.pEnd && !e.free && nm >= toMin(e.pEnd) + (e.extraMs || 0) / 60000 && !seen(ek)) { mark(ek); fire(e.title + ' was planned to end', 'Finish it, or add more time if you are not done.', 'Finish & next', { a: 'finish' }, 'Add more time'); } }
 }
 
 /* ---------- modals ---------- */
@@ -6548,6 +6575,43 @@ const F = (k, r = $('#ts-modal')) => $(`[data-f="${k}"]`, r);
 const fld = (l, inner) => `<label class="fld"><span>${l}</span>${inner}</label>`;
 const sel = (k, opts, v) => `<select class="select" data-f="${k}">${opts.map(o => `<option value="${esc(o[0])}" ${String(o[0]) === String(v) ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`;
 
+/* ---------- more time on a block / overlap check ---------- */
+const effEnd = e => { const m = Math.min(1439, toMin(e.pEnd) + Math.round((e.extraMs || 0) / 60000)); return pad(Math.floor(m / 60)) + ':' + pad(m % 60); };
+/* only a real overlap counts: 9:30-10:30 then 10:30-10:40 is a hand-off, not a clash */
+function clash(b) {
+  const s = toMin(b.start), e = toMin(b.end);
+  const others = T().blocks.filter(o => o.id !== b.id && !o.off && s < toMin(o.end) && toMin(o.start) < e);
+  if (!others.length) return null;
+  const first = b.rep === 'once' ? b.anchor : today(), n = b.rep === 'once' ? 1 : 120;
+  for (let i = 0; i < n; i++) { const d = addDays(first, i); if (!occurs(b, d)) continue; const o = others.find(x => occurs(x, d)); if (o) return { o, date: d }; }
+  return null;
+}
+function openMore() {
+  const run = running(), i = run ? shownIdx(run) : -1; if (i < 0) return; const e = run.entries[i];
+  modal('Need more time?', `<p class="sm-t sub" style="margin-bottom:14px">Everything you spend on <b>${esc(e.title)}</b> is counted together, so take what you need.</p>
+    <div class="grid2" style="margin-bottom:16px">${[5, 10, 15, 30].map(m => `<button class="btn btn-soft ts-btn" data-ts="addmin" data-m="${m}">${I('plus', 14)}${m} min</button>`).join('')}</div>
+    ${sec('Your own amount', `<div class="row" style="gap:8px"><input class="input" type="number" min="1" max="600" inputmode="numeric" data-f="cm" placeholder="Minutes"><button class="btn btn-primary ts-btn" data-ts="addcustom">Add</button></div>`)}
+    ${sec('No pressure', `<button class="btn btn-line block ts-btn" data-ts="freemode">${I('clock', 15)}${e.free ? 'Still taking my time' : 'Take my time (no limit)'}</button><p class="hint" style="margin-top:8px">Counts up with no deadline so you can see how long it really took. Next-block reminders stay quiet until you finish.${e.free ? ' Pick a time above to set a limit again.' : ''}</p>`)}`,
+    `<button class="btn btn-line" data-ts="mclose">Cancel</button>`, 'Add time, or switch to open-ended');
+}
+function addTime(m) {
+  const run = running(), i = run ? shownIdx(run) : -1; if (i < 0) return; const e = run.entries[i];
+  if (e.pEnd) { const cur = toMin(e.pEnd) + Math.round((e.extraMs || 0) / 60000), base = Math.max(cur, Math.ceil(nowMin())); e.extraMs = (base + m - toMin(e.pEnd)) * 60000; }
+  e.free = false; closeModal(); commit(); toast('Added ' + m + ' min');
+}
+
+/* keep today's running day in step with a block that was just edited, paused or removed (only blocks not started yet change) */
+function syncBlockToDay(b) {
+  const run = running(); if (!run || run.date !== today()) return;
+  const should = !!b && !b.off && occurs(b, run.date);
+  run.entries = run.entries.filter(e => !(e.bid === (b ? b.id : '') && e.status === 'pending' && !should));
+  if (!b) return;
+  const mine = run.entries.filter(e => e.bid === b.id);
+  if (should && !mine.length) run.entries.push(mkEntry(b));
+  mine.forEach(e => { if (e.status !== 'pending') return; Object.assign(e, { title: b.title, kind: b.kind, cat: b.cat || '', link: b.link || '', pStart: b.start, pEnd: b.end }); if (!(e.tasks || []).some(x => x.done)) e.tasks = (b.tasks || []).map(t => ({ t, done: false })); });
+  run.entries.sort((a, c) => entKey(a) - entKey(c));
+}
+
 /* ---------- time block editor ---------- */
 function openBlock(id, pre) {
   const t = T(), b = id ? t.blocks.find(x => x.id === id) : null; pre = pre || {};
@@ -6555,6 +6619,7 @@ function openBlock(id, pre) {
   const kindOpts = sel('remind', [['', 'Default (' + t.remind + ' min)'], ['0', 'No reminder'], ['5', '5 min before'], ['10', '10 min before'], ['15', '15 min before'], ['30', '30 min before']], d.remind == null ? '' : d.remind);
   modal(b ? 'Edit time block' : 'New time block', `
     ${sec('Details', `${fld('Name *', `<input class="input" data-f="title" maxlength="80" value="${esc(d.title)}" placeholder="e.g. Photography, Listing, Research">`)}${fldD('Type', kindSeg(d.kind))}`)}
+    ${bizSec(d)}
     ${sec('Schedule', `<div class="grid2">${fld('Starts', `<input class="input" type="time" data-f="start" value="${esc(d.start)}">`)}${fld('Ends', `<input class="input" type="time" data-f="end" value="${esc(d.end)}">`)}</div>
     ${fld('Repeats', sel('rep', REPS, d.rep))}
     <div id="ts-dowbox" ${/^w/.test(d.rep) ? '' : 'hidden'}><span class="ts-sh" style="margin-bottom:6px">On these days</span><div class="ts-dow">${[1, 2, 3, 4, 5, 6, 0].map(n => `<button type="button" class="chip ${(d.days || []).includes(n) ? 'on' : ''}" data-ts="dow" data-d="${n}">${DN[n]}</button>`).join('')}</div><div class="row" style="gap:14px;margin-bottom:12px"><button type="button" class="link" data-ts="dpreset" data-v="12345">Mon–Fri</button><button type="button" class="link" data-ts="dpreset" data-v="0123456">Every day</button><button type="button" class="link" data-ts="dpreset" data-v="06">Weekends</button></div></div>
@@ -6565,16 +6630,17 @@ function openBlock(id, pre) {
     ${sec('Notes', `${fld('Notes or meeting link', `<input class="input" data-f="notes" maxlength="200" value="${esc(d.notes || '')}">`)}${b ? `<label class="ts-setrow" style="border:0;padding:4px 0"><span>Pause this block<small>Keep it, but skip it for now</small></span><input type="checkbox" class="ts-sw" data-f="off" ${b.off ? 'checked' : ''}></label>` : ''}`)}`,
     `${b ? `<button class="ts-ghost bad" data-ts="blk-del" data-id="${b.id}" aria-label="Delete">${I('trash', 16)}</button><button class="ts-ghost" data-ts="blk-dup" data-id="${b.id}">${I('copy', 15)}Copy</button>` : ''}<button class="btn btn-primary" data-ts="blk-save" data-id="${id || ''}">Save time block</button>`, b ? esc(repSum(b)) : 'Add it to your work schedule');
 }
-function saveBlock(id) {
+async function saveBlock(id) {
   const t = T(), title = F('title').value.trim(); if (!title) return toast('Give it a name');
   const start = F('start').value, end = F('end').value; if (!start || !end) return toast('Set a start and end time');
   if (toMin(end) <= toMin(start)) return toast('End time must be after the start');
   const rep = F('rep').value, days = $$('#ts-dowbox .chip.on').map(c => +c.dataset.d), from = F('from').value || today();
   if (/^w/.test(rep) && !days.length) return toast('Pick at least one day');
   const old = id ? t.blocks.find(x => x.id === id) : null;
-  const b = { id: id || uid('b'), title, kind: F('kind').value, start, end, rep, days: /^w/.test(rep) ? days : [], from, anchor: /^w/.test(rep) ? weekMon(from) : from, remind: F('remind').value, tasks: F('tasks').value.split('\n').map(x => x.trim()).filter(Boolean), notes: F('notes').value.trim(), off: !!(F('off') && F('off').checked) };
+  const b = { id: id || uid('b'), title, kind: F('kind').value, cat: F('cat').value, link: F('link').value, start, end, rep, days: /^w/.test(rep) ? days : [], from, anchor: /^w/.test(rep) ? weekMon(from) : from, remind: F('remind').value, tasks: F('tasks').value.split('\n').map(x => x.trim()).filter(Boolean), notes: F('notes').value.trim(), off: !!(F('off') && F('off').checked) };
+  if (!b.off) { const hit = clash(b); if (hit && !await ask('Heads up, these overlap', `${b.title} (${tLab(start)} to ${tLab(end)}) runs into ${hit.o.title} (${tLab(hit.o.start)} to ${tLab(hit.o.end)}) on ${dLab(hit.date)}. One ending exactly when the next starts is fine, but these share real time.`, 'Save anyway')) return; }
   if (old) Object.assign(old, b); else t.blocks.push(b);
-  const run = running(); if (run && run.date === today() && occurs(b, today()) && !run.entries.some(e => e.bid === b.id)) { run.entries.push(mkEntry(b)); run.entries.sort((a, c) => entKey(a) - entKey(c)); }
+  syncBlockToDay(b);
   closeModal(); commit(); toast('Time block saved');
 }
 
@@ -6584,6 +6650,7 @@ function openEntry(date, i) {
   const t = T(), run = t.runs[date]; if (!run) return; const e = i >= 0 ? run.entries[i] : { title: '', kind: 'work', pStart: '', pEnd: '', tasks: [], notes: '', status: 'done', startMs: null, endMs: null };
   modal(i >= 0 ? 'Edit block' : 'Add a block', `
     ${sec('Details', `${fld('Name', `<input class="input" data-f="title" maxlength="80" value="${esc(e.title)}">`)}${fldD('Type', kindSeg(e.kind))}${fld('Status', sel('status', [['pending', 'Not done yet'], ['active', 'Running now'], ['paused', 'Paused'], ['done', 'Done'], ['skipped', 'Skipped']].filter(o => i >= 0 || ['done', 'skipped', 'pending'].includes(o[0])), e.status))}`)}
+    ${bizSec(e)}
     ${sec('Actual time', `<div class="grid2">${fld('Started', `<input class="input" type="time" data-f="s" value="${e.startMs ? msHM(e.startMs) : ''}">`)}${fld('Finished', `<input class="input" type="time" data-f="e" value="${e.endMs ? msHM(e.endMs) : ''}">`)}</div><p class="hint" style="margin-top:-6px">Planned: ${e.pStart ? tLab(e.pStart) + ' – ' + tLab(e.pEnd) : 'not scheduled'}. Correct the real times here if you forgot to clock in or out.</p>`)}
     ${sec('Steps', `<div id="ts-trows">${(e.tasks || []).map(trow).join('')}</div><button type="button" class="ts-add" data-ts="trow-add">${I('plus', 14)}Add a step</button>`)}
     ${sec('Notes', `<textarea class="textarea" data-f="notes" style="min-height:70px">${esc(e.notes || '')}</textarea>`)}`,
@@ -6592,6 +6659,7 @@ function openEntry(date, i) {
 function saveEntry(date, i) {
   const run = T().runs[date]; if (!run) return; const title = F('title').value.trim(); if (!title) return toast('Give it a name');
   const status = F('status').value, sv = F('s').value, ev = F('e').value, at = v => v ? new Date(date + 'T' + v).getTime() : null;
+  if (run.endedMs && (status === 'active' || status === 'paused')) return toast('This day has ended. Tap Continue first, or pick Done.');
   let sm = at(sv), em = at(ev); if (status === 'done' && (!sm || !em)) return toast('Set when you started and finished');
   if (sm && em && em <= sm) return toast('Finish must be after start');
   const tasks = $$('[data-tr]').map(r => ({ t: $('[data-tt]', r).value.trim(), done: $('[data-tc]', r).checked })).filter(x => x.t);
@@ -6599,23 +6667,24 @@ function saveEntry(date, i) {
   if (status === 'active' && !run.endedMs) pauseActive(run, now);
   if (old && old.status === 'active' && status !== 'active') { old.accMs += now - old.lastStart; old.lastStart = null; }
   const oldStart = e.startMs;
-  Object.assign(e, { title, kind: F('kind').value, status, tasks: tasks.map(x => { const p = (e.tasks || []).find(y => y.t === x.t); return { t: x.t, done: x.done, at: x.done ? (p && p.at) || now : 0 }; }), notes: F('notes').value.trim(), startMs: sm, endMs: status === 'done' || status === 'skipped' ? em : null });
+  Object.assign(e, { title, kind: F('kind').value, cat: F('cat').value, link: F('link').value, status, tasks: tasks.map(x => { const p = (e.tasks || []).find(y => y.t === x.t); return { t: x.t, done: x.done, at: x.done ? (p && p.at) || now : 0 }; }), notes: F('notes').value.trim(), startMs: sm, endMs: status === 'done' || status === 'skipped' ? em : null });
   if (status === 'done' && sm && em) e.accMs = em - sm;
+  if (status === 'pending') { e.accMs = 0; e.lastStart = null; }
   if ((status === 'active' || status === 'paused') && sm && oldStart && sm !== oldStart) e.accMs = Math.max(0, e.accMs + (oldStart - sm));
   if (status === 'active') { if (!e.startMs) e.startMs = now; e.lastStart = now; }
   if (!old) run.entries.push(e); run.entries.sort((a, c) => entKey(a) - entKey(c));
-  if (run.date === today() && status !== 'active' && run.endedMs) writeShift(run);
+  if (run.endedMs) writeShift(run);
   closeModal(); commit(); toast('Saved');
 }
 
 /* ---------- start something that is not on the schedule ---------- */
 function openAdhoc() {
-  modal('Start a task', `${fld('What are you working on? *', `<input class="input" data-f="title" maxlength="80" placeholder="e.g. Packing orders">`)}${fldD('Type', kindSeg('work'))}${sec('Checklist (optional)', `<textarea class="textarea" data-f="tasks" style="min-height:80px" placeholder="One step per line"></textarea>`)}`, `<button class="btn btn-primary ts-btn" data-ts="adhoc-go">${I('play', 14)}Start timer</button>`, 'Track something that is not on your schedule');
+  modal('Start a task', `${fld('What are you working on? *', `<input class="input" data-f="title" maxlength="80" placeholder="e.g. Packing orders">`)}${fldD('Type', kindSeg('work'))}${bizSec({})}${sec('Checklist (optional)', `<textarea class="textarea" data-f="tasks" style="min-height:80px" placeholder="One step per line"></textarea>`)}`, `<button class="btn btn-primary ts-btn" data-ts="adhoc-go">${I('play', 14)}Start timer</button>`, 'Track something that is not on your schedule');
 }
 function adhocGo() {
   const title = F('title').value.trim(); if (!title) return toast('Say what you are doing');
   if (!running()) startDay(true); const run = running(), si = shownIdx(run);
-  const e = mkEntry({ title, kind: F('kind').value, tasks: F('tasks').value.split('\n').map(x => x.trim()).filter(Boolean) }); e.adhoc = true;
+  const e = mkEntry({ title, kind: F('kind').value, cat: F('cat').value, link: F('link').value, tasks: F('tasks').value.split('\n').map(x => x.trim()).filter(Boolean) }); e.adhoc = true;
   run.entries.splice(si >= 0 ? si + 1 : run.entries.length, 0, e); startEntry(run, run.entries.indexOf(e)); closeModal(); commit();
 }
 
@@ -6628,19 +6697,19 @@ function barHtml(run) {
   if (t.collapsed) return `<div class="row" style="gap:10px"><div class="grow" style="min-width:0"><div class="ts-stat"><i class="ts-dot ${e && e.status === 'active' ? 'live' : ''}"></i>${e ? kLab(e) : 'Day running'}</div><b class="trunc" style="display:block;font-size:14px;margin-top:2px">${e ? esc(e.title) : 'No block running'}</b></div>${e ? `<b class="ts-mini" data-tsel="cur">${fdur(el(e, now))}</b>` : ''}${e && e.status === 'active' ? `<button class="btn btn-primary btn-sm ts-btn" data-ts="finish">${I('check', 14)}Finish</button>` : e ? `<button class="btn btn-primary btn-sm ts-btn" data-ts="resume">${I('play', 12)}Resume</button>` : nx ? `<button class="btn btn-primary btn-sm ts-btn" data-ts="start-next">${I('play', 12)}Start</button>` : ''}<button class="icon-btn" data-ts="collapse" aria-label="Expand">${I('chevU', 16)}</button></div>`;
   let top;
   if (e) {
-    const isB = e.kind === 'break', tk = e.tasks || [], dn = tk.filter(x => x.done).length, pm = e.pStart && e.pEnd ? (toMin(e.pEnd) - toMin(e.pStart)) * 60000 : 0;
+    const isB = e.kind === 'break', tk = e.tasks || [], dn = tk.filter(x => x.done).length, pm = e.free ? 0 : e.pStart && e.pEnd ? (toMin(e.pEnd) - toMin(e.pStart)) * 60000 + (e.extraMs || 0) : 0;
     const tasks = tk.map((x, i) => `<label class="ts-task ${x.done ? 'done' : ''}"><span class="ts-cb"><input type="checkbox" data-tsf="task" data-i="${i}" ${x.done ? 'checked' : ''}><i>${I('check', 13)}</i></span><span class="tt">${esc(x.t)}</span></label>`).join('');
     top = `<div class="row between" style="gap:8px"><div class="ts-stat"><i class="ts-dot ${e.status === 'active' ? 'live' : ''}"></i>${kLab(e)}</div><button class="icon-btn" style="width:30px;height:30px" data-ts="collapse" aria-label="Collapse">${I('chevD', 16)}</button></div>
       <b class="trunc" style="display:block;font-size:15px;margin-top:4px">${esc(e.title)}</b>
       <div class="ts-big" data-tsel="cur">${fdur(el(e, now))}</div>
       ${pm ? `<div class="ts-prog"><i data-tsel="pct" style="width:${Math.min(100, el(e, now) / pm * 100)}%"></i></div>` : ''}
-      <div class="ts-meta"><span>${e.pStart ? tLab(e.pStart) + ' – ' + tLab(e.pEnd) + ' · <b data-tsel="left"></b>' : 'Unscheduled'}</span><span>Day <b data-tsel="day"></b></span></div>
+      <div class="ts-meta"><span>${e.free ? 'No time limit · counting up' : e.pStart ? tLab(e.pStart) + ' – ' + tLab(effEnd(e)) + (e.extraMs ? ' (+' + Math.round(e.extraMs / 60000) + 'm)' : '') + ' · <b data-tsel="left"></b>' : 'Unscheduled'}</span><span>Day <b data-tsel="day"></b></span></div>
       <div class="tsb">${tk.length ? `<div class="ts-sh" style="margin:12px 0 8px">Steps<span>${dn} of ${tk.length} complete</span></div>${tasks}` : ''}${isB ? '' : `<div class="ts-addstep" ${tk.length ? '' : 'style="margin-top:12px"'}><input class="input sm" data-tsin placeholder="Add a step" maxlength="100"><button class="btn btn-soft btn-sm ts-btn" data-ts="task-add" aria-label="Add step">${I('plus', 14)}Add</button></div>`}${next}</div>
       <div class="ts-act">${e.status === 'active' ? `<button class="btn btn-primary grow ts-btn" data-ts="finish">${I('check', 16)}${isB ? 'End break' : 'Finish &amp; next'}</button><button class="btn btn-line ts-btn" data-ts="pause">${I('pause', 15)}Pause</button>${isB ? '' : `<button class="btn btn-line ts-btn" data-ts="break">${I('cup', 15)}Break</button>`}` : `<button class="btn btn-primary grow ts-btn" data-ts="resume">${I('play', 14)}Resume</button><button class="btn btn-line ts-btn" data-ts="finish">${I('check', 15)}Finish</button>`}</div>`;
   } else {
     top = `<div class="row between"><div class="ts-stat"><i class="ts-dot live"></i>Day running</div><button class="icon-btn" style="width:30px;height:30px" data-ts="collapse" aria-label="Collapse">${I('chevD', 16)}</button></div><b style="display:block;font-size:15px;margin-top:4px">${nx ? 'No block running' : 'All blocks complete'}</b><div class="ts-meta"><span>${nx ? 'Choose what to work on next' : 'Add another block or end your day'}</span><span>Day <b data-tsel="day"></b></span></div>${next}<div class="ts-act">${nx ? `<button class="btn btn-primary grow ts-btn" data-ts="start-next">${I('play', 14)}Start ${esc(nx.title.length > 16 ? nx.title.slice(0, 15) + '…' : nx.title)}</button>` : ''}<button class="btn btn-line ts-btn ${nx ? '' : 'grow'}" data-ts="adhoc">Other task</button></div>`;
   }
-  return top + `<div class="ts-links"><button class="link" data-ts="skip">${I('skip', 13)}Skip</button>${e ? `<button class="link" data-ts="ent-edit-cur">${I('clock', 13)}Edit times</button>` : ''}<button class="link" data-ts="snd">${I(t.sound ? 'bell' : 'bellOff', 13)}Sound ${t.sound ? 'on' : 'off'}</button><button class="link bad" data-ts="endday">${I('stop', 13)}End day</button></div>`;
+  return top + `<div class="ts-links">${e && e.pEnd ? `<button class="link" data-ts="more" style="color:var(--p);font-weight:700">${I('plus', 13)}${e.free ? 'Set a limit' : 'Add time'}</button>` : ''}<button class="link" data-ts="skip">${I('skip', 13)}Skip</button>${e ? `<button class="link" data-ts="ent-edit-cur">${I('clock', 13)}Edit times</button>` : ''}<button class="link" data-ts="snd">${I(t.sound ? 'bell' : 'bellOff', 13)}Sound ${t.sound ? 'on' : 'off'}</button><button class="link bad" data-ts="endday">${I('stop', 13)}End day</button></div>`;
 }
 function paintBar(force) {
   const t = T(), run = running(), vis = !!run && !!$('#screen-app.on'); let bar = $('#ts-bar');
@@ -6652,6 +6721,144 @@ function paintBar(force) {
 }
 function setPad(px) { if (px === padNow) return; padNow = px; const s = $('#scroll'); if (s) s.style.paddingBottom = px ? px + 'px' : ''; }
 
+/* ---------- one time system: totals, hand-made entries, and carrying over an old clock-in ---------- */
+const sMs = x => Math.max(0, x.endMs - x.startMs - (+x.breakMs || 0));
+function totals(now) {
+  const S = G.state, td = today(), ws = S.settings && S.settings.weekStart === 'sun' ? 0 : 1, w0 = addDays(td, -((dparse(td).getDay() - ws + 7) % 7)), w1 = addDays(w0, 6), m0 = td.slice(0, 8) + '01', m1 = td.slice(0, 8) + '31';
+  const r = { today: 0, week: 0, month: 0 }, add = (d, ms) => { if (d === td) r.today += ms; if (d >= w0 && d <= w1) r.week += ms; if (d >= m0 && d <= m1) r.month += ms; };
+  const live = running();
+  (S.shifts || []).forEach(x => { if (live && x.id === 'ts_' + live.date) return; add(x.date, sMs(x)); });
+  if (live) add(live.date, workedMs(live, now));
+  return r;
+}
+function totalsCard() {
+  const r = totals(Date.now());
+  return `<div class="grid3">${[['today', 'Today'], ['week', 'This week'], ['month', 'This month']].map(x => `<div class="tile"><b class="num" data-tsel="tot:${x[0]}">${fhm(r[x[0]])}</b><span>${x[1]}</span></div>`).join('')}</div>`;
+}
+/* ---------- week / month report and export ---------- */
+const RP = { k: 'week', off: 0 };
+const sLab = k => dparse(k).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+function dayInfo(date, now) {
+  const run = T().runs[date], man = (G.state.shifts || []).filter(x => x.date === date && !(run && x.id === 'ts_' + date)), entries = run ? run.entries.filter(e => el(e, now) > 0 || e.status === 'done') : [];
+  let worked = run ? workedMs(run, now) : 0; const brk = (run ? breakMs(run, now) : 0) + man.reduce((a, x) => a + (+x.breakMs || 0), 0);
+  man.forEach(x => { worked += sMs(x); });
+  let plan = 0, planAct = 0; if (run) run.entries.forEach(e => { if (e.kind !== 'break' && e.pStart && e.pEnd && toMin(e.pEnd) > toMin(e.pStart)) { plan += (toMin(e.pEnd) - toMin(e.pStart)) * 60000 + (e.extraMs || 0); planAct += el(e, now); } });
+  return { date, run, entries, man, worked, brk, plan, planAct };
+}
+function mkP(from, to, label, kind) {
+  const now = Date.now(), days = []; for (let d = from; d <= to; d = addDays(d, 1)) days.push(dayInfo(d, now));
+  const P = { kind, label, from, to, days, worked: 0, brk: 0, daysWorked: 0, done: 0, total: 0, plan: 0, planAct: 0, cats: {}, links: {} };
+  days.forEach(d => { P.worked += d.worked; P.brk += d.brk; if (d.worked > 0) P.daysWorked++; P.plan += d.plan; P.planAct += d.planAct; d.entries.forEach(e => { if (e.kind === 'break') return; const ms = el(e, now); if (!(ms > 0)) return; const c = e.cat || 'Uncategorised'; P.cats[c] = (P.cats[c] || 0) + ms; if (e.link) P.links[e.link] = (P.links[e.link] || 0) + ms; }); if (d.run) d.run.entries.filter(e => e.kind !== 'break').forEach(e => { P.total++; if (e.status === 'done') P.done++; }); });
+  return P;
+}
+function curP() {
+  const td = today(), S = G.state;
+  if (RP.k === 'month') { const b = dparse(td), d = new Date(b.getFullYear(), b.getMonth() + RP.off, 1); return mkP(dkey(d), dkey(new Date(d.getFullYear(), d.getMonth() + 1, 0)), d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }), 'month'); }
+  const ws = S.settings && S.settings.weekStart === 'sun' ? 0 : 1, w0 = addDays(td, RP.off * 7 - ((dparse(td).getDay() - ws + 7) % 7)), w1 = addDays(w0, 6);
+  return mkP(w0, w1, sLab(w0) + ' – ' + sLab(w1), 'week');
+}
+function reportCard() {
+  const P = curP(), td = today(), max = Math.max(1, ...P.days.map(d => d.worked));
+  const rows = P.days.filter(d => P.kind === 'week' || d.worked > 0 || d.brk > 0).map(d => { const tag = d.run ? 'button' : 'div'; return `<${tag} class="ts-rep-row ${d.date === td ? 'now' : ''}" ${d.run ? `data-ts="day" data-d="${d.date}"` : ''}><span class="ts-rd">${dLab(d.date)}</span><span class="ts-rb"><i style="width:${d.worked / max * 100}%"></i></span><b>${d.worked ? fhm(d.worked) : '—'}</b></${tag}>`; }).join('');
+  const mx = Math.max(1, ...P.days.map(d => Math.max(d.worked, d.plan)));
+  const rows2 = P.days.filter(d => P.kind === 'week' || d.worked > 0 || d.plan > 0).map(d => { const tag = d.run ? 'button' : 'div'; return `<${tag} class="ts-rep-row ${d.date === td ? 'now' : ''}" ${d.run ? `data-ts="day" data-d="${d.date}"` : ''}><span class="ts-rd">${dLab(d.date)}</span><span class="ts-rb" style="position:relative"><i style="width:${d.worked / mx * 100}%"></i>${d.plan ? `<u title="Planned" style="position:absolute;top:-2px;bottom:-2px;width:2px;background:currentColor;opacity:.55;left:${Math.min(100, d.plan / mx * 100)}%"></u>` : ''}</span><b>${d.worked ? fhm(d.worked) : '—'}${d.plan ? `<small style="display:block;font-weight:400;opacity:.7">plan ${fhm(d.plan)}</small>` : ''}</b></${tag}>`; }).join('');
+  const cT = Object.entries(P.cats).sort((a, b) => b[1] - a[1]), cTot = cT.reduce((a, x) => a + x[1], 0) || 1, cMax = cT.length ? cT[0][1] : 1;
+  const catHtml = cT.length ? `<div><div class="ts-sh" style="margin:6px 0">By category</div>${cT.map(x => `<div class="ts-rep-row"><span class="ts-rd">${esc(x[0])}</span><span class="ts-rb"><i style="width:${x[1] / cMax * 100}%"></i></span><b>${fhm(x[1])}<small style="display:block;font-weight:400;opacity:.7">${Math.round(x[1] / cTot * 100)}%</small></b></div>`).join('')}</div>` : '';
+  const lT = Object.entries(P.links).sort((a, b) => b[1] - a[1]).slice(0, 10), lMax = lT.length ? lT[0][1] : 1;
+  const linkHtml = lT.length ? `<div><div class="ts-sh" style="margin:6px 0">Time per order, product and listing</div>${lT.map(x => `<button class="ts-rep-row" data-ts="open-src" data-src="${esc(x[0])}"><span class="ts-rd trunc" style="width:auto;flex:1.4">${esc(linkLbl(x[0]))}</span><span class="ts-rb"><i style="width:${x[1] / lMax * 100}%"></i></span><b>${fhm(x[1])}</b></button>`).join('')}</div>` : '';
+  const pvHtml = P.plan ? `<div class="ts-stats"><div><b>${fhm(P.plan)}</b><span>Planned</span></div><div><b>${fhm(P.planAct)}</b><span>Actual (scheduled)</span></div><div><b>${(P.planAct >= P.plan ? '+' : '−') + fhm(Math.abs(P.planAct - P.plan))}</b><span>${P.planAct >= P.plan ? 'Over plan' : 'Under plan'}</span></div></div>` : '';
+  return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Report</span><h3>Hours worked</h3></div><div class="row" style="gap:6px">${[['week', 'Week'], ['month', 'Month']].map(k => `<button class="chip ${RP.k === k[0] ? 'on' : ''}" data-ts="rk" data-v="${k[0]}">${k[1]}</button>`).join('')}</div></div>
+    <div class="ts-wk"><button class="icon-btn" data-ts="rn" data-d="-1" aria-label="Previous">${I('chevL', 16)}</button><b>${esc(P.label)}${RP.off === 0 ? ' · now' : ''}</b><button class="icon-btn" data-ts="rn" data-d="1" aria-label="Next">${I('chevR', 16)}</button></div>
+    <div class="ts-stats"><div><b>${fhm(P.worked)}</b><span>Worked</span></div><div><b>${P.daysWorked}</b><span>Days worked</span></div><div><b>${P.daysWorked ? fhm(P.worked / P.daysWorked) : '0m'}</b><span>Avg / day</span></div></div>
+    <p class="hint" style="margin:0">${P.brk ? 'Breaks ' + fhm(P.brk) : 'No breaks logged'}${P.total ? ' · ' + P.done + ' of ' + P.total + ' blocks done' : ''}${P.worked >= 36e4 ? ' · ' + mny(G.summary([P.from, P.to]).profit / (P.worked / 36e5)) + ' profit/hour' : ''}</p>
+    ${pvHtml}
+    ${rows2 ? `<div>${rows2}</div>` : '<p class="ts-empty">No time tracked in this period.</p>'}
+    ${catHtml}${linkHtml}
+    <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow ts-btn" data-ts="rcopy">${I('copy', 14)}Copy text</button><button class="btn btn-soft btn-sm grow ts-btn" data-ts="rcsv">${I('chevD', 14)}Download CSV</button></div></div>`;
+}
+function expText(P) {
+  const now = Date.now(), kl = e => KINDS.find(k => k[0] === e.kind)[1], L = ['Timesheet · ' + P.label, `Worked ${fhm(P.worked)} · ${P.daysWorked} day${P.daysWorked === 1 ? '' : 's'} worked${P.daysWorked ? ' · avg ' + fhm(P.worked / P.daysWorked) + ' a day' : ''}${P.brk ? ' · breaks ' + fhm(P.brk) : ''}`, ''];
+  P.days.filter(d => d.worked || d.brk || d.entries.length || d.man.length).forEach(d => {
+    L.push(`${dLab(d.date)} · ${fhm(d.worked)} worked${d.brk ? ' · ' + fhm(d.brk) + ' break' : ''}`);
+    d.entries.forEach(e => { const tk = e.tasks || []; L.push(`  ${e.startMs ? msLab(e.startMs) + (e.endMs ? ' – ' + msLab(e.endMs) : ' – now') + '  ' : ''}${e.title} (${kl(e)}${e.cat ? ', ' + e.cat : ''}${e.link ? ', ' + linkLbl(e.link) : ''}) · ${fhm(el(e, now))}${tk.length ? ' · ' + tk.filter(x => x.done).length + '/' + tk.length + ' steps' : ''}${e.notes ? ' · ' + e.notes : ''}`); });
+    d.man.forEach(x => L.push(`  ${msLab(x.startMs)} – ${msLab(x.endMs)}  Added by hand · ${fhm(sMs(x))}${x.note ? ' · ' + x.note : ''}`));
+    L.push('');
+  });
+  return L.join('\n').trim();
+}
+const csvCell = v => { let c = String(v ?? ''); if (typeof v === 'string' && /^[=+\-@\t\r]/.test(c)) c = "'" + c; return /[",\n\r]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; };
+function expCsv(P) {
+  const now = Date.now(), rows = [], h2 = ms => (ms / 36e5).toFixed(2), m2 = ms => Math.round(ms / 60000);
+  P.days.forEach(d => {
+    d.entries.forEach(e => { const tk = e.tasks || [], ms = el(e, now); rows.push([d.date, KINDS.find(k => k[0] === e.kind)[1], e.title, e.startMs ? msHM(e.startMs) : '', e.endMs ? msHM(e.endMs) : '', m2(ms), h2(ms), e.kind === 'break' ? 'No' : 'Yes', tk.filter(x => x.done).length, tk.length, e.notes || '', e.cat || '', linkLbl(e.link)]); });
+    d.man.forEach(x => rows.push([d.date, 'Added by hand', x.note || '', msHM(x.startMs), msHM(x.endMs), m2(sMs(x)), h2(sMs(x)), 'Yes', '', '', '', '', '']));
+    if (d.worked || d.brk) rows.push([d.date, 'Day total', '', '', '', m2(d.worked), h2(d.worked), '', '', '', '', '', '']);
+  });
+  return '\ufeff' + [['Date', 'Type', 'Name', 'Start', 'End', 'Minutes', 'Hours', 'Counts as work', 'Steps done', 'Steps total', 'Notes', 'Category', 'Linked to']].concat(rows).map(r => r.map(csvCell).join(',')).join('\r\n');
+}
+async function copyOut(text, what) {
+  text = String(text || ''); if (!text.trim()) return toast('Nothing to copy yet'); let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { }
+  if (!ok) { try { const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length); ok = document.execCommand('copy'); ta.remove(); } catch (e) { ok = false; } }
+  toast(ok ? what + ' copied. Paste it where you need it' : 'Could not copy. Try Download CSV instead');
+}
+function saveFile(P) {
+  const name = 'timesheet-' + (P.from === P.to ? P.from : P.from + '_to_' + P.to) + '.csv', a = document.createElement('a'), u = URL.createObjectURL(new Blob([expCsv(P)], { type: 'text/csv;charset=utf-8' }));
+  a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000); toast('Downloaded ' + name);
+}
+const dayP = d => mkP(d, d, dLab(d), 'day');
+
+/* ---------- profit per hour + weekly hours goal ---------- */
+function workedIn(a, b, now) {
+  const live = running(); let ms = 0;
+  (G.state.shifts || []).forEach(x => { if (live && x.id === 'ts_' + live.date) return; if (x.date >= a && x.date <= b) ms += sMs(x); });
+  if (live && live.date >= a && live.date <= b) ms += workedMs(live, now);
+  return ms;
+}
+G.hoursIn = (a, b) => workedIn(a, b, Date.now()) / 36e5;
+const mny = n => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: G.state.settings.currency }).format(n); } catch (e) { return (+n).toFixed(2); } };
+function pphIn(k) {
+  const r = G.periodRange(k), ms = workedIn(r[0], r[1], Date.now()), prof = G.summary(r).profit;
+  return `<b class="num">${ms >= 6 * 6e4 ? mny(prof / (ms / 36e5)) + '/h' : '—'}</b><span>${k === 'week' ? 'This week' : 'This month'} · ${mny(prof)} ÷ ${fhm(ms)}</span>`;
+}
+function earnCard() {
+  return `<div class="card stack-sm"><div><span class="eyebrow">Earnings</span><h3 style="font-size:15px;font-weight:700">Profit per hour</h3></div><div class="grid2">${['week', 'month'].map(k => `<div class="tile" data-tsel="pph:${k}">${pphIn(k)}</div>`).join('')}</div><p class="hint" style="margin:0">Net profit divided by the hours you track here. Needs at least 6 minutes tracked.</p></div>`;
+}
+const hoursGoal = () => (G.state.goals || []).find(x => x.metric === 'hours' && x.period === 'week');
+function goalBody() {
+  const g = hoursGoal(); if (!g) return ''; const i = G.goalInfo(g);
+  return `<div class="row between" style="font-size:12.5px;font-weight:600;margin-bottom:6px"><span>${i.f(i.value)} of ${i.f(i.target)}</span><span class="sub">${Math.round(i.ratio * 100)}%</span></div><div class="bar"><i style="width:${Math.min(100, i.ratio * 100)}%"></i></div>`;
+}
+function goalCard() {
+  const g = hoursGoal();
+  const inp = `<div class="row" style="gap:8px"><input class="input" type="number" min="1" max="168" step="0.5" inputmode="decimal" data-f="gh" value="${g ? esc(g.target) : ''}" placeholder="Hours per week, like 30"><button class="btn ${g ? 'btn-soft' : 'btn-primary'} ts-btn" data-ts="goal-set">${g ? 'Update' : 'Set goal'}</button></div>`;
+  if (!g) return `<div class="card stack-sm"><div><span class="eyebrow">Goal</span><h3 style="font-size:15px;font-weight:700">Weekly hours goal</h3></div><p class="sm-t sub" style="margin:0">Pick how many hours you want to work each week. Progress shows here and on Goals.</p>${inp}</div>`;
+  const i = G.goalInfo(g);
+  return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Goal</span><h3 style="font-size:15px;font-weight:700">${esc(g.name)}</h3></div>${pill(i.status, i.tone)}</div><div data-tsel="goal">${goalBody()}</div>${inp}</div>`;
+}
+
+function otherCard() {
+  const list = (G.state.shifts || []).filter(x => !String(x.id).startsWith('ts_')).sort((a, b) => b.startMs - a.startMs).slice(0, 15);
+  return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Added by hand</span><h3>Other time entries</h3></div><button class="btn btn-soft btn-sm ts-btn" data-act="add" data-type="shift">${I('plus', 14)}Add entry</button></div>${list.length ? `<div class="ts-list">${list.map(x => `<button class="ts-item" style="border-left-width:1px" data-act="edit" data-type="shift" data-id="${x.id}"><div class="ts-main"><b>${dLab(x.date)}</b><span class="trunc">${msLab(x.startMs)} – ${msLab(x.endMs)}${x.breakMs ? ' · ' + Math.round(x.breakMs / 60000) + 'm break' : ''}${x.note ? ' · ' + esc(x.note) : ''}</span></div><b class="num" style="font-size:13px">${fhm(sMs(x))}</b>${I('chevR', 16)}</button>`).join('')}</div>` : '<p class="ts-empty">Time you add by hand and older clock-ins show here. Days you track with the Timesheet are under Past days.</p>'}</div>`;
+}
+function settleStale() {
+  const t = T(), run = t.day && t.runs[t.day]; if (!run || run.endedMs || run.date >= today()) return;
+  const now = Date.now(), seen = run.lastSeen || dparse(run.date).getTime() + 864e5; if (now - seen < 3 * 36e5) return;
+  run.entries.forEach(e => { if (e.status === 'active') { e.accMs += Math.max(0, seen - e.lastStart); e.lastStart = null; } if (e.status === 'active' || e.status === 'paused') { e.status = 'done'; e.endMs = seen; if (!e.startMs) e.startMs = seen; } });
+  run.endedMs = seen; t.day = null; writeShift(run); save();
+  toast(dLab(run.date) + ' was left running, so it was ended at ' + msLab(seen) + '. Tap that day to fix the times.');
+}
+/* a clock-in started in the old Time tab becomes a running Timesheet day (nothing is lost) */
+function migrateOld() {
+  const S = G.state, a = S && S.activeShift; if (!a) return;
+  const t = T(), now = Date.now(), date = dkey(new Date(a.startMs)), bm = +a.breakMs || 0, onBrk = !!a.breakStart; S.activeShift = null;
+  if (running() || t.runs[date]) { if (!Array.isArray(S.shifts)) S.shifts = []; S.shifts.push({ id: uid('h'), date, startMs: a.startMs, endMs: now, breakMs: bm + (onBrk ? now - a.breakStart : 0), note: '' }); save(); return; }
+  const w = mkEntry({ title: 'Working', kind: 'work' }); w.adhoc = true; w.startMs = a.startMs; w.accMs = Math.max(0, now - a.startMs - bm - (onBrk ? now - a.breakStart : 0));
+  if (onBrk) { w.status = 'paused'; } else { w.status = 'active'; w.lastStart = now; }
+  const es = [w]; if (bm > 0) { const k = mkEntry({ title: 'Break', kind: 'break' }); k.adhoc = true; k.status = 'done'; k.accMs = bm; es.push(k); }
+  t.runs[date] = { date, startedMs: a.startMs, endedMs: null, entries: es }; t.day = date; save();
+}
+
 /* ---------- the Timesheet tab (More > Plan) ---------- */
 let weekOff = 0;
 const entRow = (run, e, i, now) => {
@@ -6659,9 +6866,9 @@ const entRow = (run, e, i, now) => {
   const tk = e.tasks || [], dn = tk.filter(x => x.done).length;
   const t1 = e.pStart ? tLab(e.pStart) : e.startMs ? msLab(e.startMs) : '—', t2 = e.pEnd ? tLab(e.pEnd) : e.endMs ? msLab(e.endMs) : '';
   const real = e.startMs ? 'Actual ' + msLab(e.startMs) + (e.endMs ? ' – ' + msLab(e.endMs) : ' – now') : '';
-  const meta = [KINDS.find(k => k[0] === e.kind)[1], real, tk.length ? dn + '/' + tk.length + ' steps' : ''].filter(Boolean).join(' · ');
+  const meta = [KINDS.find(k => k[0] === e.kind)[1], real, e.extraMs ? '+' + Math.round(e.extraMs / 60000) + 'm added' : '', e.free ? 'no time limit' : '', tk.length ? dn + '/' + tk.length + ' steps' : '', e.cat || '', linkLbl(e.link), e.tag || ''].filter(Boolean).join(' · ');
   const st = act ? pill(e.status === 'paused' ? 'Paused' : 'In progress', e.status === 'paused' ? 'warn' : 'brand') : e.status === 'done' ? pill('Done', 'ok') : e.status === 'skipped' ? pill('Skipped') : miss ? pill('Missed', 'bad') : '';
-  return `<div class="ts-item k-${e.kind} ${act ? 'now' : ''} ${miss ? 'miss' : ''}"><div class="ts-time"><b>${t1}</b><span>${t2}</span></div><button class="ts-main" data-ts="ent-edit" data-d="${run.date}" data-i="${i}"><b class="trunc">${esc(e.title)}</b><span class="trunc">${esc(meta)}</span></button><div class="ts-end">${st}${e.startMs || el(e, now) ? `<span class="b num" ${e.status === 'active' ? `data-tsel="e:${e.id}"` : ''}>${fhm(el(e, now))}</span>` : ''}${e.status === 'pending' && running() && run.date === today() ? `<button class="link" data-ts="ent-start" data-i="${i}">Start</button>` : ''}</div></div>`;
+  return `<div class="ts-item k-${e.kind} ${act ? 'now' : ''} ${miss ? 'miss' : ''}"><div class="ts-time"><b>${t1}</b><span>${t2}</span></div><button class="ts-main" data-ts="ent-edit" data-d="${run.date}" data-i="${i}"><b class="trunc">${esc(e.title)}</b><span class="trunc">${esc(meta)}</span></button><div class="ts-end">${st}${e.startMs || el(e, now) ? `<span class="b num" ${e.status === 'active' ? `data-tsel="e:${e.id}"` : ''}>${fhm(el(e, now))}</span>` : ''}${e.src ? `<button class="link" data-ts="open-src" data-src="${esc(e.src)}">Open</button>` : ''}${e.status === 'pending' && running() && run.date === today() ? `<button class="link" data-ts="ent-start" data-i="${i}">Start</button>` : ''}</div></div>`;
 };
 function statsHtml(run, now, live) {
   return `<div class="ts-stats"><div><b ${live ? 'data-tsel="day"' : ''}>${fhm(workedMs(run, now))}</b><span>Worked</span></div><div><b>${run.entries.filter(e => e.status === 'done').length}/${run.entries.length}</b><span>Blocks done</span></div><div><b>${fhm(breakMs(run, now))}</b><span>Breaks</span></div></div>`;
@@ -6670,11 +6877,13 @@ function todayCard() {
   const t = T(), date = today(), run = t.runs[date], now = Date.now(), live = running();
   if (live && live.date !== date) return `<div class="card"><p class="sm-t">A day from <b>${dLab(live.date)}</b> is still running.</p><div class="row" style="gap:8px;margin-top:12px"><button class="btn btn-primary btn-sm grow" data-ts="startday">End it &amp; start today</button><button class="btn btn-line btn-sm" data-ts="endday">End it</button></div></div>`;
   if (live) {
-    return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Today</span><h3>Running since ${msLab(live.startedMs)}</h3></div>${pill('Live', 'ok')}</div>${statsHtml(live, now, true)}<div class="ts-list">${live.entries.map((e, i) => entRow(live, e, i, now)).join('')}</div><div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow ts-btn" data-ts="ent-new" data-d="${date}">${I('plus', 14)}Add block</button><button class="btn btn-soft btn-sm grow ts-btn" data-ts="adhoc">${I('play', 12)}Start task</button></div><button class="btn btn-danger btn-sm block ts-btn" data-ts="endday">${I('stop', 13)}End day</button></div>`;
+    return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Today</span><h3>Running since ${msLab(live.startedMs)}</h3></div>${pill('Live', 'ok')}</div>${statsHtml(live, now, true)}<div class="ts-list">${live.entries.map((e, i) => entRow(live, e, i, now)).join('')}</div>${(() => { const n = realWork(date).filter(w => !live.entries.some(e => e.src === w.key)).length; return n ? `<button class="btn btn-line btn-sm block ts-btn" data-ts="sync">${I('plus', 14)}Add ${n} new from Plan</button>` : ''; })()}<div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow ts-btn" data-ts="ent-new" data-d="${date}">${I('plus', 14)}Add block</button><button class="btn btn-soft btn-sm grow ts-btn" data-ts="adhoc">${I('play', 12)}Start task</button></div><button class="btn btn-danger btn-sm block ts-btn" data-ts="endday">${I('stop', 13)}End day</button></div>`;
   }
   if (run && run.endedMs) return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Today</span><h3>Ended ${msLab(run.endedMs)}</h3></div>${pill('Complete')}</div>${statsHtml(run, now, false)}<div class="ts-list">${run.entries.map((e, i) => entRow(run, e, i, now)).join('')}</div><button class="btn btn-line block ts-btn" data-ts="startday">${I('rotate', 15)}Continue my day</button></div>`;
-  const sc = schedFor(date);
-  return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Today</span><h3>${dLab(date)}</h3></div>${pill(sc.length + (sc.length === 1 ? ' block' : ' blocks'))}</div>${sc.length ? `<div class="ts-list">${sc.map(b => `<button class="ts-item k-${b.kind}" data-ts="blk" data-id="${b.id}"><div class="ts-time"><b>${tLab(b.start)}</b><span>${tLab(b.end)}</span></div><div class="ts-main"><b class="trunc">${esc(b.title)}</b><span class="trunc">${KINDS.find(k => k[0] === b.kind)[1]}${(b.tasks || []).length ? ' · ' + b.tasks.length + ' steps' : ''}</span></div>${I('chevR', 16)}</button>`).join('')}</div>` : '<p class="ts-empty">Nothing is scheduled for today. You can still start a day and add tasks as you go.</p>'}<button class="btn btn-primary block ts-btn" style="padding:14px" data-ts="startday">${I('play', 14)}Start my day</button><button class="btn btn-line btn-sm block" data-ts="adhoc">Start a task not on the schedule</button></div>`;
+  const sc = schedFor(date), rw = realWork(date);
+  const rwHtml = rw.length ? `<div class="ts-list">${rw.map(w => `<div class="ts-item k-${w.kind}"><div class="ts-time"><b>${w.start ? tLab(w.start) : '—'}</b><span>${w.end ? tLab(w.end) : ''}</span></div><div class="ts-main"><b class="trunc">${esc(w.title)}</b><span class="trunc">${esc(w.tag)}</span></div></div>`).join('')}</div>` : '';
+  const tot = sc.length + rw.length;
+  return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Today</span><h3>${dLab(date)}</h3></div>${pill(tot + (tot === 1 ? ' item' : ' items'))}</div>${rwHtml}${sc.length ? `<div class="ts-list">${sc.map(b => `<button class="ts-item k-${b.kind}" data-ts="blk" data-id="${b.id}"><div class="ts-time"><b>${tLab(b.start)}</b><span>${tLab(b.end)}</span></div><div class="ts-main"><b class="trunc">${esc(b.title)}</b><span class="trunc">${KINDS.find(k => k[0] === b.kind)[1]}${(b.tasks || []).length ? ' · ' + b.tasks.length + ' steps' : ''}</span></div>${I('chevR', 16)}</button>`).join('')}</div>` : (rw.length ? '' : '<p class="ts-empty">Nothing is scheduled or due today. Tap Clock in to just track your hours, or add tasks as you go.</p>')}<button class="btn btn-primary block ts-btn" style="padding:14px" data-ts="startday">${I('play', 14)}${tot ? 'Start my day' : 'Clock in'}</button><button class="btn btn-line btn-sm block" data-ts="adhoc">Start a task not on the schedule</button></div>`;
 }
 function weekCard() {
   const t = T(), ws = G.state.settings.weekStart === 'sun' ? 0 : 1, td = today(), s = addDays(td, weekOff * 7 - ((dparse(td).getDay() - ws + 7) % 7));
@@ -6699,31 +6908,35 @@ function setHtml() {
 }
 function paintSheet() {
   const h = $('#ts-host'); if (!h || !h.isConnected) return;
-  h.innerHTML = todayCard() + weekCard() + histCard() + `<div class="card"><span class="eyebrow">Preferences</span><h3 style="font-size:15px;font-weight:700;margin-bottom:4px">Alerts &amp; sounds</h3>${setHtml()}</div>`;
+  h.innerHTML = todayCard() + totalsCard() + goalCard() + earnCard() + reportCard() + weekCard() + histCard() + otherCard() + `<div class="card"><span class="eyebrow">Preferences</span><h3 style="font-size:15px;font-weight:700;margin-bottom:4px">Alerts &amp; sounds</h3>${setHtml()}</div>`;
 }
 
 /* ---------- day detail (past days) ---------- */
 function openDay(date) {
   const run = T().runs[date]; if (!run) return; const now = Date.now(), isT = date === today();
-  modal(dLab(date), `${statsHtml(run, now, false)}<div class="ts-list" style="margin-top:14px">${run.entries.map((e, i) => entRow(run, e, i, now)).join('') || '<p class="ts-empty">Nothing recorded.</p>'}</div>`,
+  modal(dLab(date), `${statsHtml(run, now, false)}<div class="ts-list" style="margin-top:14px">${run.entries.map((e, i) => entRow(run, e, i, now)).join('') || '<p class="ts-empty">Nothing recorded.</p>'}</div><div class="row" style="gap:8px;margin-top:12px"><button class="btn btn-soft btn-sm grow ts-btn" data-ts="dcopy" data-d="${date}">${I('copy', 14)}Copy text</button><button class="btn btn-soft btn-sm grow ts-btn" data-ts="dcsv" data-d="${date}">${I('chevD', 14)}Download CSV</button></div>`,
     `<button class="ts-ghost bad" data-ts="day-del" data-d="${date}" aria-label="Delete day">${I('trash', 16)}</button><button class="ts-ghost" data-ts="ent-new" data-d="${date}">${I('plus', 14)}Add block</button>${isT && run.endedMs ? `<button class="btn btn-primary" data-ts="startday">Continue</button>` : ''}`, 'Day summary');
 }
 
 /* ---------- live updates every second ---------- */
 let tk = 0;
 function tick() {
-  const t = T(), now = Date.now(); tk++; const run = running();
+  const t = T(), now = Date.now(); tk++; settleStale(); const run = running(); if (run) run.lastSeen = now;
   if (t.day && !t.runs[t.day]) t.day = null;
   if (run) { const si = shownIdx(run), e = si >= 0 ? run.entries[si] : null;
     $$('[data-tsel]').forEach(x => { const k = x.dataset.tsel;
       if (k === 'cur' && e) x.textContent = fdur(el(e, now));
       else if (k === 'day') x.textContent = fhm(workedMs(run, now));
-      else if (k === 'left' && e && e.pEnd) { const ms = new Date(run.date + 'T00:00').getTime() + toMin(e.pEnd) * 60000 - now; x.textContent = ms >= 0 ? fhm(ms) + ' left' : fhm(-ms) + ' over'; x.className = ms < 0 ? 'bad-t' : ''; }
-      else if (k === 'pct' && e && e.pStart && e.pEnd) x.style.width = Math.min(100, el(e, now) / ((toMin(e.pEnd) - toMin(e.pStart)) * 60000) * 100) + '%';
+      else if (k === 'left' && e && e.pEnd) { const ms = new Date(run.date + 'T00:00').getTime() + toMin(e.pEnd) * 60000 + (e.extraMs || 0) - now; x.textContent = ms >= 0 ? fhm(ms) + ' left' : fhm(-ms) + ' over'; x.className = ms < 0 ? 'bad-t' : ''; }
+      else if (k === 'pct' && e && e.pStart && e.pEnd) x.style.width = Math.min(100, el(e, now) / ((toMin(e.pEnd) - toMin(e.pStart)) * 60000 + (e.extraMs || 0)) * 100) + '%';
+      else if (k === 'goal') { if (tk % 30 === 0) x.innerHTML = goalBody(); }
+      else if (k.startsWith('pph:')) { if (tk % 30 === 0) x.innerHTML = pphIn(k.slice(4)); }
+      else if (k.startsWith('tot:')) x.textContent = fhm(totals(now)[k.slice(4)]);
       else if (k.startsWith('e:')) { const en = run.entries.find(y => y.id === k.slice(2)); if (en) x.textContent = fhm(el(en, now)); } });
   }
   const bar = $('#ts-bar'), fr = $('#frame'), nav = $('#nav');
   if (bar && fr && nav) { const fb = fr.getBoundingClientRect().bottom, nt = nav.getBoundingClientRect().top, d = $('#gw-dock'); bar.style.bottom = Math.max(0, fb - nt + 6 + (d ? d.offsetHeight + 6 : 0)) + 'px'; setPad(bar.offsetHeight + 12 + (d ? d.offsetHeight + 6 : 0)); }
+  if (run && tk % 60 === 0) { writeShift(run); save(); }
   if (tk % 4 === 0) checkAlerts();
 }
 setInterval(tick, 1000);
@@ -6731,10 +6944,10 @@ setInterval(tick, 1000);
 /* ---------- plug into the page ---------- */
 function inject() {
   const ui = G.ui;
+  try { migrateOld(); settleStale(); const t0 = T(); if (!t0.realTimes) { Object.values(t0.runs).forEach(r => { if (r.endedMs) writeShift(r); }); t0.realTimes = true; save(); } } catch (e) { }
   if (ui.sub === 'plan') {
-    const seg = $('#scroll .seg');
-    if (seg && !$('[data-v=sheet]', seg)) { const b = document.createElement('button'); b.className = ui.seg.plan === 'sheet' ? 'on' : ''; b.dataset.act = 'seg'; b.dataset.k = 'plan'; b.dataset.v = 'sheet'; b.setAttribute('role', 'tab'); b.textContent = 'Timesheet'; seg.appendChild(b); }
-    if (ui.seg.plan === 'sheet') { const host = $('#scroll .page > .stack'); if (host) { host.id = 'ts-host'; paintSheet(); } const ab = $('#hdr .btn-primary'); if (ab) ab.style.display = 'none'; }
+    if (ui.seg.plan === 'sheet') ui.seg.plan = 'time';
+    if (ui.seg.plan === 'time') { const host = $('#scroll .page > .stack'); if (host) { host.id = 'ts-host'; paintSheet(); } const ab = $('#hdr .btn-primary'); if (ab) ab.style.display = 'none'; }
   }
   if ($('[data-act=acc][data-k=data]') && !$('#ts-set')) { const p = $$('.page > p.hint').pop(), d = document.createElement('div'); d.id = 'ts-set'; d.className = 'card'; d.innerHTML = `<h3 style="font-size:14px;font-weight:800;margin-bottom:10px">Timesheet alerts &amp; sounds</h3>${setHtml()}`; if (p) p.parentNode.insertBefore(d, p); }
   paintBar(false); tick();
@@ -6748,8 +6961,18 @@ const H = {
   'alert-x': () => { const a = $('#ts-alert'); if (a) a.remove(); pend = null; },
   'alert-go': () => { const p = pend; pend = null; const a = $('#ts-alert'); if (a) a.remove(); if (!p) return;
     if (p.a === 'start') { startBlockNow(p.bid); commit(); } else if (p.a === 'startday') { startDay(); commit(); } else if (p.a === 'finish') H.finish(); else if (p.a === 'endday') H.endday(); },
+  rk: el => { RP.k = el.dataset.v; RP.off = 0; paintSheet(); }, rn: el => { RP.off += +el.dataset.d; paintSheet(); },
+  rcopy: () => copyOut(expText(curP()), 'Hours'), rcsv: () => saveFile(curP()),
+  dcopy: el => copyOut(expText(dayP(el.dataset.d)), 'Day'), dcsv: el => saveFile(dayP(el.dataset.d)),
+  'goal-set': () => { const inp = $('#ts-host [data-f="gh"]'), v = inp ? +inp.value : 0; if (!(v > 0 && v <= 168)) return toast('Enter hours per week, like 30'); const g = hoursGoal(); if (g) g.target = v; else G.state.goals.push({ id: uid('g'), name: 'Weekly hours', metric: 'hours', target: v, period: 'week' }); save(); paintSheet(); toast('Weekly hours goal saved'); },
+  more: openMore, addmin: el => addTime(+el.dataset.m),
+  addcustom: () => { const v = Math.round(+F('cm').value); if (!(v > 0 && v <= 600)) return toast('Enter minutes, like 15'); addTime(v); },
+  freemode: () => { const run = running(), i = run ? shownIdx(run) : -1; if (i < 0) return; run.entries[i].free = true; closeModal(); commit(); toast('No limit. Counting your time.'); },
+  'alert-go2': () => { const a = $('#ts-alert'); if (a) a.remove(); pend = null; pend2 = null; openMore(); },
   collapse: () => { const t = T(); t.collapsed = !t.collapsed; save(); paintBar(true); tick(); },
-  finish: () => { const run = running(); if (!run) return; const si = shownIdx(run); if (si < 0) return; const e = run.entries[si], b = e.kind === 'break'; closeEntry(e, 'done', Date.now()); sound(b ? 'start' : 'done'); advance(run); commit(); },
+  sync: () => { const run = running(); if (!run) return; const n = syncWork(run); commit(); toast(n ? 'Added ' + n + ' from Plan' : 'Already up to date'); },
+  'open-src': el => { const [k, id] = String(el.dataset.src).split(':'); closeModal && closeModal(); if (k === 'order') G.OPEN.orderDetail(id); else if (G.OPEN[k]) G.OPEN[k](id); },
+  finish: () => { const run = running(); if (!run) return; const si = shownIdx(run); if (si < 0) return; const e = run.entries[si], b = e.kind === 'break'; closeEntry(e, 'done', Date.now()); doneSrc(e); sound(b ? 'start' : 'done'); advance(run); commit(); },
   skip: () => { const run = running(); if (!run) return; const si = shownIdx(run); if (si >= 0) { closeEntry(run.entries[si], 'skipped', Date.now()); advance(run); } else { const n = nextPending(run, false); if (n >= 0) run.entries[n].status = 'skipped'; } commit(); },
   pause: () => { const run = running(); if (!run) return; pauseActive(run, Date.now()); commit(); },
   resume: () => { const run = running(); if (!run) return; const i = shownIdx(run); if (i >= 0) startEntry(run, i); commit(); },
@@ -6757,7 +6980,7 @@ const H = {
   'start-next': () => { const run = running(); if (!run) return; const n = nextPending(run, false); if (n >= 0) startEntry(run, n); commit(); },
   startday: () => { startDay(); commit(); },
   adhoc: openAdhoc, 'adhoc-go': adhocGo,
-  endday: async () => { const run = running(); if (!run) return; if (await ask('End your day?', `You have worked ${fhm(workedMs(run, Date.now()))} so far. Anything still running will be stopped. You can continue the day later from Plan, then Timesheet.`, 'Yes, end day', true)) { endDay(run.date); commit(); } },
+  endday: async () => { const run = running(); if (!run) return; if (await ask('End your day?', `You have worked ${fhm(workedMs(run, Date.now()))} so far. Anything still running will be stopped. You can continue the day later from Plan, then Time.`, 'Yes, end day', true)) { endDay(run.date); commit(); } },
   snd: () => { const t = T(); t.sound = !t.sound; save(); paintBar(true); if (t.sound) sound('done'); },
   'task-add': el => { const run = running(), i = run && shownIdx(run); const inp = $('[data-tsin]'); if (!run || i < 0 || !inp || !inp.value.trim()) return; run.entries[i].tasks.push({ t: inp.value.trim(), done: false }); commit(); },
   'ent-edit-cur': () => { const run = running(); if (!run) return; const i = shownIdx(run); if (i >= 0) openEntry(run.date, i); },
@@ -6771,7 +6994,7 @@ const H = {
   blk: el => openBlock(el.dataset.id),
   'blk-new': el => openBlock('', { date: el.dataset.date }),
   'blk-save': el => saveBlock(el.dataset.id),
-  'blk-del': async el => { if (!await ask('Delete this time block?', 'It is removed from every day it repeats on. Days you already worked keep their records.', 'Delete', true)) return; T().blocks = T().blocks.filter(b => b.id !== el.dataset.id); closeModal(); commit(); },
+  'blk-del': async el => { if (!await ask('Delete this time block?', 'It is removed from every day it repeats on. Days you already worked keep their records.', 'Delete', true)) return; const gone = T().blocks.find(b => b.id === el.dataset.id); T().blocks = T().blocks.filter(b => b.id !== el.dataset.id); if (gone) { const run = running(); if (run) run.entries = run.entries.filter(e => !(e.bid === gone.id && e.status === 'pending')); } closeModal(); commit(); },
   'blk-dup': el => { const b = T().blocks.find(x => x.id === el.dataset.id); if (!b) return; const c = JSON.parse(JSON.stringify(b)); c.id = uid('b'); c.title += ' (copy)'; T().blocks.push(c); closeModal(); commit(); openBlock(c.id); },
   dow: el => el.classList.toggle('on'),
   kindset: el => { const seg = el.closest('.seg'), h = seg.previousElementSibling; if (h) h.value = el.dataset.v; $$('button', seg).forEach(x => x.classList.toggle('on', x === el)); },
