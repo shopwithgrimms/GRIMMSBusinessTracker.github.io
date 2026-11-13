@@ -6653,6 +6653,45 @@ inject();
 .ts-al-i{width:32px;height:32px;border-radius:10px;background:var(--p-soft);color:var(--p);display:flex;align-items:center;justify-content:center;flex:none}
 .ts-al b{display:block;font-size:13.5px;font-weight:700;line-height:1.3}
 /* modals */
+
+/* export timesheet */
+.ts-xq{display:flex;gap:6px;flex-wrap:wrap}
+.ts-xd{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ts-paper{background:#fff;color:#111;border:1px solid #d4d4d4;border-radius:8px;padding:22px 20px;font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-align:left}
+.ts-paper *{box-sizing:border-box}
+.ts-paper .px-top{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:12px}
+.ts-paper h1{font-size:20px;font-weight:800;letter-spacing:.02em;margin:0;color:#111}
+.ts-paper .px-biz{font-weight:700;font-size:14px}
+.ts-paper .px-sm{color:#555;font-size:11.5px}
+.ts-paper .px-sum{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #bbb;margin-bottom:14px}
+.ts-paper .px-sum div{padding:7px 9px}
+.ts-paper .px-sum div+div{border-left:1px solid #bbb}
+.ts-paper .px-sum b{display:block;font-size:15px}
+.ts-paper .px-sum span{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:#555;font-weight:700}
+.ts-paper .px-day{margin-bottom:14px;break-inside:avoid-page}
+.ts-paper .px-dh{display:flex;justify-content:space-between;background:#eee;border:1px solid #bbb;padding:5px 9px;font-weight:700}
+.ts-paper table{width:100%;border-collapse:collapse;font-size:12px}
+.ts-paper th{text-align:left;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:#555;padding:5px 7px;border-bottom:1px solid #999}
+.ts-paper td{padding:6px 7px;border-bottom:1px solid #ddd;vertical-align:top}
+.ts-paper th.r,.ts-paper td.r{text-align:right;white-space:nowrap}
+.ts-paper td.t{white-space:nowrap;color:#333}
+.ts-paper tr{break-inside:avoid}
+.ts-paper .px-st{display:inline-block;font-size:9.5px;border:1px solid #999;border-radius:3px;padding:0 4px;margin-left:5px;color:#444;text-transform:uppercase;letter-spacing:.04em}
+.ts-paper ul{list-style:none;margin:4px 0 0;padding:0}
+.ts-paper li{font-size:11.5px;color:#222;padding-left:17px;position:relative}
+.ts-paper li::before{content:"\2610";position:absolute;left:0}
+.ts-paper li.d::before{content:"\2611"}
+.ts-paper li.d{color:#555}
+.ts-paper .px-note{margin-top:4px;font-size:11.5px;color:#333;border-left:3px solid #bbb;padding-left:7px;white-space:pre-wrap}
+.ts-paper .px-tot td{font-weight:800;border-top:2px solid #111;border-bottom:0}
+.ts-paper .px-sig{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:30px;break-inside:avoid}
+.ts-paper .px-sig div{border-top:1px solid #111;padding-top:4px;font-size:11px;color:#555}
+#ts-print{display:none}
+@media print{
+  body.ts-printing>*:not(#ts-print){display:none!important}
+  body.ts-printing #ts-print{display:block!important;position:static}
+  body.ts-printing .ts-paper{border:0;border-radius:0;padding:0}
+}
 #ts-modal{z-index:65}#ts-dlg{z-index:85;align-items:center;padding:24px}
 #ts-modal .sheet{border-radius:22px 22px 0 0;padding:18px 18px 14px}
 #ts-modal .sheet-head{align-items:flex-start;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--line)}
@@ -7294,6 +7333,72 @@ function saveFile(P) {
 }
 const dayP = d => mkP(d, d, dLab(d), 'day');
 
+/* ---------- export timesheet: pick a day or a range, see it as a real timesheet, print / save PDF / text ---------- */
+const XR = () => { const t = T(); if (!t.exp || !t.exp.from) { const ws = G.state.settings && G.state.settings.weekStart === 'sun' ? 0 : 1, w0 = addDays(today(), -((dparse(today()).getDay() - ws + 7) % 7)); t.exp = { from: w0, to: addDays(w0, 6) }; } return t.exp; };
+function xP() { const r = XR(); let a = r.from, b = r.to; if (a > b) { const x = a; a = b; b = x; } if (dparse(b) - dparse(a) > 400 * 864e5) b = addDays(a, 400); return mkP(a, b, a === b ? dLab(a) : sLab(a) + ' – ' + sLab(b), a === b ? 'day' : 'range'); }
+const xRange = P => P.from === P.to ? dLab(P.from) + ', ' + dparse(P.from).getFullYear() : dparse(P.from).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + ' – ' + dparse(P.to).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+const xStat = e => e.status === 'done' ? 'Done' : e.status === 'skipped' ? 'Skipped' : e.status === 'active' ? 'In progress' : e.status === 'paused' ? 'Paused' : '';
+const xDays = P => P.days.filter(d => d.worked || d.brk || d.entries.length || d.man.length);
+function exportCard() {
+  const r = XR(), P = xP(), n = xDays(P).length;
+  return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Export</span><h3>Timesheet</h3></div></div>
+    <p class="hint" style="margin:0">Pick one day, or a start and end date for a week or longer. It shows as a printable timesheet with your tasks and notes, and you can save it as text too.</p>
+    <div class="ts-xq">${[['today', 'Today'], ['week', 'This week'], ['lweek', 'Last week'], ['month', 'This month']].map(k => `<button class="chip" data-ts="xq" data-v="${k[0]}">${k[1]}</button>`).join('')}</div>
+    <div class="ts-xd"><label class="fld"><span>From</span><input class="input" type="date" data-xd="from" value="${esc(r.from)}"></label><label class="fld"><span>To (same date = one day)</span><input class="input" type="date" data-xd="to" value="${esc(r.to)}"></label></div>
+    <p class="hint" style="margin:0"><b>${esc(P.label)}</b> · ${fhm(P.worked)} worked · ${n} day${n === 1 ? '' : 's'} with time tracked</p>
+    <button class="btn btn-primary block ts-btn" data-ts="xprev">${I('chevR', 14)}Preview timesheet</button>
+    <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow ts-btn" data-ts="xtxt">${I('chevD', 14)}Download text</button><button class="btn btn-soft btn-sm grow ts-btn" data-ts="xcopy">${I('copy', 14)}Copy text</button><button class="btn btn-soft btn-sm grow ts-btn" data-ts="xcsv">${I('chevD', 14)}CSV</button></div></div>`;
+}
+function xText(P) {
+  const now = Date.now(), kl = e => KINDS.find(k => k[0] === e.kind)[1], S = G.state, biz = (S.settings && S.settings.name) || '', L = [];
+  L.push('TIMESHEET' + (biz ? ' · ' + biz : ''), 'Period: ' + xRange(P), `Total worked: ${fhm(P.worked)} (${(P.worked / 36e5).toFixed(2)} h) · Days worked: ${P.daysWorked}${P.daysWorked ? ' · Avg/day: ' + fhm(P.worked / P.daysWorked) : ''}${P.brk ? ' · Breaks: ' + fhm(P.brk) : ''}`, '='.repeat(48), '');
+  const days = xDays(P); if (!days.length) L.push('No time tracked in this period.');
+  days.forEach(d => {
+    L.push(`${dparse(d.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`, `Worked ${fhm(d.worked)}${d.brk ? ' · Breaks ' + fhm(d.brk) : ''}`, '-'.repeat(48));
+    d.entries.forEach(e => {
+      const tk = e.tasks || [], tm = e.startMs ? msLab(e.startMs) + (e.endMs ? ' – ' + msLab(e.endMs) : ' – now') : (e.pStart ? tLab(e.pStart) + ' – ' + tLab(e.pEnd) + ' (planned)' : '');
+      L.push(`${tm ? tm + '  ' : ''}${e.title}${xStat(e) ? ' [' + xStat(e) + ']' : ''} · ${fhm(el(e, now))}`, `  Type: ${kl(e)}${e.cat ? ' · ' + e.cat : ''}${e.link ? ' · ' + linkLbl(e.link) : ''}`);
+      if (tk.length) { L.push(`  Tasks (${tk.filter(x => x.done).length}/${tk.length} done):`); tk.forEach(x => L.push(`    [${x.done ? 'x' : ' '}] ${x.t}`)); }
+      if (e.notes && String(e.notes).trim()) L.push('  Notes: ' + String(e.notes).trim().replace(/\n/g, '\n         '));
+      L.push('');
+    });
+    d.man.forEach(x => { L.push(`${msLab(x.startMs)} – ${msLab(x.endMs)}  Added by hand · ${fhm(sMs(x))}${x.breakMs ? ' (break ' + Math.round(x.breakMs / 60000) + 'm)' : ''}`); if (x.note) L.push('  Notes: ' + x.note); L.push(''); });
+    L.push(`Day total: ${fhm(d.worked)}`, '');
+  });
+  L.push('='.repeat(48), `TOTAL: ${fhm(P.worked)} (${(P.worked / 36e5).toFixed(2)} hours)`);
+  return L.join('\n');
+}
+function xPaper(P) {
+  const now = Date.now(), kl = e => KINDS.find(k => k[0] === e.kind)[1], S = G.state, biz = (S.settings && S.settings.name) || 'Timesheet', b = (S.settings && S.settings.business) || {};
+  const days = xDays(P);
+  const dayHtml = days.map(d => {
+    const rows = d.entries.map(e => {
+      const tk = e.tasks || [], st = xStat(e), ms = el(e, now);
+      const t1 = e.startMs ? msLab(e.startMs) : (e.pStart ? tLab(e.pStart) : ''), t2 = e.startMs ? (e.endMs ? msLab(e.endMs) : 'now') : (e.pEnd ? tLab(e.pEnd) : '');
+      return `<tr><td class="t">${esc(t1)}${t2 ? ' – ' + esc(t2) : ''}</td><td><b>${esc(e.title)}</b>${st ? `<span class="px-st">${st}</span>` : ''}<div class="px-sm">${esc(kl(e))}${e.cat ? ' · ' + esc(e.cat) : ''}${e.link ? ' · ' + esc(linkLbl(e.link)) : ''}</div>${tk.length ? `<ul>${tk.map(x => `<li class="${x.done ? 'd' : ''}">${esc(x.t)}</li>`).join('')}</ul>` : ''}${e.notes && String(e.notes).trim() ? `<div class="px-note">${esc(String(e.notes).trim())}</div>` : ''}</td><td class="r">${ms > 0 ? fhm(ms) : '—'}</td></tr>`;
+    }).join('') + d.man.map(x => `<tr><td class="t">${esc(msLab(x.startMs))} – ${esc(msLab(x.endMs))}</td><td><b>Added by hand</b>${x.note ? `<div class="px-note">${esc(x.note)}</div>` : ''}</td><td class="r">${fhm(sMs(x))}</td></tr>`).join('');
+    return `<div class="px-day"><div class="px-dh"><span>${esc(dparse(d.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }))}</span><span>${fhm(d.worked)}${d.brk ? ' · break ' + fhm(d.brk) : ''}</span></div><table><thead><tr><th style="width:27%">Time</th><th>Task / notes</th><th class="r">Hours</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }).join('');
+  return `<div class="ts-paper"><div class="px-top"><div><h1>TIMESHEET</h1><div class="px-biz">${esc(biz)}</div><div class="px-sm">${[b.address, b.email, b.phone].filter(Boolean).map(esc).join(' · ')}</div></div><div style="text-align:right"><div class="px-sm">PERIOD</div><b>${esc(xRange(P))}</b><div class="px-sm">Printed ${esc(new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))}</div></div></div>
+    <div class="px-sum"><div><b>${fhm(P.worked)}</b><span>Total worked</span></div><div><b>${(P.worked / 36e5).toFixed(2)}</b><span>Hours</span></div><div><b>${P.daysWorked}</b><span>Days worked</span></div><div><b>${P.brk ? fhm(P.brk) : '—'}</b><span>Breaks</span></div></div>
+    ${dayHtml || '<p style="color:#555">No time tracked in this period.</p>'}
+    ${days.length > 1 ? `<table><tbody><tr class="px-tot"><td>Total for period</td><td class="r">${fhm(P.worked)} (${(P.worked / 36e5).toFixed(2)} h)</td></tr></tbody></table>` : ''}
+    <div class="px-sig"><div>Employee signature / date</div><div>Approved by / date</div></div></div>`;
+}
+function xName(P, ext) { return 'timesheet-' + (P.from === P.to ? P.from : P.from + '_to_' + P.to) + '.' + ext; }
+function xDownload(text, name, type) { const a = document.createElement('a'), u = URL.createObjectURL(new Blob([text], { type })); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000); toast('Downloaded ' + name); }
+function xPrint(P) {
+  let h = $('#ts-print'); if (h) h.remove(); h = document.createElement('div'); h.id = 'ts-print'; h.innerHTML = xPaper(P); document.body.appendChild(h);
+  document.body.classList.add('ts-printing');
+  const done = () => { document.body.classList.remove('ts-printing'); const x = $('#ts-print'); if (x) x.remove(); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done); setTimeout(() => { try { window.print(); } catch (e) { done(); } }, 60);
+}
+function xPreview() {
+  const P = xP(); if (!xDays(P).length) return toast('Nothing tracked in that period yet');
+  modal('Timesheet', `<div style="overflow-x:auto">${xPaper(P)}</div>`, `<div class="row" style="gap:8px;width:100%;flex-wrap:wrap"><button class="btn btn-primary grow ts-btn" data-ts="xprint">${I('chevD', 14)}Print / save PDF</button><button class="btn btn-soft grow ts-btn" data-ts="xtxt">Text file</button><button class="btn btn-soft grow ts-btn" data-ts="xcopy">${I('copy', 14)}Copy text</button></div>`, esc(xRange(P)));
+}
+
+
 /* ---------- profit per hour + weekly hours goal ---------- */
 function workedIn(a, b, now) {
   const live = running(); let ms = 0;
@@ -7459,7 +7564,7 @@ function setHtml() {
     <div class="row" style="gap:8px;margin-top:12px"><button class="btn btn-line btn-sm grow ts-btn" data-ts="test" data-k="done">${I('play', 12)}Test sound</button><button class="btn btn-line btn-sm grow ts-btn" data-ts="test" data-k="alert">${I('bell', 13)}Test reminder</button></div>
     <p class="hint" style="margin-top:10px">Reminders and sounds work while the app is open (including in the background on most phones). They cannot wake a fully closed app.</p></div>`;
 }
-const FOLD_DEF = { today: true, wm: false, goal: false, earn: false, report: false, sched: true, hist: false, other: false, prefs: false };
+const FOLD_DEF = { today: true, wm: false, goal: false, earn: false, report: false, export: true, sched: true, hist: false, other: false, prefs: false };
 const foldOpen = id => { const v = T().fold[id]; return v === undefined ? FOLD_DEF[id] : v; };
 const foldBox = (id, title, body) => {
   if (!body || !String(body).trim()) return ''; const o = foldOpen(id);
@@ -7472,7 +7577,7 @@ function paintSheet() {
   h.innerHTML = todayCard() + totalsCard()
     + `<div class="ts-foldbar"><button data-ts="foldall" data-v="0">Collapse all</button><button data-ts="foldall" data-v="1">Expand all</button></div>`
     + foldBox('wm', 'Shift log &amp; streak', wmHist()) + foldBox('sched', 'Schedule &amp; calendar', weekCard()) + foldBox('goal', 'Weekly hours goal', goalCard()) + foldBox('earn', 'Profit per hour', earnCard())
-    + foldBox('report', 'Hours report', reportCard()) + foldBox('hist', 'Past days', histCard()) + foldBox('other', 'Other time entries', otherCard()) + foldBox('prefs', 'Alerts &amp; sounds', prefs);
+    + foldBox('report', 'Hours report', reportCard()) + foldBox('export', 'Export timesheet', exportCard()) + foldBox('hist', 'Past days', histCard()) + foldBox('other', 'Other time entries', otherCard()) + foldBox('prefs', 'Alerts &amp; sounds', prefs);
   const cs = $('#ts-cs', h);
   if (cs) {
     if (calTop === null) { const v = T().calView, td = today(); let first = null;
@@ -7538,6 +7643,14 @@ const H = {
     if (p.a === 'start') { startBlockNow(p.bid); commit(); } else if (p.a === 'startday') { wmBrief(); } else if (p.a === 'break') { H.break(); } else if (p.a === 'finish') H.finish(); else if (p.a === 'endday') H.endday(); },
   rk: el => { RP.k = el.dataset.v; RP.off = 0; paintSheet(); }, rn: el => { RP.off += +el.dataset.d; paintSheet(); },
   rcopy: () => copyOut(expText(curP()), 'Hours'), rcsv: () => saveFile(curP()),
+  xq: el => { const v = el.dataset.v, td = today(), ws = G.state.settings && G.state.settings.weekStart === 'sun' ? 0 : 1, w0 = addDays(td, -((dparse(td).getDay() - ws + 7) % 7)), r = XR();
+    if (v === 'today') { r.from = r.to = td; } else if (v === 'week') { r.from = w0; r.to = addDays(w0, 6); } else if (v === 'lweek') { r.from = addDays(w0, -7); r.to = addDays(w0, -1); } else { const b = dparse(td); r.from = dkey(new Date(b.getFullYear(), b.getMonth(), 1)); r.to = dkey(new Date(b.getFullYear(), b.getMonth() + 1, 0)); }
+    save(); paintSheet(); },
+  xprev: xPreview,
+  xtxt: () => { const P = xP(); xDownload('\ufeff' + xText(P), xName(P, 'txt'), 'text/plain;charset=utf-8'); },
+  xcopy: () => copyOut(xText(xP()), 'Timesheet'),
+  xcsv: () => saveFile(xP()),
+  xprint: () => xPrint(xP()),
   dcopy: el => copyOut(expText(dayP(el.dataset.d)), 'Day'), dcsv: el => saveFile(dayP(el.dataset.d)),
   'goal-set': () => { const inp = $('#ts-host [data-f="gh"]'), v = inp ? +inp.value : 0; if (!(v > 0 && v <= 168)) return toast('Enter hours per week, like 30'); const g = hoursGoal(); if (g) g.target = v; else G.state.goals.push({ id: uid('g'), name: 'Weekly hours', metric: 'hours', target: v, period: 'week' }); save(); paintSheet(); toast('Weekly hours goal saved'); },
   more: openMore, addmin: el => addTime(+el.dataset.m),
@@ -7592,6 +7705,7 @@ document.addEventListener('click', e => {
   if (e.target.id === 'ts-modal') { if (e.target.querySelector('[data-ts="wm-go"],[data-ts="wm-end"]')) return; return closeModal(); }
   const b = e.target.closest('[data-ts]'); if (!b || b.type === 'checkbox') return; const f = H[b.dataset.ts]; if (f) f(b);
 });
+document.addEventListener('change', e => { const t = e.target, k = t.dataset && t.dataset.xd; if (!k || !t.value) return; const r = XR(); r[k] = t.value; if (k === 'from' && r.to < r.from) r.to = r.from; save(); paintSheet(); });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && $('#ts-modal.on')) closeModal();
   if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-tsin]')) { e.preventDefault(); H['task-add'](e.target); }
