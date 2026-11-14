@@ -9246,6 +9246,471 @@ inject();
 })();
 </script>
 
+<!-- =====================================================================
+  LOFI SCENES add-on for Grimms Business Tracker
+  Adds Settings > "Lofi scenes": 9 live moving scenes (the screensaver's rainy city is one of them) and
+  6 soft moving gradients that sit behind the whole app. Every scene can be recolored (14 palettes,
+  match-my-theme, or your own 3 colors), switches between night and day, and has a speed control.
+  Saved inside your normal app data, so backups include it. Nothing else is changed.
+===================================================================== -->
+<style>
+@keyframes lsIn{from{opacity:0}to{opacity:1}}
+@keyframes lsBob{from{transform:translate(-50%,0)}to{transform:translate(-50%,9px)}}
+@keyframes lsPan{to{background-position:0 100%}}
+@keyframes lsSpin{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes lsBlobA{0%{transform:translate(-20%,-10%) scale(1)}50%{transform:translate(30%,25%) scale(1.25)}100%{transform:translate(-5%,45%) scale(.95)}}
+@keyframes lsBlobB{0%{transform:translate(40%,10%) scale(1.1)}50%{transform:translate(-10%,40%) scale(.9)}100%{transform:translate(25%,-15%) scale(1.2)}}
+@keyframes lsBlobC{0%{transform:translate(0,50%) scale(.9)}50%{transform:translate(35%,0) scale(1.2)}100%{transform:translate(-25%,25%) scale(1)}}
+@keyframes lsDrift{to{transform:translateY(-1000px)}}
+@keyframes lsSway{from{transform:rotate(calc(var(--r) - 4deg))}to{transform:rotate(calc(var(--r) + 5deg))}}
+@keyframes lsKelp{from{transform:rotate(-4deg)}to{transform:rotate(5deg)}}
+@keyframes lsBub{0%{transform:translate(0,0) scale(.7);opacity:0}12%{opacity:.8}100%{transform:translate(18px,-112vh) scale(1.1);opacity:0}}
+@keyframes lsFf{0%{transform:translate(0,0);opacity:0}15%{opacity:1}45%{transform:translate(var(--dx),var(--dy));opacity:.25}62%{opacity:1}100%{transform:translate(calc(var(--dx) * -.7),calc(var(--dy) * 1.5));opacity:0}}
+@keyframes lsPet{0%{transform:translate3d(0,0,0) rotate(0)}25%{transform:translate3d(22px,25vh,0) rotate(120deg)}50%{transform:translate3d(-14px,52vh,0) rotate(230deg)}75%{transform:translate3d(26px,80vh,0) rotate(330deg)}100%{transform:translate3d(-8px,112vh,0) rotate(440deg)}}
+@keyframes lsCl{from{transform:translateX(0)}to{transform:translateX(700px)}}
+@keyframes lsBird{0%{transform:translate(-40px,0)}50%{transform:translate(260px,-26px)}100%{transform:translate(560px,6px)}}
+@keyframes lsFlap{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.35)}}
+@keyframes lsRoll{from{transform:translateY(-40%)}to{transform:translateY(520%)}}
+@keyframes lsFlick{0%,100%{opacity:1}47%{opacity:.94}50%{opacity:.86}53%{opacity:.97}}
+@keyframes lsGrain{0%{background-position:0 0}20%{background-position:-40px 22px}40%{background-position:30px -50px}60%{background-position:-20px 60px}80%{background-position:55px 10px}100%{background-position:0 0}}
+@keyframes lsSnowA{to{background-position:-120px 240px}}
+@keyframes lsSnowB{to{background-position:80px 160px}}
+@keyframes lsGlit{to{background-position:0 8px}}
+@keyframes lsBoat{from{transform:translateY(0) rotate(-2deg)}to{transform:translateY(4px) rotate(2deg)}}
+@keyframes lsMist{from{transform:translateX(-8%)}to{transform:translateX(8%)}}
+@keyframes lsJelly{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-34px) scale(.94,1.06)}}
+@keyframes lsWave{to{transform:translateX(-50%)}}
+@keyframes lsBranch{from{transform:rotate(-1.4deg)}to{transform:rotate(1.6deg)}}
+
+html[data-lscene] #frame{isolation:isolate}
+html[data-lscene] .scroll{background:transparent!important;animation:none!important}
+#lofi-scene{--sky:var(--p);--glow:color-mix(in srgb,var(--p) 78%,#fff);--warm:color-mix(in srgb,var(--p) 24%,#ffd89a);
+ --wood1:color-mix(in srgb,var(--sky) 28%,#1c1014);--wood2:color-mix(in srgb,var(--sky) 14%,#0b070a);--scr:color-mix(in srgb,var(--sky) 44%,#08060e);--cat:color-mix(in srgb,var(--sky) 10%,#060409);--leaf:color-mix(in srgb,var(--sky) 22%,#2f7a55);--leaf2:color-mix(in srgb,var(--sky) 16%,#1f5a40);--pot:color-mix(in srgb,var(--sky) 50%,#2a1a14);--mug:color-mix(in srgb,var(--warm) 60%,#f3e6d8);
+ position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:linear-gradient(180deg,var(--c1),var(--c2) 55%,var(--c3));animation:lsIn 1.4s ease both}
+#lofi-scene.n{--c1:color-mix(in srgb,var(--sky) 22%,#050410);--c2:color-mix(in srgb,var(--sky) 42%,#0a0715);--c3:color-mix(in srgb,var(--sky) 64%,#180d1c);--far:color-mix(in srgb,var(--sky) 34%,#0d0917);--mid:color-mix(in srgb,var(--sky) 24%,#090613);--near:color-mix(in srgb,var(--sky) 14%,#05040c);--txt:color-mix(in srgb,var(--glow) 30%,#fff)}
+#lofi-scene.d{--c1:color-mix(in srgb,var(--sky) 34%,#fff);--c2:color-mix(in srgb,var(--sky) 20%,#fff);--c3:color-mix(in srgb,var(--warm) 42%,#fff);--far:color-mix(in srgb,var(--sky) 26%,#fff);--mid:color-mix(in srgb,var(--sky) 40%,#fff);--near:color-mix(in srgb,var(--sky) 56%,#fff);--txt:color-mix(in srgb,var(--sky) 55%,#fff)}
+#lofi-scene.d .wss-stars,#lofi-scene.d .wss-shoot{display:none}
+#lofi-scene.d .wss-rain{filter:invert(1);opacity:.45}
+#lofi-scene.d .wss-vig{background:radial-gradient(ellipse at 50% 42%,transparent 45%,rgba(255,255,255,.3) 100%)}
+#lofi-scene.d .wss-moon{background:color-mix(in srgb,var(--warm) 70%,#fff);box-shadow:0 0 40px 14px color-mix(in srgb,var(--warm) 55%,transparent)}
+#lofi-scene .ls-sky,#lofi-scene .ls-fx{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#lofi-scene .ls-veil{position:absolute;inset:0;background:color-mix(in srgb,var(--bg) var(--lsv,16%),transparent)}
+#lofi-scene[data-sc=drive]{background:linear-gradient(180deg,var(--c1),var(--c2) 36%,color-mix(in srgb,var(--glow) 55%,var(--c2)) 62%,color-mix(in srgb,var(--warm) 70%,var(--glow)) 80%,var(--c3))}
+#lofi-scene[data-sc=ocean]{background:linear-gradient(180deg,var(--c1),color-mix(in srgb,var(--glow) 30%,var(--c2)) 42%,color-mix(in srgb,var(--warm) 60%,var(--glow)) 58%)}
+#lofi-scene[data-sc=meadow]{background:linear-gradient(180deg,var(--c1),color-mix(in srgb,var(--sky) 55%,var(--glow)) 30%,color-mix(in srgb,var(--glow) 75%,var(--warm)) 58%,var(--warm) 82%)}
+#lofi-scene[data-sc=sakura]{background:linear-gradient(180deg,var(--c1),color-mix(in srgb,var(--sky) 45%,var(--glow)) 38%,color-mix(in srgb,var(--glow) 65%,var(--warm)) 70%,var(--warm))}
+#lofi-scene[data-sc=lagoon]{background:linear-gradient(180deg,color-mix(in srgb,var(--glow) 52%,var(--c2)),var(--c2) 45%,var(--c1))}
+#lofi-scene[data-sc=space]{background:radial-gradient(ellipse at 50% 118%,var(--c3),var(--c1) 72%)}
+#lofi-scene[data-sc=forest]{background:linear-gradient(180deg,var(--c1),var(--c2) 60%,color-mix(in srgb,var(--glow) 22%,var(--c3)))}
+#lofi-scene[data-sc=snow]{background:linear-gradient(180deg,var(--c1),var(--c2) 58%,color-mix(in srgb,var(--glow) 26%,var(--c3)))}
+#lofi-scene.ls-wide .wss-layer svg{overflow:visible}
+
+/* sun, birds, clouds, mist */
+#lofi-scene .ls-sun{position:absolute;left:50%;width:62%;max-width:300px;aspect-ratio:1;bottom:var(--sunb,30%);transform:translate(-50%,0);filter:drop-shadow(0 0 38px var(--glow));animation:lsBob 14s ease-in-out infinite alternate}
+#lofi-scene .ls-orb{position:absolute;left:62%;top:9%;width:92px;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 38% 38%,#fff,color-mix(in srgb,var(--warm) 70%,#fff) 60%,color-mix(in srgb,var(--glow) 60%,#fff));box-shadow:0 0 60px 20px color-mix(in srgb,var(--glow) 40%,transparent);opacity:.9}
+#lofi-scene .ls-cl{position:absolute;left:-130px;height:24px;width:84px;border-radius:99px;background:color-mix(in srgb,var(--txt) 52%,transparent);box-shadow:34px -10px 0 -3px color-mix(in srgb,var(--txt) 52%,transparent),-26px 5px 0 -5px color-mix(in srgb,var(--txt) 42%,transparent);animation:lsCl linear infinite}
+#lofi-scene .ls-bird{position:absolute;width:20px;left:0;animation:lsBird linear infinite}
+#lofi-scene .ls-bird svg{display:block;width:100%;transform-origin:50% 60%;animation:lsFlap .9s ease-in-out infinite}
+#lofi-scene .ls-mist{position:absolute;left:-10%;right:-10%;bottom:16%;height:26%;background:radial-gradient(ellipse at 50% 60%,color-mix(in srgb,var(--glow) 24%,transparent),transparent 68%);animation:lsMist 26s ease-in-out infinite alternate}
+#lofi-scene .ls-mist.m2{bottom:30%;height:20%;opacity:.7;animation-duration:38s;animation-direction:alternate-reverse}
+#lofi-scene .ls-ff{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--warm);box-shadow:0 0 10px 4px color-mix(in srgb,var(--warm) 70%,transparent);opacity:0;animation:lsFf ease-in-out infinite}
+#lofi-scene .ls-pt{position:absolute;top:-24px;width:10px;height:13px;border-radius:70% 0 70% 0;background:linear-gradient(135deg,var(--txt),var(--glow));opacity:.85;animation:lsPet linear infinite}
+#lofi-scene .ls-branch{position:absolute;right:-6px;top:-4px;width:62%;max-width:290px;transform-origin:100% 0;animation:lsBranch 9s ease-in-out infinite alternate}
+
+/* ocean */
+#lofi-scene .ls-sea{position:absolute;left:0;right:0;bottom:0;height:44%;background:linear-gradient(180deg,color-mix(in srgb,var(--glow) 46%,var(--c2)),var(--c2) 48%,var(--c1))}
+#lofi-scene .ls-glit{position:absolute;left:50%;bottom:0;width:36%;height:44%;transform:translateX(-50%);background:repeating-linear-gradient(180deg,color-mix(in srgb,var(--warm) 80%,#fff) 0 2px,transparent 2px 8px);background-size:100% 8px;-webkit-mask-image:radial-gradient(ellipse 60% 100% at 50% 0,#000,transparent);mask-image:radial-gradient(ellipse 60% 100% at 50% 0,#000,transparent);animation:lsGlit 2.6s linear infinite}
+#lofi-scene .ls-boat{position:absolute;left:60%;bottom:41%;width:54px;transform-origin:50% 100%;animation:lsBoat 5s ease-in-out infinite alternate}
+
+/* snow + cabin */
+#lofi-scene .ls-snow{position:absolute;inset:0;background-repeat:repeat}
+#lofi-scene .ls-snow.s1{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='240'><g fill='%23fff' fill-opacity='.85'><circle cx='14' cy='20' r='2.2'/><circle cx='70' cy='46' r='1.4'/><circle cx='104' cy='88' r='2.6'/><circle cx='36' cy='120' r='1.6'/><circle cx='88' cy='150' r='2'/><circle cx='20' cy='196' r='1.3'/><circle cx='60' cy='218' r='2.4'/><circle cx='110' cy='12' r='1.2'/></g></svg>");background-size:120px 240px;animation:lsSnowA 16s linear infinite}
+#lofi-scene .ls-snow.s2{opacity:.65;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='160'><g fill='%23fff' fill-opacity='.8'><circle cx='10' cy='14' r='1.1'/><circle cx='52' cy='40' r='1.5'/><circle cx='30' cy='84' r='1'/><circle cx='70' cy='110' r='1.3'/><circle cx='16' cy='140' r='1.2'/></g></svg>");background-size:80px 160px;animation:lsSnowB 24s linear infinite}
+#lofi-scene .ls-bank{position:absolute;left:-10%;right:-10%;bottom:-5%;height:13%;border-radius:50% 50% 0 0/90% 90% 0 0;background:linear-gradient(180deg,color-mix(in srgb,var(--txt) 70%,var(--c2)),color-mix(in srgb,var(--txt) 38%,var(--c1)))}
+#lofi-scene .ls-cabin{position:absolute;left:50%;bottom:calc(var(--ls-nav,0px) + 1%);width:62%;max-width:290px;transform:translateX(-50%)}
+#lofi-scene .ls-br{animation:wssbr 6s ease-in-out infinite}
+#lofi-scene .ls-smoke{opacity:0;animation:wssst 5s ease-in-out infinite}
+#lofi-scene .ls-smoke.s2{animation-delay:1.7s}#lofi-scene .ls-smoke.s3{animation-delay:3.4s}
+#lofi-scene .ls-desk{position:absolute;left:0;bottom:var(--ls-nav,0px);margin:0;max-height:none;width:100%;height:auto;z-index:2}
+
+/* space */
+#lofi-scene .ls-st{position:absolute;left:0;top:0;width:2px;height:2px;border-radius:50%;background:transparent;will-change:transform}
+#lofi-scene .ls-neb{position:absolute;width:110%;aspect-ratio:1;border-radius:50%;opacity:.7}
+#lofi-scene .ls-neb.a{left:-30%;top:-10%;background:radial-gradient(circle,color-mix(in srgb,var(--glow) 70%,transparent),transparent 66%);animation:lsBlobA 52s ease-in-out infinite alternate}
+#lofi-scene .ls-neb.b{right:-35%;top:25%;background:radial-gradient(circle,color-mix(in srgb,var(--warm) 60%,transparent),transparent 66%);animation:lsBlobB 64s ease-in-out infinite alternate}
+#lofi-scene .ls-neb.c{left:-10%;bottom:-25%;background:radial-gradient(circle,color-mix(in srgb,var(--sky) 90%,transparent),transparent 66%);animation:lsBlobC 58s ease-in-out infinite alternate}
+#lofi-scene .ls-planet{position:absolute;right:9%;top:11%;width:104px;animation:lsMist 40s ease-in-out infinite alternate}
+
+/* ===== MORE SCENES ===== */
+@keyframes lsLn{0%{transform:translate(0,0) scale(var(--z,1));opacity:0}12%{opacity:.95}50%{transform:translate(26px,-55vh) scale(var(--z,1))}100%{transform:translate(-14px,-115vh) scale(var(--z,1));opacity:0}}
+@keyframes lsAur{0%{transform:translateX(-8%) skewX(-14deg) scaleY(.8);opacity:.3}100%{transform:translateX(10%) skewX(12deg) scaleY(1.15);opacity:.65}}
+#lofi-scene .ls-ln{position:absolute;bottom:-40px;width:20px;height:26px;border-radius:7px 7px 9px 9px;background:linear-gradient(180deg,color-mix(in srgb,var(--warm) 70%,#fff),var(--warm));box-shadow:0 0 24px 8px color-mix(in srgb,var(--warm) 60%,transparent);opacity:0;animation:lsLn linear infinite}
+#lofi-scene .ls-aur{position:absolute;left:-20%;right:-20%;top:4%;height:58%;background:linear-gradient(90deg,transparent,var(--b),transparent);filter:blur(30px);transform-origin:50% 100%;animation:lsAur 20s ease-in-out infinite alternate}
+#lofi-scene .ls-lv{position:absolute;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--b),transparent 72%);opacity:.85}
+/* lagoon */
+#lofi-scene .ls-ray{position:absolute;top:-10%;width:16%;height:125%;transform-origin:50% 0;transform:rotate(var(--r));background:linear-gradient(180deg,color-mix(in srgb,var(--txt) 42%,transparent),transparent 78%);filter:blur(7px);opacity:.6;animation:lsSway var(--t) ease-in-out infinite alternate}
+#lofi-scene .ls-bub{position:absolute;bottom:-30px;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--txt) 60%,transparent);background:radial-gradient(circle at 30% 30%,color-mix(in srgb,var(--txt) 55%,transparent),transparent 60%);animation:lsBub linear infinite}
+#lofi-scene .ls-kelp{position:absolute;bottom:-2px;transform-origin:50% 100%;animation:lsKelp ease-in-out infinite alternate}
+#lofi-scene .ls-jelly{position:absolute;left:68%;top:36%;width:60px;animation:lsJelly 11s ease-in-out infinite}
+
+/* soft gradients */
+#lofi-scene .ls-blob{position:absolute;width:120%;aspect-ratio:1;border-radius:50%;opacity:.8;background:radial-gradient(circle,var(--b),transparent 70%)}
+#lofi-scene .ls-blob.a{left:-25%;top:-8%;animation:lsBlobA 46s ease-in-out infinite alternate}
+#lofi-scene .ls-blob.b{right:-30%;top:18%;animation:lsBlobB 58s ease-in-out infinite alternate}
+#lofi-scene .ls-blob.c{left:-6%;bottom:-24%;animation:lsBlobC 52s ease-in-out infinite alternate}
+#lofi-scene .ls-blob.d{right:-18%;bottom:-14%;width:70%;opacity:.45;animation:lsBlobA 70s ease-in-out infinite alternate-reverse}
+#lofi-scene .ls-pan{position:absolute;inset:0;background:linear-gradient(180deg,var(--c1),var(--sky) 22%,var(--glow) 48%,var(--warm) 72%,var(--c1));background-size:100% 320%;opacity:.9;animation:lsPan 70s ease-in-out infinite alternate}
+#lofi-scene .ls-sunglow{position:absolute;left:-20%;right:-20%;bottom:-12%;height:60%;background:radial-gradient(ellipse at 50% 100%,color-mix(in srgb,var(--warm) 70%,transparent),transparent 65%);animation:wssbr 9s ease-in-out infinite}
+#lofi-scene .ls-scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);animation:lsFlick 5s steps(1) infinite}
+#lofi-scene .ls-roll{position:absolute;left:0;right:0;top:-20%;height:20%;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--glow) 22%,transparent),transparent);animation:lsRoll 10s linear infinite}
+#lofi-scene .ls-grain{position:absolute;inset:-60px;opacity:.5;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .3 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");background-size:160px 160px;animation:lsGrain .9s steps(1) infinite}
+#lofi-scene .ls-conic{position:absolute;left:50%;top:50%;width:230%;aspect-ratio:1;background:conic-gradient(from 0deg,var(--sky),var(--glow),var(--warm),var(--glow),var(--sky));filter:blur(48px);opacity:.6;animation:lsSpin 100s linear infinite}
+#lofi-scene .ls-wv{position:absolute;left:0;bottom:0;display:flex;width:200%;animation:lsWave linear infinite}
+#lofi-scene .ls-wv svg{display:block;flex:none;width:50%;height:100%}
+
+/* glass cards + bars so the scene shows through */
+html[data-lscene][data-lglass=on] .scroll :is(.card,.list-row,.tile,.mail-group,.wm-tile){background:color-mix(in srgb,var(--card) 74%,transparent);-webkit-backdrop-filter:blur(12px) saturate(1.15);backdrop-filter:blur(12px) saturate(1.15)}
+html[data-lscene][data-lglass=on] .hdr{background:color-mix(in srgb,var(--card) 68%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+html[data-lscene][data-lglass=on]:not([data-nav=accent]) .nav{background:color-mix(in srgb,var(--card) 72%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+
+/* settings card */
+#lofi-scenes summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;font-weight:800;font-size:14px}
+#lofi-scenes summary::-webkit-details-marker{display:none}
+.ls-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ls-t{border:2px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card);text-align:center;padding:0}
+.ls-t.on{border-color:var(--p);box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--p)}
+.ls-t i{display:block;height:46px;font-style:normal;line-height:46px;font-size:20px}
+.ls-t span{display:block;font-size:10.5px;font-weight:700;padding:5px 2px 6px;line-height:1.15;color:var(--text)}
+.ls-pg{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;justify-items:center}
+.ls-p{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);padding:0}
+.ls-p.on{border-color:var(--p);box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--p)}
+@media(prefers-reduced-motion:reduce){#lofi-scene *{animation:none!important}}
+</style>
+
+<script>
+(() => {
+'use strict';
+const G = window.GBT; if (!G) return;
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rnd = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+
+/* ---------- colour palettes: sky = main colour, glow = lights and highlights, warm = windows, sun and lamps ---------- */
+const PALS = [
+  ['rose', 'Midnight Rose', '#8a3b8f', '#ff9eb5', '#ffd1a0'], ['sunset', 'Sunset Drive', '#b8386b', '#ff8a6b', '#ffc27a'],
+  ['cassette', 'Cassette Teal', '#1f8a8f', '#5fe0c8', '#ffe27a'], ['rainy', 'Rainy Blue', '#3b5bc4', '#9db8ff', '#ffe4b0'],
+  ['moss', 'Mossy Tape', '#4f7a3a', '#b4d36b', '#ffd37a'], ['golden', 'Golden Hour', '#b86b1c', '#ffc15e', '#fff0c8'],
+  ['lav', 'Lavender Milk', '#7d68d8', '#c9b8ff', '#ffe0f0'], ['neon', 'Neon Tape', '#c01f7a', '#ff4fa3', '#5ff0ff'],
+  ['berry', 'Strawberry', '#d63a5a', '#ff8fa8', '#ffe0b8'], ['ocean', 'Deep Ocean', '#1a6fa8', '#5fd0ff', '#fff2c0'],
+  ['ash', 'Ink & Ash', '#4a4f5c', '#c8cde0', '#ffe9c4'], ['peach', 'Peach Fizz', '#e0765c', '#ffb59a', '#fff0d0'],
+  ['cola', 'Cherry Cola', '#8a1f3a', '#ff6b7a', '#ffd0a0'], ['arctic', 'Arctic Glow', '#2a5a8a', '#a0f0ff', '#ffffff'], ['dune', 'Desert Rose', '#a8553a', '#ffb08a', '#ffe2a8'],
+  ['emerald', 'Emerald Night', '#0f6a4a', '#4ff0a8', '#d8ffb0'], ['candy', 'Cotton Candy', '#a05ad8', '#ff9ee0', '#a8f0ff'], ['ember', 'Ember Glow', '#8a2a10', '#ff7a3a', '#ffd070'],
+  ['sky', 'Clear Sky', '#3a8ae0', '#8ad0ff', '#fff0b0'], ['grape', 'Grape Soda', '#5a2ab0', '#b07aff', '#ff9ad0'], ['lemon', 'Lemon Drop', '#b09a1a', '#ffe45a', '#fff8c0'], ['storm', 'Storm Cloud', '#3a4a5a', '#8aa0c0', '#d0e0ff'],
+  ['mint', 'Moonlit Mint', '#2f9a85', '#9ff5d8', '#fff7c8'], ['plum', 'Plum Wine', '#6b2a5a', '#e08ad0', '#ffd7a8']
+];
+const D = { scene: '', pal: 'scene', c: null, mode: 'auto', veil: 16, glass: true, desk: false, speed: 1 };
+const S = () => { const s = G.state.settings; if (!s.lofi2 || typeof s.lofi2 !== 'object') s.lofi2 = {}; Object.keys(D).forEach(k => { if (s.lofi2[k] === undefined) s.lofi2[k] = D[k]; }); return s.lofi2; };
+const save = () => { try { G.save(); } catch (e) { } };
+
+/* ---------- building blocks (the rainy city copies the screensaver exactly) ---------- */
+const lyr = (svg, h, v) => `<div class="wss-layer" style="height:${h}px;--tw:${h * 3}px;animation-duration:${Math.max(10, Math.round(h * 3 / v))}s">${svg}${svg}</div>`;
+const wv = (svg, hp, dur) => `<div class="ls-wv" style="height:${hp}%;animation-duration:${dur}s">${svg}${svg}</div>`;
+function skyline(seed, minH, maxH, lit, fillVar) {
+  const r = rnd(seed), W = 600, H = 200; let x = 0, g = '', w = '';
+  while (x < W) {
+    let bw = 26 + Math.floor(r() * 44); if (W - x - bw < 26) bw = W - x;
+    const bh = Math.round(minH + r() * (maxH - minH)); g += `<rect x="${x}" y="${H - bh}" width="${bw + 0.6}" height="${bh}"/>`;
+    if (r() < .35) g += `<rect x="${x + bw / 2 - 1}" y="${H - bh - 14}" width="2" height="14"/>`;
+    for (let wy = H - bh + 9; wy < H - 8; wy += 11) for (let wx = x + 6; wx < x + bw - 8; wx += 9) if (r() < lit) { const k = r(); w += `<rect x="${wx}" y="${wy}" width="4" height="5" rx=".8" ${k > .9 ? 'class="tw"' : ''} style="fill:var(${k < .16 ? '--glow' : '--warm'})${k > .9 ? ';animation-delay:' + (r() * 5).toFixed(1) + 's' : ''}"/>`; }
+    x += bw;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><g style="fill:var(${fillVar})">${g}</g><g opacity=".85">${w}</g></svg>`;
+}
+/* rolling hills / waves: whole sine periods so the tile joins itself with no seam */
+function hills(seed, fill, k1, k2, base, amp, op = 1) {
+  const r = rnd(seed), p1 = r() * 6.28, p2 = r() * 6.28, pts = [];
+  for (let x = 0; x <= 600; x += 10) pts.push(x + ' ' + (base + amp * (Math.sin(6.2832 * k1 * x / 600 + p1) * .6 + Math.sin(6.2832 * k2 * x / 600 + p2) * .4)).toFixed(1));
+  return `<svg viewBox="0 0 600 200" preserveAspectRatio="none" aria-hidden="true"><path d="M${pts.join(' L')} L600 200 L0 200 Z" style="fill:${fill}" opacity="${op}"/></svg>`;
+}
+function pines(seed, fillVar, minH, maxH) {
+  const r = rnd(seed), W = 600, H = 200; let cx = 0, g = '';
+  while (true) {
+    const w = 20 + r() * 20, h = minH + r() * (maxH - minH); cx += w / 2; if (cx + w / 2 > W) break;
+    const t = (f, s) => `${(cx + w * s).toFixed(1)},${(H - h * f).toFixed(1)}`;
+    g += `<polygon points="${cx.toFixed(1)},${H - h} ${t(.62, .26)} ${t(.62, .13)} ${t(.32, .36)} ${t(.32, .2)} ${t(0, .5)} ${t(0, -.5)} ${t(.32, -.2)} ${t(.32, -.36)} ${t(.62, -.13)} ${t(.62, -.26)}"/>`;
+    cx += w / 2 * (.55 + r() * .3);
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><g style="fill:var(${fillVar})">${g}<rect x="0" y="${H - 14}" width="${W}" height="14"/></g></svg>`;
+}
+function poles() {
+  let g = ''; [0, 200, 400].forEach(x => { g += `<rect x="${x - 2}" y="30" width="4" height="170"/><rect x="${x - 16}" y="38" width="32" height="3"/><rect x="${x - 11}" y="52" width="22" height="2.5"/>`; });
+  const wire = (y, d) => `<path d="M0 ${y} Q100 ${y + d} 200 ${y} Q300 ${y + d} 400 ${y} Q500 ${y + d} 600 ${y}" fill="none" stroke-width="1.1"/>`;
+  return `<svg viewBox="0 0 600 200" preserveAspectRatio="none" style="overflow:visible" aria-hidden="true"><g style="fill:var(--near);stroke:var(--near)">${g}${wire(40, 26)}${wire(54, 24)}</g></svg>`;
+}
+const stars = (R, k, hh) => Array.from({ length: k }, () => `${Math.floor(R() * 450)}px ${Math.floor(R() * hh)}px var(--txt)`).join(',');
+const starsEl = (R, a, b, hh = 620) => `<i class="wss-stars a" style="box-shadow:${stars(R, a, hh)}"></i><i class="wss-stars b" style="box-shadow:${stars(R, b, hh)}"></i>`;
+const MOON = '<i class="wss-moon"></i>', SHOOT = '<i class="wss-shoot"></i><i class="wss-shoot s2"></i>';
+const CLOUDS = () => [[9, 90], [24, 130], [38, 180]].map(([t, d], i) => `<i class="wss-cloud" style="top:${t}%;animation-duration:${d}s;animation-delay:${-i * 45}s"></i>`).join('');
+const MOTES = (R, n) => Array.from({ length: n }, () => `<span class="wss-mote" style="left:${Math.floor(R() * 96)}%;animation-duration:${14 + Math.floor(R() * 16)}s;animation-delay:${-Math.floor(R() * 24)}s"></span>`).join('');
+const SUN = `<svg class="ls-sun" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="lsSunG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--warm)"/><stop offset="1" style="stop-color:var(--glow)"/></linearGradient><mask id="lsSunM"><rect width="100" height="100" fill="#fff"/><rect y="60" width="100" height="2"/><rect y="68" width="100" height="3"/><rect y="76" width="100" height="4"/><rect y="84" width="100" height="5"/></mask></defs><circle cx="50" cy="50" r="48" fill="url(#lsSunG)" mask="url(#lsSunM)"/></svg>`;
+const PLAIN_SUN = `<svg class="ls-sun" viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="lsSunP" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff"/><stop offset=".45" style="stop-color:var(--warm)"/><stop offset="1" style="stop-color:var(--glow)"/></radialGradient></defs><circle cx="50" cy="50" r="48" fill="url(#lsSunP)"/></svg>`;
+const BIRDS = n => Array.from({ length: n }, (_, i) => `<i class="ls-bird" style="top:${10 + i * 7}%;animation-duration:${44 + i * 13}s;animation-delay:${-i * 17}s"><svg viewBox="0 0 24 10"><path d="M1 8 Q6 -1 12 6 Q18 -1 23 8" fill="none" style="stroke:var(--near)" stroke-width="1.7" stroke-linecap="round"/></svg></i>`).join('');
+const CLOUDPILLS = () => [[8, 60, 14], [19, 90, 34], [31, 75, 52]].map(([t, d, a]) => `<i class="ls-cl" style="top:${t}%;animation-duration:${d}s;animation-delay:${-a}s"></i>`).join('');
+function lights() {
+  const bez = (p0, p1, p2, p3, t) => { const u = 1 - t; return [u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0], u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]]; };
+  const A = [[-5, 8], [90, 58], [150, 48], [200, 20]], B = [[200, 20], [250, -8], [330, 48], [405, 10]]; let b = '';
+  for (let i = 0; i < 18; i++) { const seg = i < 9 ? A : B, t = ((i % 9) + .5) / 9, q = bez(seg[0], seg[1], seg[2], seg[3], t), c = i % 3 === 0 ? '--warm' : '--glow'; b += `<circle class="b" cx="${q[0].toFixed(1)}" cy="${(q[1] + 3).toFixed(1)}" r="2.7" style="fill:var(${c});animation-delay:${(i * .37).toFixed(2)}s;filter:drop-shadow(0 0 4px var(${c}))"/>`; }
+  return `<svg class="wss-lights" viewBox="0 0 400 78" preserveAspectRatio="xMidYMin slice" aria-hidden="true"><path d="M-5 8 C 90 58 150 48 200 20 S 330 48 405 10" fill="none" style="stroke:var(--near)" stroke-width="1.4"/>${b}</svg>`;
+}
+const DESK = `<svg class="wss-desk ls-desk" viewBox="0 0 400 200" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+  <defs><linearGradient id="lsdw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--wood1)"/><stop offset="1" style="stop-color:var(--wood2)"/></linearGradient>
+  <linearGradient id="lsdc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--warm);stop-opacity:.42"/><stop offset="1" style="stop-color:var(--warm);stop-opacity:0"/></linearGradient>
+  <radialGradient id="lsdg" cx=".5" cy=".5" r=".5"><stop offset="0" style="stop-color:var(--warm);stop-opacity:.55"/><stop offset="1" style="stop-color:var(--warm);stop-opacity:0"/></radialGradient></defs>
+  <polygon points="48,66 84,72 150,126 -10,126" fill="url(#lsdc)" class="br"/>
+  <rect x="-10" y="120" width="420" height="90" fill="url(#lsdw)"/><rect x="-10" y="120" width="420" height="2.5" style="fill:var(--glow)" opacity=".3"/>
+  <ellipse cx="62" cy="123" rx="78" ry="9" fill="url(#lsdg)" class="br"/>
+  <ellipse cx="38" cy="119" rx="22" ry="4.5" style="fill:var(--near)"/><path d="M38 116 L30 84 L58 56" fill="none" style="stroke:var(--near)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M44 50 L84 60 L76 74 L38 62 Z" style="fill:var(--near)"/><path d="M44 50 L84 60" style="stroke:var(--glow)" stroke-width="1.2" opacity=".6"/><ellipse cx="60" cy="69" rx="9" ry="3" style="fill:var(--warm)" class="br"/>
+  <g class="cat"><ellipse cx="116" cy="109" rx="27" ry="12" style="fill:var(--cat)"/><circle cx="90" cy="110" r="10" style="fill:var(--cat)"/><path d="M82 104 L84 94 L91 101 Z M92 101 L98 94 L99 104 Z" style="fill:var(--cat)"/>
+    <path d="M142 112 C 156 112 156 100 144 100" fill="none" style="stroke:var(--cat)" stroke-width="5" stroke-linecap="round"/><path d="M92 99 C 110 94 130 96 140 104" fill="none" style="stroke:var(--glow)" stroke-width="1.3" opacity=".4" stroke-linecap="round"/>
+    <path d="M85 110 q3 2 6 0" fill="none" style="stroke:var(--warm)" stroke-width="1.1" stroke-linecap="round" opacity=".8"/></g>
+  <g style="filter:drop-shadow(0 0 9px var(--glow))"><path d="M168 118 L172 70 Q172 64 178 64 L250 64 Q256 64 256 70 L262 118 Z" style="fill:var(--near)"/><rect x="177" y="70" width="73" height="42" rx="2" style="fill:var(--scr)"/>
+    <rect class="ln" x="183" y="77" width="44" height="3" rx="1.5" style="fill:var(--glow)"/><rect class="ln l2" x="183" y="85" width="58" height="3" rx="1.5" style="fill:var(--warm)"/><rect class="ln l3" x="183" y="93" width="36" height="3" rx="1.5" style="fill:var(--glow)"/><rect class="ln l4" x="183" y="101" width="50" height="3" rx="1.5" style="fill:var(--warm)"/></g>
+  <rect x="158" y="117" width="114" height="6" rx="3" style="fill:var(--near)"/><rect x="158" y="117" width="114" height="1.4" style="fill:var(--glow)" opacity=".45"/>
+  <g><path class="st" d="M296 90 q-5 -7 0 -13 t0 -13" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/><path class="st s2" d="M304 90 q-5 -7 0 -13 t0 -13" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/><path class="st s3" d="M312 90 q-5 -7 0 -13 t0 -13" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2" stroke-linecap="round"/>
+    <rect x="290" y="94" width="30" height="26" rx="6" style="fill:var(--mug)"/><path d="M320 100 q12 1 11 9 q-1 8 -11 7" fill="none" style="stroke:var(--mug)" stroke-width="3.4" stroke-linecap="round"/><ellipse cx="305" cy="95" rx="13" ry="3" style="fill:var(--wood2)"/><rect x="290" y="94" width="30" height="3" rx="1.5" style="fill:var(--glow)" opacity=".35"/></g>
+  <g class="sw"><path d="M366 96 C 346 78 340 56 352 40 C 360 56 368 70 366 96 Z" style="fill:var(--leaf)"/><path d="M368 96 C 372 72 386 56 398 50 C 396 72 384 88 368 96 Z" style="fill:var(--leaf2)"/><path d="M366 98 C 356 82 350 74 338 70 C 340 84 352 94 366 98 Z" style="fill:var(--leaf2)"/></g>
+  <path d="M352 96 L382 96 L378 120 L356 120 Z" style="fill:var(--pot)"/><rect x="350" y="94" width="34" height="5" rx="2" style="fill:var(--pot)"/>
+</svg>`;
+
+/* ---------- the scenes ---------- */
+function bCity(o) {
+  const R = rnd(7), H = o.H, L = [[11, .26, 40, 120, .10, '--far', 2.6], [23, .32, 60, 150, .16, '--mid', 4.2], [37, .22, 50, 120, .22, '--near', 7]];
+  const lay = L.map(([s, hp, a, b, lit, fv, v]) => lyr(skyline(s, a, b, lit, fv), Math.round(H * hp), v)).join('');
+  return `<div class="ls-sky">${starsEl(R, 44, 32)}${MOON}${CLOUDS()}${SHOOT}<i class="wss-haze"></i></div><div class="ls-fx">${lay}<i class="wss-rain r1"></i><i class="wss-rain r2"></i>${MOTES(R, 14)}<i class="wss-vig"></i></div>${lights()}${o.desk ? DESK : ''}`;
+}
+function bDrive(o) {
+  const R = rnd(3), H = o.H, lay = [lyr(hills(5, 'var(--far)', 2, 3, 74, 34), Math.round(H * .34), 3), lyr(hills(9, 'var(--mid)', 3, 5, 92, 26), Math.round(H * .27), 6), lyr(poles(), Math.round(H * .44), 22), lyr(hills(14, 'var(--near)', 1, 4, 156, 8), Math.round(H * .08), 22)].join('');
+  return `<div class="ls-sky" style="--sunb:28%">${starsEl(R, 26, 14, 380)}${SUN}<i class="wss-haze"></i>${CLOUDS()}</div><div class="ls-fx">${lay}${MOTES(R, 8)}<i class="wss-vig"></i></div>`;
+}
+function bOcean(o) {
+  const R = rnd(5), H = o.H;
+  const waves = wv(hills(21, 'var(--far)', 2, 3, 96, 14, .85), 34, 38) + wv(hills(23, 'var(--mid)', 3, 4, 100, 12, .92), 25, 24) + wv(hills(29, 'var(--near)', 2, 5, 104, 10, .98), 15, 14);
+  return `<div class="ls-sky" style="--sunb:31%">${starsEl(R, 26, 14, 360)}${PLAIN_SUN}${CLOUDPILLS()}${BIRDS(2)}</div><div class="ls-fx"><i class="ls-sea"></i><i class="ls-glit"></i>${waves}<svg class="ls-boat" viewBox="0 0 60 60" aria-hidden="true"><path d="M30 6 L30 42 L8 42 Z" style="fill:var(--txt)" opacity=".92"/><path d="M33 14 L33 42 L50 42 Z" style="fill:var(--txt)" opacity=".7"/><path d="M6 46 H54 L48 55 H12 Z" style="fill:var(--near)"/></svg><i class="wss-vig"></i></div>`;
+}
+function bForest(o) {
+  const R = rnd(11), H = o.H, lay = [lyr(pines(31, '--far', 70, 120), Math.round(H * .36), 3), lyr(pines(41, '--mid', 90, 150), Math.round(H * .3), 6), lyr(pines(53, '--near', 110, 175), Math.round(H * .22), 11)].join('');
+  const ff = Array.from({ length: 26 }, () => `<i class="ls-ff" style="left:${Math.floor(R() * 94)}%;top:${38 + Math.floor(R() * 52)}%;--dx:${Math.floor(R() * 70 - 35)}px;--dy:${Math.floor(R() * -90 - 10)}px;animation-duration:${9 + Math.floor(R() * 11)}s;animation-delay:${-Math.floor(R() * 16)}s"></i>`).join('');
+  return `<div class="ls-sky">${starsEl(R, 36, 20, 460)}${MOON}${SHOOT}<i class="ls-mist"></i><i class="ls-mist m2"></i></div><div class="ls-fx">${lay}${ff}<i class="wss-vig"></i></div>`;
+}
+function bSnow(o) {
+  const R = rnd(13), H = o.H, lay = [lyr(pines(61, '--far', 90, 150), Math.round(H * .4), 3), lyr(pines(71, '--mid', 110, 170), Math.round(H * .3), 6)].join('');
+  const cabin = `<svg class="ls-cabin" viewBox="0 0 220 120" aria-hidden="true"><defs><radialGradient id="lsCabG"><stop offset="0" style="stop-color:var(--warm);stop-opacity:.38"/><stop offset="1" style="stop-color:var(--warm);stop-opacity:0"/></radialGradient></defs><ellipse cx="92" cy="92" rx="84" ry="34" fill="url(#lsCabG)" class="ls-br"/>
+    <g style="fill:var(--near)"><rect x="60" y="62" width="100" height="52"/><polygon points="50,64 110,22 170,64"/><rect x="132" y="26" width="14" height="26"/></g>
+    <path d="M52 64 L110 25 L168 64 L162 64 L110 31 L58 64Z" style="fill:var(--txt)" opacity=".55"/><rect x="130" y="24" width="18" height="4" rx="2" style="fill:var(--txt)" opacity=".6"/>
+    <rect x="80" y="76" width="24" height="22" rx="1.5" style="fill:var(--warm)" class="ls-br"/><path d="M92 76 V98 M80 87 H104" style="stroke:var(--near)" stroke-width="1.6"/><rect x="120" y="82" width="22" height="32" rx="1.5" style="fill:color-mix(in srgb,var(--sky) 30%,var(--near))"/>
+    <g fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.2" stroke-linecap="round"><path class="ls-smoke" d="M139 20 q-5 -7 0 -13 t0 -13"/><path class="ls-smoke s2" d="M142 20 q-5 -7 0 -13 t0 -13"/><path class="ls-smoke s3" d="M136 20 q-5 -7 0 -13 t0 -13"/></g></svg>`;
+  return `<div class="ls-sky">${starsEl(R, 40, 22, 480)}${MOON}${SHOOT}<i class="wss-haze"></i></div><div class="ls-fx">${lay}<i class="ls-bank"></i>${cabin}<i class="ls-snow s1"></i><i class="ls-snow s2"></i><i class="wss-vig"></i></div>`;
+}
+function bSpace(o) {
+  const R = rnd(17), layer = (n, sp, dur, sz) => { let a = []; for (let i = 0; i < n; i++) { const x = Math.floor(R() * 450), y = Math.floor(R() * 1000); a.push(`${x}px ${y}px 0 ${sz}px var(--txt)`, `${x}px ${y + 1000}px 0 ${sz}px var(--txt)`); } return `<i class="ls-st" style="box-shadow:${a.join(',')};animation:lsDrift ${dur}s linear infinite"></i>`; };
+  const planet = `<svg class="ls-planet" viewBox="0 0 120 80" aria-hidden="true"><defs><radialGradient id="lsPl" cx=".35" cy=".3" r=".8"><stop offset="0" style="stop-color:var(--warm)"/><stop offset=".55" style="stop-color:var(--glow)"/><stop offset="1" style="stop-color:var(--sky)"/></radialGradient></defs><ellipse cx="60" cy="40" rx="58" ry="12" fill="none" style="stroke:var(--txt)" stroke-width="3" opacity=".55" transform="rotate(-14 60 40)"/><circle cx="60" cy="40" r="26" fill="url(#lsPl)"/><path d="M6 46 Q60 62 114 34" fill="none" style="stroke:var(--txt)" stroke-width="3" opacity=".55" transform="rotate(-14 60 40)" stroke-dasharray="0 0"/></svg>`;
+  return `<div class="ls-sky"><i class="ls-neb a"></i><i class="ls-neb b"></i><i class="ls-neb c"></i>${layer(120, 0, 190, 0)}${layer(60, 0, 120, 0)}${layer(26, 0, 80, 1)}${planet}${SHOOT}</div><div class="ls-fx"><i class="wss-vig"></i></div>`;
+}
+function bMeadow(o) {
+  const R = rnd(19), H = o.H, lay = [lyr(hills(33, 'color-mix(in srgb,var(--glow) 40%,var(--c2))', 1, 2, 70, 26), Math.round(H * .36), 2.5), lyr(hills(37, 'color-mix(in srgb,var(--sky) 45%,var(--c1))', 2, 3, 84, 24), Math.round(H * .3), 4.5), lyr(hills(43, 'var(--mid)', 2, 4, 96, 20), Math.round(H * .22), 8), lyr(hills(47, 'var(--near)', 3, 5, 118, 14), Math.round(H * .13), 14)].join('');
+  return `<div class="ls-sky" style="--sunb:38%">${starsEl(R, 20, 10, 300)}${SUN}${CLOUDPILLS()}${BIRDS(3)}</div><div class="ls-fx">${lay}${MOTES(R, 10)}<i class="wss-vig"></i></div>`;
+}
+function bLagoon(o) {
+  const R = rnd(23), H = o.H;
+  const rays = [[6, -14, 17], [24, -7, 23], [44, 4, 19], [62, 10, 27], [80, 18, 21]].map(([l, r, t]) => `<i class="ls-ray" style="left:${l}%;--r:${r}deg;--t:${t}s"></i>`).join('');
+  const bubs = Array.from({ length: 22 }, () => { const z = 5 + Math.floor(R() * 12); return `<i class="ls-bub" style="left:${Math.floor(R() * 96)}%;width:${z}px;height:${z}px;animation-duration:${14 + Math.floor(R() * 14)}s;animation-delay:${-Math.floor(R() * 24)}s"></i>`; }).join('');
+  const kelp = [[4, 70, 4.8], [14, 96, 6.2], [26, 60, 5.4], [70, 84, 6.8], [82, 106, 5.1], [92, 64, 5.9]].map(([l, h, t], i) => `<svg class="ls-kelp" style="left:${l}%;height:${h * H / 880 * 1.6}px;width:22px;animation-duration:${t}s;animation-delay:${-i * 1.1}s" viewBox="0 0 22 100" preserveAspectRatio="none" aria-hidden="true"><path d="M11 100 C 2 80 20 66 11 48 C 3 32 18 18 11 0 C 17 18 22 32 14 48 C 22 66 6 80 15 100 Z" style="fill:var(--near)"/></svg>`).join('');
+  const jelly = `<svg class="ls-jelly" viewBox="0 0 60 90" aria-hidden="true"><path d="M6 40 C 6 8 54 8 54 40 Z" style="fill:var(--glow)" opacity=".55"/><path d="M14 40 q2 22 -2 44 M26 40 q-2 24 2 46 M38 40 q2 22 -2 40 M48 40 q-2 18 2 36" fill="none" style="stroke:var(--glow)" stroke-width="2" stroke-linecap="round" opacity=".5"/></svg>`;
+  return `<div class="ls-sky">${rays}</div><div class="ls-fx">${jelly}${bubs}<i style="position:absolute;left:0;right:0;bottom:0;height:7%;background:var(--near)"></i>${kelp}<i class="wss-vig"></i></div>`;
+}
+function bSakura(o) {
+  const R = rnd(29), H = o.H, lay = [lyr(hills(51, 'color-mix(in srgb,var(--sky) 40%,var(--c2))', 1, 2, 80, 24), Math.round(H * .3), 2), lyr(hills(55, 'var(--far)', 2, 3, 94, 20), Math.round(H * .22), 4), lyr(hills(59, 'var(--mid)', 2, 4, 112, 14), Math.round(H * .13), 7)].join('');
+  const petals = Array.from({ length: 22 }, () => { const z = 8 + Math.floor(R() * 8); return `<i class="ls-pt" style="left:${Math.floor(R() * 96)}%;width:${z}px;height:${Math.round(z * 1.3)}px;animation-duration:${13 + Math.floor(R() * 12)}s;animation-delay:${-Math.floor(R() * 22)}s"></i>`; }).join('');
+  const bl = [[196, 30, 8], [170, 42, 6], [150, 52, 9], [128, 58, 6], [104, 70, 8], [86, 78, 6], [60, 92, 8], [40, 104, 6], [20, 114, 7], [184, 56, 5], [120, 40, 7], [90, 54, 5]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" style="fill:var(--glow)" opacity=".85"/><circle cx="${x - 2}" cy="${y - 2}" r="${r * .45}" style="fill:var(--txt)" opacity=".7"/>`).join('');
+  const branch = `<svg class="ls-branch" viewBox="0 0 220 140" aria-hidden="true"><g fill="none" style="stroke:var(--near)" stroke-linecap="round"><path d="M222 18 C 176 30 140 46 100 68 S 34 104 4 118" stroke-width="5"/><path d="M160 38 C 150 20 128 12 108 12 M116 60 C 106 84 90 96 74 104 M196 28 C 192 50 182 64 164 74" stroke-width="2.6"/></g>${bl}</svg>`;
+  return `<div class="ls-sky"><i class="ls-orb"></i>${CLOUDPILLS()}<i class="ls-mist"></i></div><div class="ls-fx">${lay}${petals}</div>${branch}`;
+}
+/* soft recolorable gradients */
+const bBlobs = () => `<i class="ls-blob a" style="--b:var(--glow)"></i><i class="ls-blob b" style="--b:var(--warm)"></i><i class="ls-blob c" style="--b:var(--sky)"></i><i class="ls-blob d" style="--b:var(--glow)"></i>`;
+const bPan = () => `<i class="ls-pan"></i><i class="ls-sunglow"></i>`;
+const bWaves = () => [[41, 'var(--glow)', 1, 2, 70, 26, .22, 80, 55], [43, 'var(--warm)', 2, 3, 80, 22, .22, 60, 40], [47, 'var(--glow)', 2, 4, 96, 16, .3, 44, 28], [53, 'var(--sky)', 3, 5, 112, 12, .5, 30, 18], [59, 'var(--near)', 2, 3, 150, 10, .55, 16, 12]].map(([s, f, a, b, ba, am, op, hp, d]) => wv(hills(s, f, a, b, ba, am, op), hp, d)).join('');
+const bVhs = () => `<i class="ls-pan" style="animation-duration:60s;animation-name:lsPan"></i><i class="ls-roll"></i><i class="ls-scan"></i>`;
+const bGrain = () => `<i class="ls-pan" style="animation-duration:80s"></i><i class="ls-grain"></i>`;
+const bConic = () => `<i class="ls-conic"></i>`;
+
+/* ---- extra scenes ---- */
+function bDunes(o) {
+  const R = rnd(61), H = o.H, lay = [lyr(hills(81, 'var(--far)', 1, 2, 80, 22), Math.round(H * .34), 2.5), lyr(hills(83, 'var(--mid)', 1, 3, 96, 20), Math.round(H * .26), 5), lyr(hills(87, 'var(--near)', 2, 3, 120, 16), Math.round(H * .16), 10)].join('');
+  return `<div class="ls-sky">${starsEl(R, 52, 30, 520)}${MOON}${SHOOT}<i class="wss-haze"></i></div><div class="ls-fx">${lay}${MOTES(R, 12)}<i class="wss-vig"></i></div>`;
+}
+function bPeaks(o) {
+  const H = o.H, lay = [lyr(hills(91, 'var(--far)', 1, 2, 70, 44), Math.round(H * .42), 2), lyr(hills(93, 'var(--mid)', 2, 3, 86, 38), Math.round(H * .32), 4), lyr(hills(97, 'var(--near)', 2, 4, 112, 24), Math.round(H * .2), 8)].join('');
+  return `<div class="ls-sky" style="--sunb:42%">${PLAIN_SUN}${CLOUDPILLS()}${BIRDS(4)}</div><div class="ls-fx">${lay}<i class="ls-mist"></i><i class="ls-mist m2"></i><i class="wss-vig"></i></div>`;
+}
+function bLanterns(o) {
+  const R = rnd(71), w = wv(hills(101, 'var(--mid)', 2, 3, 100, 12, .92), 24, 26) + wv(hills(103, 'var(--near)', 2, 5, 104, 10, .98), 14, 16);
+  const ln = Array.from({ length: 16 }, () => `<i class="ls-ln" style="left:${Math.floor(R() * 92)}%;--z:${(.6 + R() * .9).toFixed(2)};animation-duration:${22 + Math.floor(R() * 20)}s;animation-delay:${-Math.floor(R() * 40)}s"></i>`).join('');
+  return `<div class="ls-sky">${starsEl(R, 60, 26, 520)}${MOON}</div><div class="ls-fx">${ln}${w}<i class="wss-vig"></i></div>`;
+}
+function bWindow() {
+  return `<div class="ls-sky">${bBlobs()}</div><div class="ls-fx"><i class="wss-rain r1"></i><i class="wss-rain r2"></i><i class="wss-vig"></i></div>`;
+}
+function bAurora() {
+  const R = rnd(73);
+  return `<div class="ls-sky">${starsEl(R, 50, 24, 520)}<i class="ls-aur" style="--b:var(--glow)"></i><i class="ls-aur" style="--b:var(--warm);top:14%;height:44%;animation-duration:27s;animation-direction:alternate-reverse"></i><i class="ls-aur" style="--b:var(--sky);top:22%;height:50%;animation-duration:33s"></i></div>`;
+}
+function bLava() {
+  const d = [[8, 62, 'A', 38, 'var(--glow)'], [58, 40, 'B', 52, 'var(--warm)'], [24, 12, 'C', 44, 'var(--sky)'], [70, 78, 'A', 60, 'var(--glow)'], [-6, 40, 'B', 70, 'var(--warm)'], [44, 88, 'C', 56, 'var(--sky)']];
+  return `<div class="ls-sky">${d.map(([l, t, k, du, c], i) => `<i class="ls-lv" style="left:${l}%;top:${t}%;width:${34 + i * 5}%;aspect-ratio:1;--b:${c};animation:lsBlob${k} ${du}s ease-in-out infinite ${i % 2 ? 'alternate-reverse' : 'alternate'}"></i>`).join('')}</div>`;
+}
+const bDream = () => bConic() + bBlobs();
+const SC = {
+  city: { n: 'Rainy city', e: '🌧', g: 'live', col: ['#7a3f9d', '#ff9eb5', '#ffd1a0'], pv: '#1b1030,#6a3b8f,#ff9eb5', bld: bCity },
+  drive: { n: 'Sunset drive', e: '🌅', g: 'live', col: ['#b8386b', '#ff8a6b', '#ffd27a'], pv: '#2a1450,#c9387f,#ffc27a', bld: bDrive },
+  meadow: { n: 'Cassette meadow', e: '📼', g: 'live', col: ['#3a8fb5', '#ff8f9e', '#ffe27a'], pv: '#46c9d6,#ffe27a,#e0558a', bld: bMeadow },
+  ocean: { n: 'Golden ocean', e: '⛵', g: 'live', col: ['#3b4fa8', '#ff9a6e', '#ffe0a0'], pv: '#2a2a6a,#ff9a6e,#ffe0a0', bld: bOcean },
+  forest: { n: 'Firefly woods', e: '🌲', g: 'live', col: ['#2f6f55', '#b4f07a', '#ffe98a'], pv: '#0e2a22,#2f6f55,#b4f07a', bld: bForest },
+  snow: { n: 'Snowy cabin', e: '❄️', g: 'live', col: ['#3b5bc4', '#bcd4ff', '#ffd9a0'], pv: '#0b1030,#3b5bc4,#bcd4ff', bld: bSnow },
+  space: { n: 'Drifting space', e: '🪐', g: 'live', col: ['#4b2fa0', '#ff6fc0', '#6fd8ff'], pv: '#0a0620,#4b2fa0,#ff6fc0', bld: bSpace },
+  lagoon: { n: 'Glass lagoon', e: '🫧', g: 'live', col: ['#0f7a8a', '#6fe3d4', '#d9fff0'], pv: '#0b3a4a,#1b7a8a,#d9fff0', bld: bLagoon },
+  sakura: { n: 'Sakura dusk', e: '🌸', g: 'live', col: ['#a24a8a', '#ff9ab5', '#ffe0c4'], pv: '#3a1d46,#ff9ab5,#ffe0c4', bld: bSakura },
+  blobs: { n: 'Soft blobs', e: '🔮', g: 'soft', col: ['#6b4fd6', '#ff7ab0', '#ffb86b'], pv: '#2c1a5c,#ff7ab0,#ffb86b', bld: bBlobs },
+  pan: { n: 'Slow sunrise', e: '🌄', g: 'soft', col: ['#7a2f86', '#ff7a5c', '#ffc27a'], pv: '#2a1450,#ff7a5c,#ffc27a', bld: bPan },
+  waves: { n: 'Flowing waves', e: '🌊', g: 'soft', col: ['#1f6a90', '#5fe0d0', '#ffe0a0'], pv: '#0b3a4a,#5fe0d0,#ffe0a0', bld: bWaves },
+  vhs: { n: 'VHS glow', e: '📺', g: 'soft', col: ['#3b1f7a', '#ff4fa3', '#5ff0ff'], pv: '#1a0f3d,#3b1f7a,#ff4fa3', bld: bVhs },
+  grain: { n: 'Film grain', e: '🎞', g: 'soft', col: ['#a8466a', '#f09a6a', '#f7d29a'], pv: '#3a2540,#a8466a,#f7d29a', bld: bGrain },
+  conic: { n: 'Color wheel', e: '🎡', g: 'soft', col: ['#4a3fd6', '#ff6fa8', '#4fe0c8'], pv: '#2a1f8a,#ff6fa8,#4fe0c8', bld: bConic },
+  dunes: { n: 'Desert night', e: '🏜', g: 'live', col: ['#a8553a', '#ffb08a', '#ffe2a8'], pv: '#1a0f2a,#a8553a,#ffe2a8', bld: bDunes },
+  peaks: { n: 'Misty peaks', e: '🏔', g: 'live', col: ['#3a6aa8', '#ffb0a0', '#fff0c0'], pv: '#2a3a6a,#ffb0a0,#fff0c0', bld: bPeaks },
+  lanterns: { n: 'Lantern lake', e: '🏮', g: 'live', col: ['#6a2a8a', '#ff9a6a', '#ffd070'], pv: '#120a2a,#6a2a8a,#ffd070', bld: bLanterns },
+  window: { n: 'Rainy window', e: '🪟', g: 'live', col: ['#3b5bc4', '#9db8ff', '#ffe4b0'], pv: '#0e1220,#3b5bc4,#9db8ff', bld: bWindow },
+  aurora: { n: 'Aurora', e: '🌌', g: 'soft', col: ['#2a6aa8', '#4ff0b0', '#d070ff'], pv: '#050a20,#2a6aa8,#4ff0b0', bld: bAurora },
+  lava: { n: 'Lava lamp', e: '🫠', g: 'soft', col: ['#c01f6a', '#ff7a3a', '#ffd070'], pv: '#2a0a3a,#c01f6a,#ff7a3a', bld: bLava },
+  dream: { n: 'Dream fog', e: '☁️', g: 'soft', col: ['#7a5ad8', '#ffa0d0', '#a0f0ff'], pv: '#2a1f6a,#ffa0d0,#a0f0ff', bld: bDream }
+};
+/* one-tap looks: scene + palette + matching app colors [accent, page, card] */
+const LK = [
+  ['🏜 Desert night', 'dunes', 'dune', ['#ffb08a', '#1a0f1c', '#271826']], ['🏔 Misty peaks', 'peaks', 'sky', ['#8ad0ff', '#0e1624', '#16233a']],
+  ['🏮 Lantern lake', 'lanterns', 'ember', ['#ff7a3a', '#150d1f', '#211630']], ['🌌 Aurora', 'aurora', 'emerald', ['#4ff0a8', '#06101c', '#0e1c2c']],
+  ['🫠 Lava lamp', 'lava', 'grape', ['#b07aff', '#150a24', '#201436']], ['🪟 Rainy window', 'window', 'storm', ['#8aa0c0', '#0d1119', '#161c28']],
+  ['🍬 Dream fog', 'dream', 'candy', ['#ff9ee0', '#fff4fb', '#ffffff']],
+  ['🌧 Midnight rain', 'city', 'rose', ['#ff9eb5', '#16111f', '#211a2e']], ['🌅 Sunset drive', 'drive', 'sunset', ['#ff8a6b', '#1a1020', '#271830']],
+  ['📼 Cassette meadow', 'meadow', 'cassette', ['#5fe0c8', '#0f1a24', '#172633']], ['⛵ Golden ocean', 'ocean', 'golden', ['#ffc15e', '#18110b', '#241a10']],
+  ['🌲 Firefly woods', 'forest', 'moss', ['#b4d36b', '#12150e', '#1c2114']], ['❄️ Snowy cabin', 'snow', 'rainy', ['#9db8ff', '#0e1220', '#171e33']],
+  ['🪐 Neon space', 'space', 'neon', ['#ff4fa3', '#120a26', '#1c1238']], ['🫧 Glass lagoon', 'lagoon', 'mint', ['#4fd1c5', '#071c24', '#0f2b35']],
+  ['🌸 Sakura day', 'sakura', 'peach', ['#f27d72', '#fff4ef', '#fffaf8']], ['☕ Cafe rain (day)', 'city', 'berry', ['#b5654a', '#f7efe8', '#fffaf5']]
+];
+
+/* ---------- applying ---------- */
+function toHex(css) {
+  try {
+    const c = document.createElement('canvas').getContext('2d'); c.fillStyle = '#000'; c.fillStyle = css; const v = c.fillStyle;
+    if (/^#[0-9a-f]{6}$/i.test(v)) return v;
+    const q = String(v).match(/[\d.]+/g); if (q && q.length >= 3) { const n = String(v).includes('color(') ? q.slice(-3).map(x => Math.round(x * 255)) : q.slice(0, 3).map(Number); return '#' + n.map(x => Math.max(0, Math.min(255, x)).toString(16).padStart(2, '0')).join(''); }
+  } catch (e) { } return '';
+}
+function lum(c) {
+  const m = String(c).trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i); let r, g, b;
+  if (m) { let h = m[1]; if (h.length === 3) h = h.replace(/./g, '$&$&'); r = parseInt(h.slice(0, 2), 16); g = parseInt(h.slice(2, 4), 16); b = parseInt(h.slice(4), 16); }
+  else { const q = String(c).match(/[\d.]+/g); if (!q || q.length < 3) return .2; [r, g, b] = q.slice(0, 3).map(Number); }
+  return (.2126 * r + .7152 * g + .0722 * b) / 255;
+}
+function isDay() { const m = S().mode; if (m === 'day') return true; if (m === 'night') return false; return lum(getComputedStyle(document.documentElement).getPropertyValue('--bg')) > .55; }
+function cols() {
+  const s = S(), sc = SC[s.scene]; if (s.pal === 'custom' && s.c) return s.c; if (s.pal === 'theme') return null;
+  const p = PALS.find(x => x[0] === s.pal); if (p) return { sky: p[2], glow: p[3], warm: p[4] };
+  return sc ? { sky: sc.col[0], glow: sc.col[1], warm: sc.col[2] } : null;
+}
+let built = '', openC = false;
+function speed() { const sc = $('#lofi-scene'); if (!sc || !sc.getAnimations) return; const r = +S().speed; sc.getAnimations({ subtree: true }).forEach(a => { try { if (r === 0) a.pause(); else { a.playbackRate = r; if (a.playState === 'paused') a.play(); } } catch (e) { } }); }
+function setColors(sc) { const c = cols(); ['sky', 'glow', 'warm'].forEach(k => { if (c) sc.style.setProperty('--' + k, c[k]); else sc.style.removeProperty('--' + k); }); }
+function apply() {
+  try {
+    const s = S(), de = document.documentElement, fr = $('#frame'); if (!fr) return; let sc = $('#lofi-scene');
+    if (!s.scene || !SC[s.scene]) { if (sc) sc.remove(); delete de.dataset.lscene; delete de.dataset.lglass; built = ''; return; }
+    de.dataset.lscene = s.scene; de.dataset.lglass = s.glass ? 'on' : 'off';
+    const H = fr.clientHeight || 800, sig = [s.scene, s.desk ? 1 : 0, Math.round(H / 40)].join('|');
+    if (!sc) { sc = document.createElement('div'); sc.id = 'lofi-scene'; fr.insertBefore(sc, fr.firstChild); built = ''; }
+    sc.className = isDay() ? 'd' : 'n'; sc.dataset.sc = s.scene; setColors(sc);
+    sc.style.setProperty('--lsv', (+s.veil || 0) + '%'); const nv = $('.screen.on .nav'); sc.style.setProperty('--ls-nav', (nv ? nv.offsetHeight : 0) + 'px');
+    if (sig !== built) { sc.innerHTML = SC[s.scene].bld({ H, desk: s.desk && s.scene === 'city' }) + '<i class="ls-veil"></i>'; built = sig; speed(); }
+  } catch (e) { console.warn('Lofi scenes:', e); }
+}
+function offOld() { const l = G.state.settings.lofi; if (l && l.bg) { const b = $('#lofi-set [data-lf=bg][data-a=""]'); if (b) b.click(); else { l.bg = ''; delete document.documentElement.dataset.lofibg; } } }
+function appPal(p) { const k = G.state.settings.look; k.bg = p[1]; k.card = p[2]; const lo = G.state.settings.lofi || (G.state.settings.lofi = {}); lo.calm = true; document.documentElement.dataset.calm = 'on'; G.ACT['look-set']({ dataset: { k: 'accent', v: p[0] } }); }
+const set = (k, v) => { S()[k] = v; save(); apply(); paint(); };
+
+/* ---------- settings card ---------- */
+function html() {
+  const s = S(), c = cols() || {}, cur = s.pal === 'custom' ? 'Your own colors' : s.pal === 'theme' ? 'Matching my app theme' : s.pal === 'scene' ? 'Scene\u2019s own colors' : (PALS.find(x => x[0] === s.pal) || [0, ''])[1];
+  const chip = (act, a, label, on) => `<button type="button" class="chip ${on ? 'on' : ''}" data-ls="${act}" data-a="${esc(a)}">${label}</button>`;
+  const thumb = id => { const x = SC[id]; return `<button type="button" class="ls-t ${s.scene === id ? 'on' : ''}" data-ls="scene" data-a="${id}"><i style="background:linear-gradient(160deg,${x.pv})">${x.e}</i><span>${x.n}</span></button>`; };
+  const ids = g => Object.keys(SC).filter(k => SC[k].g === g);
+  const pk = (k, label) => `<div class="row" style="margin-bottom:8px"><span class="grow sm-t b">${label}</span><input type="color" class="colorbox" data-ls-c="${k}" value="${esc(toHex(c[k] || '') || '#888888')}" aria-label="${label}"></div>`;
+  const sw = (id, nm, a, b, w) => `<button type="button" class="ls-p ${s.pal === id ? 'on' : ''}" data-ls="pal" data-a="${id}" title="${esc(nm)}" aria-label="${esc(nm)}" style="background:conic-gradient(${a} 0 33%,${b} 33% 66%,${w} 66%)"></button>`;
+  return `<summary>🎬 Lofi scenes<span class="xs sub" style="margin-left:auto;font-weight:600">${s.scene ? esc(SC[s.scene].n) : 'Off'}</span></summary><div class="stack-sm" style="margin-top:14px">
+    <p class="hint" style="margin:0">Moving scenes that sit behind the whole app. Pick one, then make it yours with the colors below.</p>
+    <p class="eyebrow" style="margin-top:10px">One-tap looks</p><div class="opts">${LK.map((x, i) => chip('look', i, x[0], false)).join('')}</div>
+    <p class="eyebrow" style="margin-top:12px">Live scenes</p><div class="ls-g">${ids('live').map(thumb).join('')}</div>
+    <p class="eyebrow" style="margin-top:12px">Soft moving gradients</p><div class="ls-g">${ids('soft').map(thumb).join('')}</div>
+    ${s.scene ? `<p class="eyebrow" style="margin-top:14px">Scene colors</p>
+    <div class="opts" style="margin-bottom:10px">${chip('pal', 'scene', 'Scene\u2019s own', s.pal === 'scene')}${chip('pal', 'theme', 'Match my app theme', s.pal === 'theme')}</div>
+    <div class="ls-pg">${PALS.map(p => sw(p[0], p[1], p[2], p[3], p[4])).join('')}</div>
+    <p class="xs sub" style="margin:8px 0 12px">${esc(cur)}</p>
+    <p class="eyebrow" style="margin-bottom:8px">Make your own</p>${pk('sky', 'Main color')}${pk('glow', 'Glow and lights')}${pk('warm', 'Warm light (sun, windows)')}
+    <p class="eyebrow" style="margin-top:10px">Light</p><div class="opts">${[['auto', 'Match my theme'], ['night', '🌙 Night'], ['day', '☀️ Day']].map(x => chip('mode', x[0], x[1], s.mode === x[0])).join('')}</div>
+    <p class="hint">Night scenes read best with a dark theme, day scenes with a light one. “Match my theme” picks for you.</p>
+    <p class="eyebrow" style="margin-top:8px">Speed</p><div class="opts">${[[0, '⏸ Still'], [.5, 'Dreamy'], [1, 'Normal'], [1.8, 'Lively']].map(x => chip('speed', x[0], x[1], +s.speed === x[0])).join('')}</div>
+    <label class="fld" style="margin-top:10px"><span>Scene veil (calms it behind text) <b>${+s.veil}%</b></span><input type="range" min="0" max="70" step="2" value="${+s.veil}" data-ls-r="veil" style="width:100%"></label>
+    <label class="row b sm-t" style="padding:6px 0"><input type="checkbox" class="chk" data-ls-t="glass" ${s.glass ? 'checked' : ''}> Glass cards and bars (see the scene through them)</label>
+    ${s.scene === 'city' ? `<label class="row b sm-t" style="padding:6px 0"><input type="checkbox" class="chk" data-ls-t="desk" ${s.desk ? 'checked' : ''}> Add the cosy desk from the screensaver</label>` : ''}
+    <button type="button" class="btn btn-line btn-sm block" style="margin-top:12px" data-ls="off">Turn scene off</button>` : ''}</div>`;
+}
+function paint() { const c = $('#lofi-scenes'); if (c) c.innerHTML = html(); }
+function inject() {
+  apply();
+  if ($('[data-act=acc][data-k=data]') && !$('#lofi-scenes')) {
+    const d = document.createElement('details'); d.id = 'lofi-scenes'; d.className = 'card acc'; d.open = openC; d.addEventListener('toggle', () => { openC = d.open; }); d.innerHTML = html();
+    const old = $('#lofi-set'); if (old) old.insertAdjacentElement('afterend', d); else { const p = $$('.page > p.hint').pop(); if (p) p.parentNode.insertBefore(d, p); }
+  }
+}
+new MutationObserver(inject).observe($('#scroll'), { childList: true });
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(apply, 250); });
+setInterval(() => { const sc = $('#lofi-scene'); if (sc && S().mode === 'auto' && sc.classList.contains('d') !== isDay()) apply(); }, 2500);
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-ls]'); if (!t || !t.closest('#lofi-scenes')) return; const a = t.dataset.a, s = S();
+  switch (t.dataset.ls) {
+    case 'scene': s.scene = a; if (s.pal === 'custom' && !s.c) s.pal = 'scene'; save(); offOld(); apply(); paint(); break;
+    case 'look': { const x = LK[+a]; Object.assign(s, { scene: x[1], pal: x[2], mode: 'auto', glass: true, veil: 16, speed: 1 }); save(); offOld(); apply(); appPal(x[3]); paint(); break; }
+    case 'pal': s.pal = a; save(); apply(); paint(); break;
+    case 'mode': set('mode', a); break;
+    case 'speed': s.speed = +a; save(); speed(); paint(); break;
+    case 'off': s.scene = ''; save(); apply(); paint(); break;
+  }
+});
+document.addEventListener('click', e => { const t = e.target.closest('#lofi-set [data-lf]'); if (!t) return; const k = t.dataset.lf; if ((k === 'bg' && t.dataset.a) || k === 'look') { const s = S(); if (s.scene) { s.scene = ''; save(); apply(); paint(); } } }, true);
+document.addEventListener('change', e => {
+  const t = e.target; if (!t.dataset) return;
+  if (t.dataset.lsT) { S()[t.dataset.lsT] = t.checked; save(); apply(); paint(); }
+  if (t.dataset.lsR) save();
+  if (t.dataset.lsC) { save(); paint(); }
+});
+document.addEventListener('input', e => {
+  const t = e.target; if (!t.dataset) return;
+  if (t.dataset.lsR) { const s = S(); s[t.dataset.lsR] = +t.value; apply(); const b = t.closest('label').querySelector('b'); if (b) b.textContent = t.value + '%'; }
+  if (t.dataset.lsC) { const s = S(), c = cols() || {}; s.c = { sky: toHex(c.sky || '') || '#6b4fd6', glow: toHex(c.glow || '') || '#ff9eb5', warm: toHex(c.warm || '') || '#ffd1a0', ...(s.c || {}) }; s.c[t.dataset.lsC] = t.value; s.pal = 'custom'; apply(); }
+});
+inject();
+})();
+</script>
+
 <style>
 /* =====================================================================
    PRINT LABELS page
