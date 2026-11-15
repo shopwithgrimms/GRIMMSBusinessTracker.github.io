@@ -7803,6 +7803,7 @@ button.ts-item:hover{border-color:color-mix(in srgb,var(--p) 50%,var(--line));bo
 .ts-fh.on+*{margin-top:8px}
 .ts-foldbar{display:flex;justify-content:flex-end;gap:14px;font-size:11.5px;font-weight:700;color:var(--p)}
 .pk-main .pk-sl{display:flex;align-items:center;gap:6px;min-width:0;margin-top:2px}.pk-pill{font-size:11px;padding:2px 9px;flex:none;font-weight:800}.pk-row.dis .pk-pill{opacity:1}
+.pk-gh{display:flex;align-items:center;gap:8px;padding:14px 6px 6px;border-bottom:2px solid var(--line)}.pk-gh .pk-pill{font-size:12px;padding:3px 12px}.pk-gc{font-size:12px;font-weight:700;color:var(--sub)}
 .pk-sortl{display:flex;align-items:center;gap:8px;margin-top:8px}.pk-sortl .select{flex:1}
 .ts-vs{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px;border:1px solid var(--line);border-radius:11px;background:color-mix(in srgb,var(--sub) 8%,transparent)}
 .ts-vs button{padding:7px 4px;border-radius:8px;font-size:12px;font-weight:700;color:var(--sub)}
@@ -8550,11 +8551,26 @@ function dayPlanCard() {
 }
 const PK = { dates: [], sel: new Set(), tab: 'product', q: '', cal: '', calOpen: false, blkOpen: false, blocks: new Set() };
 const pkMatch = (q, parts) => { const h = parts.join(' ').toLowerCase(); return q.toLowerCase().split(/\s+/).filter(Boolean).every(w => h.includes(w)); };
+const PK_ADD = [['notadded', 'Not added to the day yet first'], ['added', 'Already added to the day first']];
 const PK_SORTS = {
-  product: [['name', 'Name A–Z'], ['namez', 'Name Z–A'], ['sku', 'SKU: low to high'], ['skuh', 'SKU: high to low'], ['stock', 'Stock: low to high'], ['stockh', 'Stock: high to low'], ['price', 'Price: high to low'], ['pricel', 'Price: low to high'], ['unplan', 'Unplanned first (not added yet)'], ['plan', 'Planned first (already added)']],
-  listing: [['name', 'Name A–Z'], ['namez', 'Name Z–A'], ['sku', 'SKU: low to high'], ['skuh', 'SKU: high to low'], ['status', 'Status'], ['price', 'Price: high to low'], ['pricel', 'Price: low to high'], ['unplan', 'Unplanned first (not added yet)'], ['plan', 'Planned first (already added)']],
-  order: [['new', 'Newest first'], ['old', 'Oldest first'], ['ship', 'Ship-by date'], ['cust', 'Customer A–Z'], ['status', 'Status'], ['unplan', 'Unplanned first (not added yet)'], ['plan', 'Planned first (already added)']]
+  product: [['name', 'Name A–Z'], ['namez', 'Name Z–A'], ['status', 'Stock status (out, low, in stock)'], ['sku', 'SKU: low to high'], ['skuh', 'SKU: high to low'], ['stock', 'Stock: low to high'], ['stockh', 'Stock: high to low'], ['price', 'Price: high to low'], ['pricel', 'Price: low to high']].concat(PK_ADD),
+  listing: [['name', 'Name A–Z'], ['namez', 'Name Z–A'], ['status', 'Status (grouped)'], ['plan', 'Planned first'], ['unplan', 'Unplanned first'], ['sku', 'SKU: low to high'], ['skuh', 'SKU: high to low'], ['price', 'Price: high to low'], ['pricel', 'Price: low to high']].concat(PK_ADD),
+  order: [['new', 'Newest first'], ['old', 'Oldest first'], ['status', 'Status (grouped)'], ['ship', 'Ship-by date'], ['cust', 'Customer A–Z']].concat(PK_ADD)
 };
+const LST_ORDER = ['Planned', 'Active', 'Paused', 'Sold', 'Expired'], ORD_ORDER = Object.keys(ORD_TONE);
+// which group an item belongs to, for the headings in the list
+function pkGroup(tab, mode, r) {
+  if (mode === 'added' || mode === 'notadded') return pkHave(r.k) ? { rank: mode === 'added' ? 0 : 1, label: 'Added to the day', tone: 'ok' } : { rank: mode === 'added' ? 1 : 0, label: 'Not added yet', tone: 'mute' };
+  const o = r.o;
+  if (tab === 'listing' && (mode === 'status' || mode === 'plan' || mode === 'unplan')) {
+    let rank = Math.max(0, LST_ORDER.indexOf(o.status));
+    if (mode === 'plan') rank = o.status === 'Planned' ? 0 : rank + 1; else if (mode === 'unplan') rank = o.status === 'Planned' ? 99 : rank;
+    return { rank, label: o.status || 'No status', tone: LST_TONE[o.status] || 'mute' };
+  }
+  if (tab === 'order' && mode === 'status') return { rank: Math.max(0, ORD_ORDER.indexOf(o.status)), label: o.status || 'No status', tone: ORD_TONE[o.status] || 'mute' };
+  if (tab === 'product' && mode === 'status') { const t = stockTag(o); return t.tone === 'bad' ? { rank: 0, label: 'Out of stock', tone: 'bad' } : t.tone === 'warn' ? { rank: 1, label: 'Low stock', tone: 'warn' } : t.tone === 'ok' ? { rank: 2, label: 'In stock', tone: 'ok' } : { rank: 3, label: 'No stock count', tone: 'mute' }; }
+  return null;
+}
 const pkSortMode = tab => { const m = (T().pkSort || {})[tab], o = PK_SORTS[tab]; return o.some(x => x[0] === m) ? m : o[0][0]; };
 const pkSortHtml = () => `<label class="pk-sortl"><span class="eyebrow" style="flex:none">Sort</span><select class="select sm" data-pk="sort" aria-label="Sort list">${PK_SORTS[PK.tab].map(x => `<option value="${x[0]}" ${pkSortMode(PK.tab) === x[0] ? 'selected' : ''}>${x[1]}</option>`).join('')}</select></label>`;
 function pkSortRows(tab, out) {
@@ -8562,20 +8578,19 @@ function pkSortRows(tab, out) {
   const n = v => { const x = parseFloat(v); return isNaN(x) ? null : x; };
   const numCmp = (a, b, dir) => { a = n(a); b = n(b); if (a === null && b === null) return 0; if (a === null) return 1; if (b === null) return -1; return dir * (a - b); };
   const nm = (a, b) => cmp(a.r.i.name, b.r.i.name), tie = (a, b) => tab === 'order' ? (b.o.no || 0) - (a.o.no || 0) : nm(a, b);
-  const hv = z => pkHave(z.r.k) ? 1 : 0;
+  const gr = (a, b) => { const x = pkGroup(tab, m, Object.assign(a.r, { o: a.o })), y = pkGroup(tab, m, Object.assign(b.r, { o: b.o })); return (x ? x.rank : 0) - (y ? y.rank : 0) || tie(a, b); };
   const f = {
     name: nm, namez: (a, b) => -nm(a, b),
     sku: (a, b) => { const x = a.r.i.sku, y = b.r.i.sku; if (!x !== !y) return x ? -1 : 1; return cmp(x, y) || nm(a, b); },
     skuh: (a, b) => { const x = a.r.i.sku, y = b.r.i.sku; if (!x !== !y) return x ? -1 : 1; return cmp(y, x) || nm(a, b); },
     stock: (a, b) => numCmp(a.o.qty, b.o.qty, 1) || nm(a, b), stockh: (a, b) => numCmp(a.o.qty, b.o.qty, -1) || nm(a, b),
     price: (a, b) => numCmp(a.o.price, b.o.price, -1) || nm(a, b), pricel: (a, b) => numCmp(a.o.price, b.o.price, 1) || nm(a, b),
-    status: (a, b) => cmp(a.o.status, b.o.status) || nm(a, b),
-    plan: (a, b) => hv(b) - hv(a) || tie(a, b), unplan: (a, b) => hv(a) - hv(b) || tie(a, b),
+    status: gr, plan: gr, unplan: gr, added: gr, notadded: gr,
     new: (a, b) => (b.o.no || 0) - (a.o.no || 0), old: (a, b) => (a.o.no || 0) - (b.o.no || 0),
     ship: (a, b) => { const x = a.o.shipBy, y = b.o.shipBy; if (!x !== !y) return x ? -1 : 1; return cmp(x, y) || ((b.o.no || 0) - (a.o.no || 0)); },
     cust: (a, b) => cmp(a.o.customer, b.o.customer) || ((b.o.no || 0) - (a.o.no || 0))
   }[m];
-  return out.slice().sort(f).map(z => z.r);
+  return out.slice().sort(f).map(z => Object.assign(z.r, { o: z.o }));
 }
 function pkRows(tab, q) {
   const S = G.state; let out = [];
@@ -8588,10 +8603,13 @@ function pkRows(tab, q) {
 function pkOpts() { const m = new Map(); PK.dates.forEach(d => dayBlocks(d).forEach(b => { if (!m.has(b.k)) m.set(b.k, b); })); return [...m.values()]; }
 function pkHave(k) { const all = PK.dates.length ? PK.dates : [today()]; if (PK.blocks.size) return all.every(d => [...PK.blocks].every(bk => blkItems(d, bk).includes(k) || !dayBlocks(d).some(b => b.k === bk))); return all.every(d => dayKeys(d).includes(k)); }
 function pkListHtml() {
-  const rows = pkRows(PK.tab, PK.q), all = PK.dates.length ? PK.dates : [today()], cap = 150;
+  const rows = pkRows(PK.tab, PK.q), cap = 150, mode = pkSortMode(PK.tab);
   if (!rows.length) return `<p class="ts-empty">${PK.q ? 'No matches for “' + esc(PK.q) + '”.' : 'Nothing here yet.'}</p>`;
-  return rows.slice(0, cap).map(r => { const have = pkHave(r.k), on = PK.sel.has(r.k) || have;
-    return `<button type="button" class="pk-row${on ? ' on' : ''}${have ? ' dis' : ''}" data-ts="pk-tog" data-k="${esc(r.k)}"><span class="pk-cb">${I('check', 13)}</span><span class="pk-main"><b class="trunc">${esc(r.i.name)}</b>${r.i.st || r.i.sub2 ? `<span class="pk-sl">${stPill(r.i)}${r.i.sub2 ? `<span class="trunc">${esc(r.i.sub2)}</span>` : ''}</span>` : ''}</span>${have ? '<span class="pill ok pk-pill">Added</span>' : ''}${r.i.sku ? `<code class="pk-sku">${esc(r.i.sku)}</code>` : ''}</button>`; }).join('') + (rows.length > cap ? `<p class="hint" style="text-align:center;margin:8px 0">Showing the first ${cap} of ${rows.length}. Type in the search box to narrow it down.</p>` : '');
+  const cnt = {}; const gs = rows.map(r => pkGroup(PK.tab, mode, r)); gs.forEach(g => { if (g) cnt[g.label] = (cnt[g.label] || 0) + 1; });
+  let last = null;
+  return rows.slice(0, cap).map((r, ix) => { const have = pkHave(r.k), on = PK.sel.has(r.k) || have, g = gs[ix];
+    const head = g && g.label !== last ? `<div class="pk-gh"><span class="pill ${g.tone} pk-pill">${esc(g.label)}</span><span class="pk-gc">${cnt[g.label]}</span></div>` : ''; if (g) last = g.label;
+    return head + `<button type="button" class="pk-row${on ? ' on' : ''}${have ? ' dis' : ''}" data-ts="pk-tog" data-k="${esc(r.k)}"><span class="pk-cb">${I('check', 13)}</span><span class="pk-main"><b class="trunc">${esc(r.i.name)}</b>${r.i.st || r.i.sub2 ? `<span class="pk-sl">${stPill(r.i)}${r.i.sub2 ? `<span class="trunc">${esc(r.i.sub2)}</span>` : ''}</span>` : ''}</span>${have ? '<span class="pill ok pk-pill">Added</span>' : ''}${r.i.sku ? `<code class="pk-sku">${esc(r.i.sku)}</code>` : ''}</button>`; }).join('') + (rows.length > cap ? `<p class="hint" style="text-align:center;margin:8px 0">Showing the first ${cap} of ${rows.length}. Type in the search box to narrow it down.</p>` : '');
 }
 function pkTabsHtml() {
   return [['product', 'Products'], ['listing', 'Listings'], ['order', 'Orders']].map(t => `<button type="button" class="${PK.tab === t[0] ? 'on' : ''}" data-ts="pk-tab" data-v="${t[0]}">${t[1]}<i>${pkRows(t[0], PK.q).length}</i></button>`).join('');
