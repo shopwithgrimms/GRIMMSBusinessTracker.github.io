@@ -7728,6 +7728,14 @@ inject();
 .ref-tabs button i{font-style:normal;margin-left:6px;opacity:.75;font-size:11px}.ref-tabs button.on{background:var(--p);border-color:var(--p);color:#fff}
 .ref-wrap{margin-bottom:10px}.ref-rm{text-align:right;margin-top:2px}.ref-rm .link{font-size:12px;color:var(--sub)}
 .pk-top.free{position:static}
+.pk-blkt{display:flex;align-items:center;gap:8px;width:100%;border:1px solid var(--line);background:none;border-radius:10px;padding:7px 10px;color:inherit;cursor:pointer;text-align:left}
+.pk-blkt .pk-lbl{flex:none}.pk-blks-sum{flex:1;min-width:0;font-size:12px;font-weight:600;color:var(--sub);text-align:right}
+.pk-blkl{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:96px;overflow-y:auto}
+#ts-modal .pk-dates{margin-bottom:8px}#ts-modal .pk-blks{margin:0 0 8px;display:block}
+#ts-modal .pk-top{padding:0 0 6px;margin-bottom:2px}
+#ts-modal .pk-search .input{padding:8px 0}
+#ts-modal .pk-tabs{margin-top:6px}#ts-modal .pk-tabs button{padding:6px 6px}
+#ts-modal .pk-row{padding:8px 6px}
 .pk-addd.on{background:var(--p);border-color:var(--p);color:#fff;border-style:solid}
 .pk-cal{flex-basis:100%;margin-top:6px;border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--bg)}
 .pk-calh{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
@@ -8513,7 +8521,7 @@ function dayPlanCard() {
     ${date !== td ? `<button class="btn btn-line btn-sm block" data-ts="dp-nav" data-d="0">Jump to today</button>` : ''}
     ${rows ? `<div class="pk-items">${rows}</div>` : '<p class="ts-empty">Nothing planned for this day yet. Add the products, listings or orders you will work on. They only apply to the days you pick and show on your exported timesheet.</p>'}</div>`;
 }
-const PK = { dates: [], sel: new Set(), tab: 'product', q: '', cal: '', calOpen: false, blocks: new Set() };
+const PK = { dates: [], sel: new Set(), tab: 'product', q: '', cal: '', calOpen: false, blkOpen: false, blocks: new Set() };
 const pkMatch = (q, parts) => { const h = parts.join(' ').toLowerCase(); return q.toLowerCase().split(/\s+/).filter(Boolean).every(w => h.includes(w)); };
 function pkRows(tab, q) {
   const S = G.state; let out = [];
@@ -8542,23 +8550,26 @@ function pkCalHtml() {
 }
 function pkBlocksHtml() {
   const o = pkOpts(); if (!o.length) return '';
-  return `<div class="pk-blks"><span class="pk-lbl">Also show on</span>${o.map(b => `<button type="button" class="pk-blk${PK.blocks.has(b.k) ? ' on' : ''}" data-ts="pk-blk" data-k="${esc(b.k)}">${esc(b.title)}${b.time ? `<i>${esc(b.time)}</i>` : ''}</button>`).join('')}<span class="hint" style="flex-basis:100%;margin:2px 0 0">Optional. Items always go on the day. Pick blocks to have them show up while you work on those blocks.</span></div>`;
+  const sel = o.filter(b => PK.blocks.has(b.k)), n = sel.length;
+  const sum = n ? sel.map(b => esc(b.title)).join(', ') : 'None';
+  return `<div class="pk-blks"><button type="button" class="pk-blkt${PK.blkOpen ? ' on' : ''}" data-ts="pk-blkopen"><span class="pk-lbl">Attach to a time block</span><span class="pk-blks-sum trunc">${PK.blkOpen ? 'Optional' : sum}</span>${I(PK.blkOpen ? 'chevU' : 'chevD', 13)}</button>${PK.blkOpen ? `<div class="pk-blkl">${o.map(b => `<button type="button" class="pk-blk${PK.blocks.has(b.k) ? ' on' : ''}" data-ts="pk-blk" data-k="${esc(b.k)}">${esc(b.title)}${b.time ? `<i>${esc(b.time)}</i>` : ''}</button>`).join('')}<span class="hint" style="flex-basis:100%;margin:2px 0 0">Optional. Items always go on the day. Pick a block to also see them while you work on it.</span></div>` : ''}</div>`;
 }
 function pkDatesHtml() {
   return `<div class="pk-dates"><span class="pk-lbl">For</span>${PK.dates.map(d => `<span class="pk-chip">${esc(dLab(d))}${PK.dates.length > 1 ? `<button type="button" data-ts="pk-dx" data-d="${d}" aria-label="Remove ${esc(dLab(d))}">${I('x', 11)}</button>` : ''}</span>`).join('')}<button type="button" class="pk-addd${PK.calOpen ? ' on' : ''}" data-ts="pk-cal">${I(PK.calOpen ? 'chevU' : 'plus', 12)}${PK.calOpen ? 'Done' : 'Pick dates'}</button>${PK.calOpen ? '' : `<button type="button" class="link" data-ts="pk-range" data-v="week">Rest of week</button><button type="button" class="link" data-ts="pk-range" data-v="7">Next 7 days</button>`}${PK.calOpen ? pkCalHtml() : ''}</div>${pkBlocksHtml()}`;
 }
 function pkFoot() { const n = PK.sel.size; return `<button class="btn btn-line" data-ts="mclose">Cancel</button><button class="btn btn-primary grow" data-ts="pk-save" ${n ? '' : 'disabled'}>${n ? 'Add ' + n + ' item' + (n === 1 ? '' : 's') + ' to ' + PK.dates.length + ' day' + (PK.dates.length === 1 ? '' : 's') : 'Pick something to add'}</button>`; }
-function pkTop() { return `<div class="pk-top${PK.calOpen ? ' free' : ''}">${pkDatesHtml()}<label class="pk-search">${I('search', 15)}<input class="input" data-pk="q" value="${esc(PK.q)}" placeholder="Search name, SKU, customer…" autocomplete="off" autocapitalize="off" spellcheck="false"></label><div class="pk-tabs" id="pk-tabs">${pkTabsHtml()}</div></div>`; }
+function pkTop() { return `${pkDatesHtml()}<div class="pk-top"><label class="pk-search">${I('search', 15)}<input class="input" data-pk="q" value="${esc(PK.q)}" placeholder="Search name, SKU, customer…" autocomplete="off" autocapitalize="off" spellcheck="false"></label><div class="pk-tabs" id="pk-tabs">${pkTabsHtml()}</div></div>`; }
 function pkPaint(keepFocus) {
   const m = $('#ts-modal') || mk('ts-modal');
-  const top = $('.pk-top', m); if (!top) { modal('Add to your day', pkTop() + `<div id="pk-list">${pkListHtml()}</div>`, pkFoot(), 'Pick products, listings or orders, and the day or days they are for'); return; }
+  const top = $('.pk-top', m); if (!top) { modal('Add to your day', pkTop() + `<div id="pk-list">${pkListHtml()}</div>`, pkFoot()); return; }
   $('#pk-list', m).innerHTML = pkListHtml(); $('#pk-tabs', m).innerHTML = pkTabsHtml(); $('.sheet-foot', m).innerHTML = pkFoot();
   const dd = $('.pk-dates', m); if (dd && !keepFocus) { const bb = $('.pk-blks', m); if (bb) bb.remove(); dd.outerHTML = pkDatesHtml(); }
 }
 function pkFull() { closeModal(); pkPaint(); }
 function pkMore() { const m = $('#ts-modal'); if (!m || !$('#pk-list', m)) return; $('#pk-list', m).innerHTML = pkListHtml(); $('.sheet-foot', m).innerHTML = pkFoot(); }
-function pkOpen(date, blockKey) { PK.dates = [date || today()]; PK.blocks = new Set(blockKey ? [blockKey] : []); PK.sel = new Set(); PK.tab = 'product'; PK.q = ''; PK.cal = ''; PK.calOpen = false; closeModal(); pkPaint(); }
+function pkOpen(date, blockKey) { PK.dates = [date || today()]; PK.blocks = new Set(blockKey ? [blockKey] : []); PK.sel = new Set(); PK.tab = 'product'; PK.q = ''; PK.cal = ''; PK.calOpen = false; PK.blkOpen = false; closeModal(); pkPaint(); }
 Object.assign(HX, {
+  'pk-blkopen': () => { PK.blkOpen = !PK.blkOpen; pkPaint(); },
   'pk-open': el => pkOpen(el.dataset.d, el.dataset.k), 'pk-blk': el => { const k = el.dataset.k; if (PK.blocks.has(k)) PK.blocks.delete(k); else PK.blocks.add(k); pkPaint(); pkMore(); }, 'dp-nav': el => { const d = +el.dataset.d; dpDate = d === 0 ? null : addDays(dpDate || today(), d); paintSheet(); },
   'dp-del': el => { const t = T(), a = t.dayItems[el.dataset.d]; if (!a) return; t.dayItems[el.dataset.d] = a.filter(x => x !== el.dataset.k); if (!t.dayItems[el.dataset.d].length) delete t.dayItems[el.dataset.d]; const bi = t.blockItems[el.dataset.d]; if (bi) { Object.keys(bi).forEach(b => { bi[b] = bi[b].filter(x => x !== el.dataset.k); if (!bi[b].length) delete bi[b]; }); if (!Object.keys(bi).length) delete t.blockItems[el.dataset.d]; } save(); paintSheet(); paintBar(true); },
   'dp-view': () => refOpen(), 'ref-open': el => refOpen(el.dataset.d, el.dataset.v), 'ref-tab': el => { REF.v = el.dataset.v; refPaint(); $$('#ts-modal .ref-tabs button').forEach(x => x.classList.toggle('on', x.dataset.v === REF.v)); },
