@@ -7804,6 +7804,7 @@ button.ts-item:hover{border-color:color-mix(in srgb,var(--p) 50%,var(--line));bo
 .ts-foldbar{display:flex;justify-content:flex-end;gap:14px;font-size:11.5px;font-weight:700;color:var(--p)}
 .pk-main .pk-sl{display:flex;align-items:center;gap:6px;min-width:0;margin-top:2px}.pk-pill{font-size:11px;padding:2px 9px;flex:none;font-weight:800}.pk-row.dis .pk-pill{opacity:1}
 .pk-gh{display:flex;align-items:center;gap:8px;padding:14px 6px 6px;border-bottom:2px solid var(--line)}.pk-gh .pk-pill{font-size:12px;padding:3px 12px}.pk-gc{font-size:12px;font-weight:700;color:var(--sub)}
+.pk-quick{margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--p) 5%,transparent)}.pk-qs{display:flex;gap:6px;flex-wrap:wrap}
 .pk-sortl{display:flex;align-items:center;gap:8px;margin-top:8px}.pk-sortl .select{flex:1}
 .ts-vs{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px;border:1px solid var(--line);border-radius:11px;background:color-mix(in srgb,var(--sub) 8%,transparent)}
 .ts-vs button{padding:7px 4px;border-radius:8px;font-size:12px;font-weight:700;color:var(--sub)}
@@ -8481,6 +8482,21 @@ function dayBlocks(date) {
   if (run) return run.entries.filter(e => e.kind !== 'break').map(e => ({ k: blkKeyOf(e), title: e.title, time: e.pStart ? tLab(e.pStart) : '' }));
   return schedFor(date).filter(b => b.kind !== 'break').map(b => ({ k: b.id, title: b.title, time: tLab(b.start) }));
 }
+let LM = null;
+const LST_RANK = ['Active', 'Paused', 'Planned', 'Sold', 'Expired'];
+function lstMap() {
+  if (LM && Date.now() - LM.t < 400) return LM;
+  const m = new Map();
+  (G.state.listings || []).forEach(l => { if (l.archived) return; [l.productId].concat(Array.isArray(l.bundle) ? l.bundle : []).filter(Boolean).forEach(id => { if (!m.has(id)) m.set(id, []); if (!m.get(id).includes(l)) m.get(id).push(l); }); });
+  return LM = { t: Date.now(), m };
+}
+// is this product inside any listing, and which one(s)
+function prodListInfo(p) {
+  const ls = (lstMap().m.get(p.id) || []).slice().sort((a, b) => LST_RANK.indexOf(a.status) - LST_RANK.indexOf(b.status));
+  if (!ls.length) return { n: 0, pill: 'Not in a listing', tone: 'warn' };
+  const l = ls[0];
+  return { n: ls.length, pill: (l.sku || l.title || 'Listing') + (l.status ? ' · ' + l.status : '') + (ls.length > 1 ? ' +' + (ls.length - 1) : ''), tone: LST_TONE[l.status] || 'mute' };
+}
 const LST_TONE = { Planned: 'mute', Active: 'ok', Paused: 'warn', Sold: 'brand', Expired: 'bad' };
 const ORD_TONE = { 'Payment Processing': 'warn', 'Order Received': 'brand', 'In Preparation': 'brand', Packaged: 'brand', Shipped: 'mute', 'Out for Delivery': 'mute', Delivered: 'ok', 'Customer Received': 'ok', 'Awaiting Feedback': 'ok', 'Awaiting Fulfillment': 'warn', Fulfilled: 'ok', Cancelled: 'mute', 'Payment Failed': 'bad', 'Refund Requested': 'warn', 'Return Requested': 'warn', 'Return In Transit': 'warn', 'Return Received': 'warn', 'Partially Refunded': 'mute', 'Refunded to Customer': 'mute', 'Refunded to Owner': 'ok', 'Dispute Open': 'bad', 'Dispute Resolved': 'mute', 'Lost in Transit': 'bad', 'Damaged in Transit': 'bad' };
 function stockTag(p) {
@@ -8490,10 +8506,10 @@ function stockTag(p) {
   if (q <= low) return { st: 'Low · ' + q + ' left', tone: 'warn' };
   return { st: q + ' in stock', tone: 'ok' };
 }
-const stPill = i => i.st ? `<span class="pill ${i.tone || 'mute'} pk-pill">${esc(i.st)}</span>` : '';
+const stPill = i => (i.st ? `<span class="pill ${i.tone || 'mute'} pk-pill">${esc(i.st)}</span>` : '') + (i.st2 ? `<span class="pill ${i.tone2 || 'mute'} pk-pill">${esc(i.st2)}</span>` : '');
 function itemInfo(k) {
   const [ty, id] = String(k).split(':'), S = G.state;
-  if (ty === 'product') { const p = (S.products || []).find(x => x.id === id); return p ? { ty: 'Product', sku: p.sku || '', name: p.name || 'Untitled product', ...stockTag(p), sub2: [p.price > 0 ? mny(+p.price) : '', p.category].filter(Boolean).join(' · '), sub: [p.qty !== undefined && p.qty !== '' ? p.qty + ' in stock' : '', p.price > 0 ? mny(+p.price) : '', p.category].filter(Boolean).join(' · ') } : { ty: 'Product', sku: '', name: 'Removed product', sub: '', gone: true }; }
+  if (ty === 'product') { const p = (S.products || []).find(x => x.id === id); return p ? { ty: 'Product', sku: p.sku || '', name: p.name || 'Untitled product', ...stockTag(p), ...(q => ({ st2: q.pill, tone2: q.tone }))(prodListInfo(p)), sub2: [p.price > 0 ? mny(+p.price) : '', p.category].filter(Boolean).join(' · '), sub: [p.qty !== undefined && p.qty !== '' ? p.qty + ' in stock' : '', p.price > 0 ? mny(+p.price) : '', p.category].filter(Boolean).join(' · ') } : { ty: 'Product', sku: '', name: 'Removed product', sub: '', gone: true }; }
   if (ty === 'listing') { const l = (S.listings || []).find(x => x.id === id); return l ? { ty: 'Listing', sku: l.sku || '', name: l.title || 'Untitled listing', st: l.status || '', tone: LST_TONE[l.status] || 'mute', sub2: [[].concat(l.channels || []).map(c => typeof c === 'string' ? c : (c && c.name) || '').filter(Boolean).join(', '), +l.price > 0 ? mny(+l.price) : ''].filter(Boolean).join(' · '), sub: [l.status, [].concat(l.channels || []).map(c => typeof c === 'string' ? c : (c && c.name) || '').filter(Boolean).join(', '), +l.price > 0 ? mny(+l.price) : ''].filter(Boolean).join(' · ') } : { ty: 'Listing', sku: '', name: 'Removed listing', sub: '', gone: true }; }
   if (ty === 'order') { const o = (S.orders || []).find(x => x.id === id); return o ? { ty: 'Order', sku: ordNo(o), name: o.customer || 'Order', st: o.status || '', tone: ORD_TONE[o.status] || 'mute', sub2: o.shipBy ? 'ship by ' + dLab(o.shipBy) : '', sub: [o.status, o.shipBy ? 'ship by ' + dLab(o.shipBy) : ''].filter(Boolean).join(' · ') } : { ty: 'Order', sku: '', name: 'Removed order', sub: '', gone: true }; }
   return { ty: 'Item', sku: '', name: String(k), sub: '', gone: true };
@@ -8541,8 +8557,8 @@ function sortKeys(keys, mode) {
 const sortChips = () => `<div class="ts-vs" style="margin:0;flex:1;grid-template-columns:repeat(5,1fr)" role="group" aria-label="Sort items">${DP_SORTS.map(x => `<button type="button" class="${dpSortMode() === x[0] ? 'on' : ''}" data-ts="dp-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>`;
 let dpDate = null;
 function dayPlanCard() {
-  const td = today(), date = dpDate || td, keys = sortKeys(dayKeys(date));
-  const rows = keys.map(k => { const i = itemInfo(k); return `<div class="pk-item${i.gone ? ' gone' : ''}"><span class="pk-ty">${i.ty}</span><button type="button" class="pk-main pk-tap" data-ts="ref-open" data-d="${date}" data-v="day"><b class="trunc">${esc(i.name)}</b>${i.st || i.sub2 ? `<span class="pk-sl">${stPill(i)}${i.sub2 ? `<span class="trunc">${esc(i.sub2)}</span>` : ''}</span>` : (i.sub ? `<span class="trunc">${esc(i.sub)}</span>` : '')}</button>${i.sku ? `<code class="pk-sku">${esc(i.sku)}</code>` : ''}<button class="icon-btn" style="width:30px;height:30px" data-ts="dp-del" data-d="${date}" data-k="${esc(k)}" aria-label="Remove">${I('x', 14)}</button></div>`; }).join('');
+  LM = null; const td = today(), date = dpDate || td, keys = sortKeys(dayKeys(date));
+  const rows = keys.map(k => { const i = itemInfo(k); return `<div class="pk-item${i.gone ? ' gone' : ''}"><span class="pk-ty">${i.ty}</span><button type="button" class="pk-main pk-tap" data-ts="ref-open" data-d="${date}" data-v="day"><b class="trunc">${esc(i.name)}</b>${i.st || i.st2 || i.sub2 ? `<span class="pk-sl">${stPill(i)}${i.sub2 ? `<span class="trunc">${esc(i.sub2)}</span>` : ''}</span>` : (i.sub ? `<span class="trunc">${esc(i.sub)}</span>` : '')}</button>${i.sku ? `<code class="pk-sku">${esc(i.sku)}</code>` : ''}<button class="icon-btn" style="width:30px;height:30px" data-ts="dp-del" data-d="${date}" data-k="${esc(k)}" aria-label="Remove">${I('x', 14)}</button></div>`; }).join('');
   return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Day plan</span><h3>Products, listings &amp; orders</h3></div><div class="row" style="gap:6px">${keys.length ? `<button class="btn btn-soft btn-sm ts-btn" data-ts="ref-open" data-d="${date}" data-v="day">Details</button>` : ''}<button class="btn btn-primary btn-sm ts-btn" data-ts="pk-open" data-d="${date}">${I('plus', 14)}Add</button></div></div>
     <div class="ts-wk"><button class="icon-btn" data-ts="dp-nav" data-d="-1" aria-label="Previous day">${I('chevL', 16)}</button><b>${date === td ? 'Today · ' : ''}${dLab(date)}</b><button class="icon-btn" data-ts="dp-nav" data-d="1" aria-label="Next day">${I('chevR', 16)}</button></div>
     ${date !== td ? `<button class="btn btn-line btn-sm block" data-ts="dp-nav" data-d="0">Jump to today</button>` : ''}
@@ -8553,7 +8569,7 @@ const PK = { dates: [], sel: new Set(), tab: 'product', q: '', cal: '', calOpen:
 const pkMatch = (q, parts) => { const h = parts.join(' ').toLowerCase(); return q.toLowerCase().split(/\s+/).filter(Boolean).every(w => h.includes(w)); };
 const PK_ADD = [['notadded', 'Not added to the day yet first'], ['added', 'Already added to the day first']];
 const PK_SORTS = {
-  product: [['name', 'Name A–Z'], ['namez', 'Name Z–A'], ['status', 'Stock status (out, low, in stock)'], ['sku', 'SKU: low to high'], ['skuh', 'SKU: high to low'], ['stock', 'Stock: low to high'], ['stockh', 'Stock: high to low'], ['price', 'Price: high to low'], ['pricel', 'Price: low to high']].concat(PK_ADD),
+  product: [['sku', 'SKU: low to high'], ['skuh', 'SKU: high to low'], ['name', 'Name A–Z'], ['namez', 'Name Z–A'], ['status', 'Stock status (out, low, in stock)'], ['stock', 'Stock: low to high'], ['stockh', 'Stock: high to low'], ['price', 'Price: high to low'], ['pricel', 'Price: low to high']].concat(PK_ADD),
   listing: [['name', 'Name A–Z'], ['namez', 'Name Z–A'], ['status', 'Status (grouped)'], ['plan', 'Planned first'], ['unplan', 'Unplanned first'], ['sku', 'SKU: low to high'], ['skuh', 'SKU: high to low'], ['price', 'Price: high to low'], ['pricel', 'Price: low to high']].concat(PK_ADD),
   order: [['new', 'Newest first'], ['old', 'Oldest first'], ['status', 'Status (grouped)'], ['ship', 'Ship-by date'], ['cust', 'Customer A–Z']].concat(PK_ADD)
 };
@@ -8572,7 +8588,15 @@ function pkGroup(tab, mode, r) {
   return null;
 }
 const pkSortMode = tab => { const m = (T().pkSort || {})[tab], o = PK_SORTS[tab]; return o.some(x => x[0] === m) ? m : o[0][0]; };
-const pkSortHtml = () => `<label class="pk-sortl"><span class="eyebrow" style="flex:none">Sort</span><select class="select sm" data-pk="sort" aria-label="Sort list">${PK_SORTS[PK.tab].map(x => `<option value="${x[0]}" ${pkSortMode(PK.tab) === x[0] ? 'selected' : ''}>${x[1]}</option>`).join('')}</select></label>`;
+const pkFilt = () => { const f = T().pkFilter; return f === 'no' || f === 'yes' ? f : 'all'; };
+function pkQuickHtml() {
+  if (PK.tab !== 'product') return ''; LM = null;
+  const ps = G.state.products || [], yes = ps.filter(p => prodListInfo(p).n > 0).length, no = ps.length - yes, f = pkFilt();
+  const chip = (v, lab, n) => `<button type="button" class="${f === v ? 'on' : ''}" data-ts="pk-filter" data-v="${v}">${lab}<i style="font-style:normal;opacity:.7"> ${n}</i></button>`;
+  return `<div class="ts-vs" style="margin-top:8px" role="group" aria-label="Filter products">${chip('all', 'All', ps.length)}${chip('no', 'Not in a listing', no)}${chip('yes', 'In a listing', yes)}</div>`;
+}
+const pkSortHtml = () => pkSortSel() + pkQuickHtml() + `<div class="row" style="gap:16px;margin-top:8px"><button type="button" class="link" data-ts="pk-all">Select everything shown</button>${PK.sel.size ? `<button type="button" class="link" data-ts="pk-none" style="color:var(--bad)">Unselect all (${PK.sel.size})</button>` : ''}</div>`;
+const pkSortSel = () => `<label class="pk-sortl"><span class="eyebrow" style="flex:none">Sort</span><select class="select sm" data-pk="sort" aria-label="Sort list">${PK_SORTS[PK.tab].map(x => `<option value="${x[0]}" ${pkSortMode(PK.tab) === x[0] ? 'selected' : ''}>${x[1]}</option>`).join('')}</select></label>`;
 function pkSortRows(tab, out) {
   const m = pkSortMode(tab), cmp = (a, b) => String(a == null ? '' : a).localeCompare(String(b == null ? '' : b), undefined, { sensitivity: 'base', numeric: true });
   const n = v => { const x = parseFloat(v); return isNaN(x) ? null : x; };
@@ -8593,10 +8617,11 @@ function pkSortRows(tab, out) {
   return out.slice().sort(f).map(z => Object.assign(z.r, { o: z.o }));
 }
 function pkRows(tab, q) {
-  const S = G.state; let out = [];
+  LM = null; const S = G.state; let out = [];
   if (tab === 'product') out = (S.products || []).map(p => ({ o: p, r: { k: 'product:' + p.id, i: itemInfo('product:' + p.id), x: [p.name, p.sku, p.category, p.barcode, p.location] } }));
   else if (tab === 'listing') out = (S.listings || []).map(l => ({ o: l, r: { k: 'listing:' + l.id, i: itemInfo('listing:' + l.id), x: [l.title, l.sku, l.status, [].concat(l.channels || []).join(' ')] } }));
   else out = (S.orders || []).map(o => ({ o, r: { k: 'order:' + o.id, i: itemInfo('order:' + o.id), x: [ordNo(o), o.customer, o.status] } }));
+  if (tab === 'product' && pkFilt() !== 'all') out = out.filter(z => (prodListInfo(z.o).n > 0) === (pkFilt() === 'yes'));
   const rows = pkSortRows(tab, out);
   return q ? rows.filter(r => pkMatch(q, r.x.map(v => v == null ? '' : v))) : rows;
 }
@@ -8609,7 +8634,7 @@ function pkListHtml() {
   let last = null;
   return rows.slice(0, cap).map((r, ix) => { const have = pkHave(r.k), on = PK.sel.has(r.k) || have, g = gs[ix];
     const head = g && g.label !== last ? `<div class="pk-gh"><span class="pill ${g.tone} pk-pill">${esc(g.label)}</span><span class="pk-gc">${cnt[g.label]}</span></div>` : ''; if (g) last = g.label;
-    return head + `<button type="button" class="pk-row${on ? ' on' : ''}${have ? ' dis' : ''}" data-ts="pk-tog" data-k="${esc(r.k)}"><span class="pk-cb">${I('check', 13)}</span><span class="pk-main"><b class="trunc">${esc(r.i.name)}</b>${r.i.st || r.i.sub2 ? `<span class="pk-sl">${stPill(r.i)}${r.i.sub2 ? `<span class="trunc">${esc(r.i.sub2)}</span>` : ''}</span>` : ''}</span>${have ? '<span class="pill ok pk-pill">Added</span>' : ''}${r.i.sku ? `<code class="pk-sku">${esc(r.i.sku)}</code>` : ''}</button>`; }).join('') + (rows.length > cap ? `<p class="hint" style="text-align:center;margin:8px 0">Showing the first ${cap} of ${rows.length}. Type in the search box to narrow it down.</p>` : '');
+    return head + `<button type="button" class="pk-row${on ? ' on' : ''}${have ? ' dis' : ''}" data-ts="pk-tog" data-k="${esc(r.k)}"><span class="pk-cb">${I('check', 13)}</span><span class="pk-main"><b class="trunc">${esc(r.i.name)}</b>${r.i.st || r.i.st2 || r.i.sub2 ? `<span class="pk-sl">${stPill(r.i)}${r.i.sub2 ? `<span class="trunc">${esc(r.i.sub2)}</span>` : ''}</span>` : ''}</span>${have ? '<span class="pill ok pk-pill">Added</span>' : ''}${r.i.sku ? `<code class="pk-sku">${esc(r.i.sku)}</code>` : ''}</button>`; }).join('') + (rows.length > cap ? `<p class="hint" style="text-align:center;margin:8px 0">Showing the first ${cap} of ${rows.length}. Type in the search box to narrow it down.</p>` : '');
 }
 function pkTabsHtml() {
   return [['product', 'Products'], ['listing', 'Listings'], ['order', 'Orders']].map(t => `<button type="button" class="${PK.tab === t[0] ? 'on' : ''}" data-ts="pk-tab" data-v="${t[0]}">${t[1]}<i>${pkRows(t[0], PK.q).length}</i></button>`).join('');
@@ -8639,9 +8664,12 @@ function pkPaint(keepFocus) {
   const dd = $('.pk-dates', m); if (dd && !keepFocus) { const bb = $('.pk-blks', m); if (bb) bb.remove(); dd.outerHTML = pkDatesHtml(); }
 }
 function pkFull() { closeModal(); pkPaint(); }
-function pkMore() { const m = $('#ts-modal'); if (!m || !$('#pk-list', m)) return; $('#pk-list', m).innerHTML = pkListHtml(); $('.sheet-foot', m).innerHTML = pkFoot(); }
+function pkMore() { const m = $('#ts-modal'); if (!m || !$('#pk-list', m)) return; $('#pk-list', m).innerHTML = pkListHtml(); const ps = $('#pk-sort', m); if (ps) ps.innerHTML = pkSortHtml(); $('.sheet-foot', m).innerHTML = pkFoot(); }
 function pkOpen(date, blockKey) { PK.dates = [date || today()]; PK.blocks = new Set(blockKey ? [blockKey] : []); PK.sel = new Set(); PK.tab = 'product'; PK.q = ''; PK.cal = ''; PK.calOpen = false; PK.blkOpen = false; closeModal(); pkPaint(); }
 Object.assign(HX, {
+  'pk-filter': el => { T().pkFilter = el.dataset.v; save(); pkPaint(true); },
+  'pk-none': () => { const n = PK.sel.size; PK.sel.clear(); pkPaint(true); toast(n ? 'Unselected ' + n : 'Nothing selected'); },
+  'pk-all': () => { const rows = pkRows(PK.tab, PK.q).filter(r => !pkHave(r.k)); rows.forEach(r => PK.sel.add(r.k)); pkPaint(true); toast(rows.length ? 'Selected ' + rows.length : 'Nothing to select'); },
   'pk-blkopen': () => { PK.blkOpen = !PK.blkOpen; pkPaint(); },
   'pk-open': el => pkOpen(el.dataset.d, el.dataset.k), 'pk-blk': el => { const k = el.dataset.k; if (PK.blocks.has(k)) PK.blocks.delete(k); else PK.blocks.add(k); pkPaint(); pkMore(); }, 'dp-sort': el => { T().dpSort = el.dataset.v; save(); paintSheet(); const m = $('#ts-modal'); if (m && $('#ref-body', m)) refPaint(); }, 'dp-nav': el => { const d = +el.dataset.d; dpDate = d === 0 ? null : addDays(dpDate || today(), d); paintSheet(); },
   'dp-del': el => { const t = T(), a = t.dayItems[el.dataset.d]; if (!a) return; t.dayItems[el.dataset.d] = a.filter(x => x !== el.dataset.k); if (!t.dayItems[el.dataset.d].length) delete t.dayItems[el.dataset.d]; const bi = t.blockItems[el.dataset.d]; if (bi) { Object.keys(bi).forEach(b => { bi[b] = bi[b].filter(x => x !== el.dataset.k); if (!bi[b].length) delete bi[b]; }); if (!Object.keys(bi).length) delete t.blockItems[el.dataset.d]; } save(); paintSheet(); paintBar(true); },
