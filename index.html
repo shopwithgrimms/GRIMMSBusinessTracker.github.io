@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7804,6 +7802,7 @@ button.ts-item:hover{border-color:color-mix(in srgb,var(--p) 50%,var(--line));bo
 .ts-fh:not(.on) svg{transform:rotate(-90deg)}
 .ts-fh.on+*{margin-top:8px}
 .ts-foldbar{display:flex;justify-content:flex-end;gap:14px;font-size:11.5px;font-weight:700;color:var(--p)}
+.pk-sortl{display:flex;align-items:center;gap:8px;margin-top:8px}.pk-sortl .select{flex:1}
 .ts-vs{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px;border:1px solid var(--line);border-radius:11px;background:color-mix(in srgb,var(--sub) 8%,transparent)}
 .ts-vs button{padding:7px 4px;border-radius:8px;font-size:12px;font-weight:700;color:var(--sub)}
 .ts-vs button.on{background:var(--card);color:var(--p);box-shadow:0 1px 3px rgba(0,0,0,.12)}
@@ -8498,10 +8497,10 @@ function refViews(date) {
 function refBody() {
   const date = REF.d, { v } = refViews(date), dk = dayKeys(date);
   const tabs = v.filter(x => x.n || x.cur).map(x => `<button type="button" class="${REF.v === x.k ? 'on' : ''}" data-ts="ref-tab" data-v="${esc(x.k)}">${x.cur ? 'Now · ' : ''}${esc(x.label)}<i>${x.n}</i></button>`).join('') + `<button type="button" class="${REF.v === 'day' ? 'on' : ''}" data-ts="ref-tab" data-v="day">Whole day<i>${dk.length}</i></button>`;
-  const isDay = REF.v === 'day', keys = isDay ? dk : blkItems(date, REF.v), blk = v.find(x => x.k === REF.v);
+  const isDay = REF.v === 'day', keys = sortKeys(isDay ? dk : blkItems(date, REF.v)), blk = v.find(x => x.k === REF.v);
   const cards = keys.map(k => { const h = G.refCard ? G.refCard(k, isDay ? keys.length <= 2 : true) : ''; return `<div class="ref-wrap">${h || `<div class="pk-item gone"><div class="pk-main"><b>${esc(itemInfo(k).name)}</b></div></div>`}<div class="ref-rm"><button type="button" class="link" data-ts="ref-rm" data-k="${esc(k)}" data-b="${isDay ? '' : esc(REF.v)}">${isDay ? 'Remove from the day' : 'Remove from this block'}</button></div></div>`; }).join('');
   const empty = isDay ? 'Nothing picked for this day yet.' : 'Nothing attached to ' + esc(blk ? blk.label : 'this block') + ' yet. Add products or listings to see their names, SKUs and values here.';
-  return `<div class="ref-tabs">${tabs}</div>${cards || `<p class="ts-empty">${empty}</p>`}`;
+  return `<div class="ref-tabs">${tabs}</div>${keys.length > 1 ? `<div class="row" style="gap:8px;margin:8px 0"><span class="eyebrow" style="flex:none">Sort</span>${sortChips()}</div>` : ''}${cards || `<p class="ts-empty">${empty}</p>`}`;
 }
 function refPaint() { const m = $('#ts-modal'); const b = m && $('#ref-body', m); if (!b) return; b.innerHTML = refBody(); }
 function refOpen(date, view) {
@@ -8512,23 +8511,66 @@ function refOpen(date, view) {
 }
 function dvOpen() { refOpen(REF.d || undefined, REF.v || undefined); }
 
+const DP_SORTS = [['add', 'Added'], ['new', 'Newest'], ['name', 'A–Z'], ['type', 'Type'], ['sku', 'SKU']];
+const dpSortMode = () => { const m = T().dpSort; return DP_SORTS.some(x => x[0] === m) ? m : 'add'; };
+function sortKeys(keys, mode) {
+  mode = mode || dpSortMode(); const arr = keys.slice();
+  if (mode === 'add') return arr;
+  if (mode === 'new') return arr.reverse();
+  const cmp = (a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base', numeric: true });
+  const info = new Map(arr.map(k => [k, itemInfo(k)])), tr = { Product: 0, Listing: 1, Order: 2 };
+  return arr.sort((a, b) => {
+    const x = info.get(a), y = info.get(b);
+    if (mode === 'name') return cmp(x.name, y.name);
+    if (mode === 'sku') { if (!x.sku !== !y.sku) return x.sku ? -1 : 1; return cmp(x.sku, y.sku) || cmp(x.name, y.name); }
+    return ((tr[x.ty] ?? 9) - (tr[y.ty] ?? 9)) || cmp(x.name, y.name);
+  });
+}
+const sortChips = () => `<div class="ts-vs" style="margin:0;flex:1;grid-template-columns:repeat(5,1fr)" role="group" aria-label="Sort items">${DP_SORTS.map(x => `<button type="button" class="${dpSortMode() === x[0] ? 'on' : ''}" data-ts="dp-sort" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>`;
 let dpDate = null;
 function dayPlanCard() {
-  const td = today(), date = dpDate || td, keys = dayKeys(date);
+  const td = today(), date = dpDate || td, keys = sortKeys(dayKeys(date));
   const rows = keys.map(k => { const i = itemInfo(k); return `<div class="pk-item${i.gone ? ' gone' : ''}"><span class="pk-ty">${i.ty}</span><button type="button" class="pk-main pk-tap" data-ts="ref-open" data-d="${date}" data-v="day"><b class="trunc">${esc(i.name)}</b>${i.sub ? `<span class="trunc">${esc(i.sub)}</span>` : ''}</button>${i.sku ? `<code class="pk-sku">${esc(i.sku)}</code>` : ''}<button class="icon-btn" style="width:30px;height:30px" data-ts="dp-del" data-d="${date}" data-k="${esc(k)}" aria-label="Remove">${I('x', 14)}</button></div>`; }).join('');
   return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Day plan</span><h3>Products, listings &amp; orders</h3></div><div class="row" style="gap:6px">${keys.length ? `<button class="btn btn-soft btn-sm ts-btn" data-ts="ref-open" data-d="${date}" data-v="day">Details</button>` : ''}<button class="btn btn-primary btn-sm ts-btn" data-ts="pk-open" data-d="${date}">${I('plus', 14)}Add</button></div></div>
     <div class="ts-wk"><button class="icon-btn" data-ts="dp-nav" data-d="-1" aria-label="Previous day">${I('chevL', 16)}</button><b>${date === td ? 'Today · ' : ''}${dLab(date)}</b><button class="icon-btn" data-ts="dp-nav" data-d="1" aria-label="Next day">${I('chevR', 16)}</button></div>
     ${date !== td ? `<button class="btn btn-line btn-sm block" data-ts="dp-nav" data-d="0">Jump to today</button>` : ''}
+    ${keys.length > 1 ? `<div class="row" style="gap:8px"><span class="eyebrow" style="flex:none">Sort</span>${sortChips()}</div>` : ''}
     ${rows ? `<div class="pk-items">${rows}</div>` : '<p class="ts-empty">Nothing planned for this day yet. Add the products, listings or orders you will work on. They only apply to the days you pick and show on your exported timesheet.</p>'}</div>`;
 }
 const PK = { dates: [], sel: new Set(), tab: 'product', q: '', cal: '', calOpen: false, blkOpen: false, blocks: new Set() };
 const pkMatch = (q, parts) => { const h = parts.join(' ').toLowerCase(); return q.toLowerCase().split(/\s+/).filter(Boolean).every(w => h.includes(w)); };
+const PK_SORTS = {
+  product: [['name', 'Name A–Z'], ['namez', 'Name Z–A'], ['sku', 'SKU: low to high'], ['skuh', 'SKU: high to low'], ['stock', 'Stock: low to high'], ['stockh', 'Stock: high to low'], ['price', 'Price: high to low'], ['pricel', 'Price: low to high']],
+  listing: [['name', 'Name A–Z'], ['namez', 'Name Z–A'], ['sku', 'SKU: low to high'], ['skuh', 'SKU: high to low'], ['status', 'Status'], ['price', 'Price: high to low'], ['pricel', 'Price: low to high']],
+  order: [['new', 'Newest first'], ['old', 'Oldest first'], ['ship', 'Ship-by date'], ['cust', 'Customer A–Z'], ['status', 'Status']]
+};
+const pkSortMode = tab => { const m = (T().pkSort || {})[tab], o = PK_SORTS[tab]; return o.some(x => x[0] === m) ? m : o[0][0]; };
+const pkSortHtml = () => `<label class="pk-sortl"><span class="eyebrow" style="flex:none">Sort</span><select class="select sm" data-pk="sort" aria-label="Sort list">${PK_SORTS[PK.tab].map(x => `<option value="${x[0]}" ${pkSortMode(PK.tab) === x[0] ? 'selected' : ''}>${x[1]}</option>`).join('')}</select></label>`;
+function pkSortRows(tab, out) {
+  const m = pkSortMode(tab), cmp = (a, b) => String(a == null ? '' : a).localeCompare(String(b == null ? '' : b), undefined, { sensitivity: 'base', numeric: true });
+  const n = v => { const x = parseFloat(v); return isNaN(x) ? null : x; };
+  const numCmp = (a, b, dir) => { a = n(a); b = n(b); if (a === null && b === null) return 0; if (a === null) return 1; if (b === null) return -1; return dir * (a - b); };
+  const nm = (a, b) => cmp(a.r.i.name, b.r.i.name);
+  const f = {
+    name: nm, namez: (a, b) => -nm(a, b),
+    sku: (a, b) => { const x = a.r.i.sku, y = b.r.i.sku; if (!x !== !y) return x ? -1 : 1; return cmp(x, y) || nm(a, b); },
+    skuh: (a, b) => { const x = a.r.i.sku, y = b.r.i.sku; if (!x !== !y) return x ? -1 : 1; return cmp(y, x) || nm(a, b); },
+    stock: (a, b) => numCmp(a.o.qty, b.o.qty, 1) || nm(a, b), stockh: (a, b) => numCmp(a.o.qty, b.o.qty, -1) || nm(a, b),
+    price: (a, b) => numCmp(a.o.price, b.o.price, -1) || nm(a, b), pricel: (a, b) => numCmp(a.o.price, b.o.price, 1) || nm(a, b),
+    status: (a, b) => cmp(a.o.status, b.o.status) || nm(a, b),
+    new: (a, b) => (b.o.no || 0) - (a.o.no || 0), old: (a, b) => (a.o.no || 0) - (b.o.no || 0),
+    ship: (a, b) => { const x = a.o.shipBy, y = b.o.shipBy; if (!x !== !y) return x ? -1 : 1; return cmp(x, y) || ((b.o.no || 0) - (a.o.no || 0)); },
+    cust: (a, b) => cmp(a.o.customer, b.o.customer) || ((b.o.no || 0) - (a.o.no || 0))
+  }[m];
+  return out.slice().sort(f).map(z => z.r);
+}
 function pkRows(tab, q) {
   const S = G.state; let out = [];
-  if (tab === 'product') out = (S.products || []).map(p => ({ k: 'product:' + p.id, i: itemInfo('product:' + p.id), x: [p.name, p.sku, p.category, p.barcode, p.location] })).sort((a, b) => String(a.i.name).localeCompare(b.i.name, undefined, { sensitivity: 'base' }));
-  else if (tab === 'listing') out = (S.listings || []).map(l => ({ k: 'listing:' + l.id, i: itemInfo('listing:' + l.id), x: [l.title, l.sku, l.status, [].concat(l.channels || []).join(' ')] })).sort((a, b) => String(a.i.name).localeCompare(b.i.name, undefined, { sensitivity: 'base' }));
-  else out = (S.orders || []).slice().sort((a, b) => (b.no || 0) - (a.no || 0)).map(o => ({ k: 'order:' + o.id, i: itemInfo('order:' + o.id), x: [ordNo(o), o.customer, o.status] }));
-  return q ? out.filter(r => pkMatch(q, r.x.map(v => v == null ? '' : v))) : out;
+  if (tab === 'product') out = (S.products || []).map(p => ({ o: p, r: { k: 'product:' + p.id, i: itemInfo('product:' + p.id), x: [p.name, p.sku, p.category, p.barcode, p.location] } }));
+  else if (tab === 'listing') out = (S.listings || []).map(l => ({ o: l, r: { k: 'listing:' + l.id, i: itemInfo('listing:' + l.id), x: [l.title, l.sku, l.status, [].concat(l.channels || []).join(' ')] } }));
+  else out = (S.orders || []).map(o => ({ o, r: { k: 'order:' + o.id, i: itemInfo('order:' + o.id), x: [ordNo(o), o.customer, o.status] } }));
+  const rows = pkSortRows(tab, out);
+  return q ? rows.filter(r => pkMatch(q, r.x.map(v => v == null ? '' : v))) : rows;
 }
 function pkOpts() { const m = new Map(); PK.dates.forEach(d => dayBlocks(d).forEach(b => { if (!m.has(b.k)) m.set(b.k, b); })); return [...m.values()]; }
 function pkHave(k) { const all = PK.dates.length ? PK.dates : [today()]; if (PK.blocks.size) return all.every(d => [...PK.blocks].every(bk => blkItems(d, bk).includes(k) || !dayBlocks(d).some(b => b.k === bk))); return all.every(d => dayKeys(d).includes(k)); }
@@ -8558,11 +8600,11 @@ function pkDatesHtml() {
   return `<div class="pk-dates"><span class="pk-lbl">For</span>${PK.dates.map(d => `<span class="pk-chip">${esc(dLab(d))}${PK.dates.length > 1 ? `<button type="button" data-ts="pk-dx" data-d="${d}" aria-label="Remove ${esc(dLab(d))}">${I('x', 11)}</button>` : ''}</span>`).join('')}<button type="button" class="pk-addd${PK.calOpen ? ' on' : ''}" data-ts="pk-cal">${I(PK.calOpen ? 'chevU' : 'plus', 12)}${PK.calOpen ? 'Done' : 'Pick dates'}</button>${PK.calOpen ? '' : `<button type="button" class="link" data-ts="pk-range" data-v="week">Rest of week</button><button type="button" class="link" data-ts="pk-range" data-v="7">Next 7 days</button>`}${PK.calOpen ? pkCalHtml() : ''}</div>${pkBlocksHtml()}`;
 }
 function pkFoot() { const n = PK.sel.size; return `<button class="btn btn-line" data-ts="mclose">Cancel</button><button class="btn btn-primary grow" data-ts="pk-save" ${n ? '' : 'disabled'}>${n ? 'Add ' + n + ' item' + (n === 1 ? '' : 's') + ' to ' + PK.dates.length + ' day' + (PK.dates.length === 1 ? '' : 's') : 'Pick something to add'}</button>`; }
-function pkTop() { return `${pkDatesHtml()}<div class="pk-top"><label class="pk-search">${I('search', 15)}<input class="input" data-pk="q" value="${esc(PK.q)}" placeholder="Search name, SKU, customer…" autocomplete="off" autocapitalize="off" spellcheck="false"></label><div class="pk-tabs" id="pk-tabs">${pkTabsHtml()}</div></div>`; }
+function pkTop() { return `${pkDatesHtml()}<div class="pk-top"><label class="pk-search">${I('search', 15)}<input class="input" data-pk="q" value="${esc(PK.q)}" placeholder="Search name, SKU, customer…" autocomplete="off" autocapitalize="off" spellcheck="false"></label><div class="pk-tabs" id="pk-tabs">${pkTabsHtml()}</div><div id="pk-sort">${pkSortHtml()}</div></div>`; }
 function pkPaint(keepFocus) {
   const m = $('#ts-modal') || mk('ts-modal');
   const top = $('.pk-top', m); if (!top) { modal('Add to your day', pkTop() + `<div id="pk-list">${pkListHtml()}</div>`, pkFoot()); return; }
-  $('#pk-list', m).innerHTML = pkListHtml(); $('#pk-tabs', m).innerHTML = pkTabsHtml(); $('.sheet-foot', m).innerHTML = pkFoot();
+  $('#pk-list', m).innerHTML = pkListHtml(); $('#pk-tabs', m).innerHTML = pkTabsHtml(); const ps = $('#pk-sort', m); if (ps) ps.innerHTML = pkSortHtml(); $('.sheet-foot', m).innerHTML = pkFoot();
   const dd = $('.pk-dates', m); if (dd && !keepFocus) { const bb = $('.pk-blks', m); if (bb) bb.remove(); dd.outerHTML = pkDatesHtml(); }
 }
 function pkFull() { closeModal(); pkPaint(); }
@@ -8570,7 +8612,7 @@ function pkMore() { const m = $('#ts-modal'); if (!m || !$('#pk-list', m)) retur
 function pkOpen(date, blockKey) { PK.dates = [date || today()]; PK.blocks = new Set(blockKey ? [blockKey] : []); PK.sel = new Set(); PK.tab = 'product'; PK.q = ''; PK.cal = ''; PK.calOpen = false; PK.blkOpen = false; closeModal(); pkPaint(); }
 Object.assign(HX, {
   'pk-blkopen': () => { PK.blkOpen = !PK.blkOpen; pkPaint(); },
-  'pk-open': el => pkOpen(el.dataset.d, el.dataset.k), 'pk-blk': el => { const k = el.dataset.k; if (PK.blocks.has(k)) PK.blocks.delete(k); else PK.blocks.add(k); pkPaint(); pkMore(); }, 'dp-nav': el => { const d = +el.dataset.d; dpDate = d === 0 ? null : addDays(dpDate || today(), d); paintSheet(); },
+  'pk-open': el => pkOpen(el.dataset.d, el.dataset.k), 'pk-blk': el => { const k = el.dataset.k; if (PK.blocks.has(k)) PK.blocks.delete(k); else PK.blocks.add(k); pkPaint(); pkMore(); }, 'dp-sort': el => { T().dpSort = el.dataset.v; save(); paintSheet(); const m = $('#ts-modal'); if (m && $('#ref-body', m)) refPaint(); }, 'dp-nav': el => { const d = +el.dataset.d; dpDate = d === 0 ? null : addDays(dpDate || today(), d); paintSheet(); },
   'dp-del': el => { const t = T(), a = t.dayItems[el.dataset.d]; if (!a) return; t.dayItems[el.dataset.d] = a.filter(x => x !== el.dataset.k); if (!t.dayItems[el.dataset.d].length) delete t.dayItems[el.dataset.d]; const bi = t.blockItems[el.dataset.d]; if (bi) { Object.keys(bi).forEach(b => { bi[b] = bi[b].filter(x => x !== el.dataset.k); if (!bi[b].length) delete bi[b]; }); if (!Object.keys(bi).length) delete t.blockItems[el.dataset.d]; } save(); paintSheet(); paintBar(true); },
   'dp-view': () => refOpen(), 'ref-open': el => refOpen(el.dataset.d, el.dataset.v), 'ref-tab': el => { REF.v = el.dataset.v; refPaint(); $$('#ts-modal .ref-tabs button').forEach(x => x.classList.toggle('on', x.dataset.v === REF.v)); },
   'ref-rm': el => { const t = T(), d = REF.d, k = el.dataset.k, b = el.dataset.b; if (b) { const bi = t.blockItems[d] && t.blockItems[d][b]; if (bi) { t.blockItems[d][b] = bi.filter(x => x !== k); if (!t.blockItems[d][b].length) delete t.blockItems[d][b]; } } else HX['dp-del']({ dataset: { d, k } }); save(); paintSheet(); paintBar(true); const rv = refViews(d); if (REF.v !== 'day' && !blkItems(d, REF.v).length) REF.v = 'day'; const m = $('#ts-modal'); if (m && $('#ref-body', m)) { refPaint(); $$('#ts-modal .ref-tabs button').forEach(x => x.classList.toggle('on', x.dataset.v === REF.v)); } },
@@ -8585,7 +8627,7 @@ Object.assign(HX, {
 });
 document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('#ts-modal [data-act="edit"], #ts-modal [data-act="mark-listed"]'); if (a) closeModal(); }, true);
 document.addEventListener('input', e => { const t = e.target; if (t.dataset && t.dataset.pk === 'q') { PK.q = t.value; const m = $('#ts-modal'); $('#pk-list', m).innerHTML = pkListHtml(); $('#pk-tabs', m).innerHTML = pkTabsHtml(); } });
-document.addEventListener('change', e => { const t = e.target; if (t.dataset && t.dataset.pk === 'adddate' && t.value) { if (!PK.dates.includes(t.value)) PK.dates = PK.dates.concat(t.value).sort(); pkPaint(); } });
+document.addEventListener('change', e => { const t = e.target; if (t.dataset && t.dataset.pk === 'sort') { const tt = T(); if (!tt.pkSort || typeof tt.pkSort !== 'object') tt.pkSort = {}; tt.pkSort[PK.tab] = t.value; save(); const m = $('#ts-modal'); if (m && $('#pk-list', m)) { $('#pk-list', m).innerHTML = pkListHtml(); const l = $('#pk-list', m); if (l.parentElement) l.parentElement.scrollTop = 0; } return; } if (t.dataset && t.dataset.pk === 'adddate' && t.value) { if (!PK.dates.includes(t.value)) PK.dates = PK.dates.concat(t.value).sort(); pkPaint(); } });
 
 /* ---------- categories: add, rename, delete ---------- */
 const catUse = name => { const t = T(); let b = 0, en = 0; t.blocks.forEach(x => { if (x.cat === name) b++; }); Object.values(t.runs).forEach(r => (r.entries || []).forEach(x => { if (x.cat === name) en++; })); return { b, en }; };
