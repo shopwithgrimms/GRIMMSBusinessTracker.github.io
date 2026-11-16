@@ -1463,7 +1463,8 @@ function removeOrder(id) {
   applyStock(state.orders[i], null);
   state.orders.splice(i, 1);
 }
-const orderNo = o => 'ORD-' + String(o.no || 0).padStart(3, '0');
+const autoOrderNo = n => 'ORD-' + String(n || 0).padStart(3, '0');
+const orderNo = o => String(o.sku || '').trim() || autoOrderNo(o.no);
 /* Changing an order's status: a full "Refunded to Customer" fills the refund in for you. */
 function setOrderStatus(o, st) {
   const n = { ...o, status: st };
@@ -2204,11 +2205,8 @@ V.home = () => {
 };
 
 /* ---------------- SALES ---------------- */
-/* SKU shown for a sale line: the SKU you typed on the sale, else the listing's SKU, else the product's SKU */
-const autoItemSku = i => { const l = i.listingId && state.listings.find(x => x.id === i.listingId); if (l && l.sku) return l.sku; const p = i.productId && state.products.find(x => x.id === i.productId); return p ? (p.sku || '') : ''; };
-const itemSku = i => String(i.sku || '').trim() || autoItemSku(i);
-/* order SKU for sorting: highest SKU on the order when sorting high to low, lowest when low to high; no SKU goes last */
-const orderSku = (o, dir) => { const a = (o.items || []).map(itemSku).filter(Boolean); if (!a.length) return ''; return a.sort(dir === 'desc' ? skuDesc : skuCmp)[0]; };
+const itemSku = i => { const p = i.productId && state.products.find(x => x.id === i.productId); return p ? (p.sku || '') : ''; };
+const orderSku = o => { for (const i of (o.items || [])) { const s = itemSku(i); if (s) return s; } return ''; };
 function salesFiltered() {
   let l = state.orders.filter(o => !!o.archived === ui.arch);
   const f = ui.filter;
@@ -2219,7 +2217,7 @@ function salesFiltered() {
   if (ui.ch) l = l.filter(o => o.channel === ui.ch);
   if (ui.q) { const q = ui.q.toLowerCase(); l = l.filter(o => [orderNo(o), o.customer, o.channel, o.tracking, o.po, o.ref, o.status, ...(o.items || []).map(i => i.name), ...(o.items || []).map(itemSku)].join(' ').toLowerCase().includes(q)); }
   const so = ui.sort || 'sku_d';
-  l.sort((a, b) => so === 'profit_l' ? (oc(a).profit - oc(b).profit) : so === 'profit_h' ? (oc(b).profit - oc(a).profit) : so === 'sku_d' ? (skuDesc(orderSku(a, 'desc'), orderSku(b, 'desc')) || b.no - a.no) : so === 'sku' ? (skuCmp(orderSku(a, 'asc'), orderSku(b, 'asc')) || b.no - a.no) : so === 'no' ? b.no - a.no : so === 'no_a' ? a.no - b.no : so === 'oldest' ? (a.date.localeCompare(b.date) || a.no - b.no) : so === 'high' ? oc(b).gross - oc(a).gross : so === 'low' ? oc(a).gross - oc(b).gross : so === 'ship' ? (a.shipBy || '9999').localeCompare(b.shipBy || '9999') : (b.date.localeCompare(a.date) || b.no - a.no));
+  l.sort((a, b) => so === 'profit_l' ? (oc(a).profit - oc(b).profit) : so === 'profit_h' ? (oc(b).profit - oc(a).profit) : so === 'sku_d' || so === 'no' ? (skuDesc(orderNo(a), orderNo(b)) || b.no - a.no) : so === 'sku' || so === 'no_a' ? (skuCmp(orderNo(a), orderNo(b)) || a.no - b.no) : so === 'oldest' ? (a.date.localeCompare(b.date) || a.no - b.no) : so === 'high' ? oc(b).gross - oc(a).gross : so === 'low' ? oc(a).gross - oc(b).gross : so === 'ship' ? (a.shipBy || '9999').localeCompare(b.shipBy || '9999') : (b.date.localeCompare(a.date) || b.no - a.no));
   return l;
 }
 function orderCard(o) {
@@ -2257,7 +2255,7 @@ function salesList() {
 V.sales = () => `<div class="page stack-sm fade">
   ${searchBox('Search customer, item, order #, PO…')}
   ${chips([['all', 'All'], ['open', 'Open'], ['low', 'Low profit']].concat(ALL_STATUSES.includes(ui.filter) ? [[ui.filter, ui.filter]] : []).concat(GROUPS.map(g => ['g:' + g[0], g[1]])), ui.filter)}
-  <div class="grid2">${optSel('ch', [['', 'All channels']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Channel')}${optSel('sort', [['newest', 'Newest first'], ['oldest', 'Oldest first'], ['high', 'Highest value'], ['low', 'Lowest value'], ['ship', 'Ship-by date'], ['profit_l', 'Lowest profit first'], ['profit_h', 'Highest profit first'], ['sku_d', 'Item SKU high to low'], ['sku', 'Item SKU low to high'], ['no', 'Order # (high to low)'], ['no_a', 'Order # (low to high)']], ui.sort || 'sku_d', 'Sort')}</div>
+  <div class="grid2">${optSel('ch', [['', 'All channels']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Channel')}${optSel('sort', [['newest', 'Newest first'], ['oldest', 'Oldest first'], ['high', 'Highest value'], ['low', 'Lowest value'], ['ship', 'Ship-by date'], ['profit_l', 'Lowest profit first'], ['profit_h', 'Highest profit first'], ['sku_d', 'Order SKU high to low'], ['sku', 'Order SKU low to high']], ui.sort || 'sku_d', 'Sort')}</div>
   <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="add-bulk">${ic('layers')} Bulk order</button><button class="btn btn-line btn-sm grow" data-act="bell">${ic('inbox')} Order alerts</button></div>
   <div id="list" class="stack-sm" style="margin-top:4px">${salesList()}</div></div>`;
 
@@ -3836,7 +3834,6 @@ const lineRow = l => {
     <input class="input sm" name="ln" placeholder="Item name" value="${esc(custom ? l.name : (p ? p.name : ''))}" ${custom ? '' : 'hidden'} style="margin-bottom:8px">
     <select class="select sm" name="ll" style="margin-bottom:8px" ${p ? '' : 'hidden'}>${p ? listingOpts(p.id, l.listingId) : ''}</select>
     <div class="hint" data-lpinfo style="margin:-2px 0 8px">${lpInfoHtml(p, l.listingId)}</div>
-    <label style="display:block;margin-bottom:8px">SKU for this sale <small style="font-weight:600">(type your own, or leave blank to use the listing / product SKU)</small><input class="input sm" name="lsk" maxlength="30" value="${esc(l.sku || '')}" placeholder="${esc(autoItemSku(l) || 'No SKU')}" autocomplete="off"></label>
     <select class="select sm" name="lv" style="margin-bottom:8px" ${p && (p.variants || []).length ? '' : 'hidden'}>${p && (p.variants || []).length ? variantOpts(p, l) : ''}</select><input type="hidden" name="lsz" value="${esc(l.size || '')}"><input type="hidden" name="lcl" value="${esc(l.color || '')}">
     <input type="hidden" name="lr" value="${l.returned || 0}">
     <div class="grid3"><label>Qty<input class="input" type="number" step="1" min="1" name="lq" value="${l.qty ?? 1}"></label><label>Price each<input class="input" type="number" step="any" min="0" name="lc" value="${l.price ?? ''}" placeholder="0.00"></label><label>Cost per unit<input class="input" type="number" step="any" min="0" name="lk" value="${l.cost ?? ''}" placeholder="0.00"></label></div>
@@ -3849,8 +3846,9 @@ OPEN.order = (id, pre = {}) => {
   const d = o ? clone(o) : { acct: defaultAcct('orders'), date: today(), customer: pre.customer || '', channel: (state.settings.channels[0] || {}).name || '', items: [{ productId: '', name: '', qty: 1, price: '', cost: '' }], supplies: [], discount: '', bulk: !!pre.bulk, bulkPct: '', po: '', terms: pre.bulk ? 'Net 15' : '', deposit: '', shipCharged: '', tax: '', postage: '', fees: '', feesManual: false, finalProfit: '', status: 'Order Received', payment: '', carrier: '', shipBy: '', tracking: '', ref: '', notes: '', unpaid: !!pre.unpaid, invTerms: pre.unpaid ? 'Net 15' : '', invDue: '' };
   const chans = activeChans().map(c => c.name); if (d.channel && !chans.includes(d.channel)) chans.push(d.channel);
   openSheet(o ? 'Edit sale ' + orderNo(o) : (d.bulk ? 'New bulk order' : d.unpaid ? 'New invoice' : 'New sale'), formWrap('order', id, `
-    <div class="grid2">${fDate('Date', 'date', d.date)}${fSel('Sold via', 'channel', chans.length ? chans : [''], d.channel)}</div>
-    <label class="fld"><span>Customer</span><input class="input" name="customer" list="cust-list" value="${esc(d.customer)}" maxlength="80" placeholder="Name (optional)"><datalist id="cust-list">${customerNames().map(c => `<option value="${esc(c)}">`).join('')}</datalist></label>
+    ${fText('Sale SKU / order #', 'osku', d.sku || autoOrderNo(o ? o.no : (state.counters.order || 0) + 1), 'maxlength=\"30\" autocomplete=\"off\" placeholder=\"' + autoOrderNo(o ? o.no : (state.counters.order || 0) + 1) + '\"')}<p class=\"hint\" style=\"margin:-6px 0 10px\">Filled in automatically. Type over it to use your own. Clear it to go back to the automatic number.</p>
+    <div class=\"grid2\">${fDate('Date', 'date', d.date)}${fSel('Sold via', 'channel', chans.length ? chans : [''], d.channel)}</div>
+    <label class=\"fld\"><span>Customer</span><input class="input" name="customer" list="cust-list" value="${esc(d.customer)}" maxlength="80" placeholder="Name (optional)"><datalist id="cust-list">${customerNames().map(c => `<option value="${esc(c)}">`).join('')}</datalist></label>
     ${fCheck('Bulk / wholesale order', 'bulk', d.bulk)}
     <div id="bulk-box" ${d.bulk || num(d.deposit) > 0 ? '' : 'hidden'} class="preview" style="background:none;border:1px dashed var(--line)">
       <div class="grid2">${fText('PO / reference', 'po', d.po, 'maxlength="40" placeholder="Their PO number"')}${fSel('Payment terms', 'terms', [['', 'Not set']].concat(TERMS.map(x => [x, x])), d.terms || '')}</div>
@@ -3896,12 +3894,13 @@ function readOrder0(f, existing) {
   const fd = new FormData(f);
   const items = $$('.line', f).map(row => {
     const pid = $('[name=lp]', row).value, p = pid && find('products', pid), ll = $('[name=ll]', row);
-    return { productId: p ? p.id : '', name: p ? p.name : tidy($('[name=ln]', row).value), listingId: p && ll ? ll.value : '', sku: tidy(($('[name=lsk]', row) || {}).value || ''), qty: Math.max(0, Math.round(num($('[name=lq]', row).value))), price: num($('[name=lc]', row).value), cost: num($('[name=lk]', row).value), free: !(num($('[name=lk]', row).value) > 0) && !!($('[name=lf]', row) || {}).checked, returned: num($('[name=lr]', row).value), ...varOf(row) };
+    return { productId: p ? p.id : '', name: p ? p.name : tidy($('[name=ln]', row).value), listingId: p && ll ? ll.value : '', qty: Math.max(0, Math.round(num($('[name=lq]', row).value))), price: num($('[name=lc]', row).value), cost: num($('[name=lk]', row).value), free: !(num($('[name=lk]', row).value) > 0) && !!($('[name=lf]', row) || {}).checked, returned: num($('[name=lr]', row).value), ...varOf(row) };
   }).filter(l => l.qty > 0 && (l.productId || l.name));
   items.forEach(l => { l.returned = Math.min(l.returned, l.qty); });
   const supplies = $$('.sup-line', f).map(row => { const sid = $('[name=su]', row).value, sp = sid && state.supplies.find(x => x.id === sid); return sp ? { supplyId: sp.id, name: sp.name, qty: Math.max(0, num($('[name=sq]', row).value)), cost: num($('[name=sk]', row).value) } : null; }).filter(u => u && u.qty > 0);
   const feeRaw = String(fd.get('fees') || '').trim(), manual = feeRaw !== '', bulk = fd.get('bulk') === 'on';
-  const o = { ...(existing || {}), acct: fd.get('acct') || '', date: fd.get('date'), customer: tidy(fd.get('customer')), channel: fd.get('channel') || '', items, supplies, bulk, bulkPct: bulk ? Math.max(0, Math.min(100, num(fd.get('bulkPct')))) : 0, po: tidy(fd.get('po')), terms: fd.get('terms') || '', deposit: Math.max(0, num(fd.get('deposit'))), discount: Math.max(0, num(fd.get('discount'))), shipCharged: num(fd.get('shipCharged')), tax: Math.max(0, num(fd.get('tax'))), cur: tidy(fd.get('cur')).toUpperCase().slice(0, 3), fx: tidy(fd.get('cur')) && num(fd.get('fx')) > 0 ? num(fd.get('fx')) : '', postage: num(fd.get('postage')), feesManual: manual, finalProfit: String(fd.get('finalProfit') ?? '').trim() === '' ? '' : num(fd.get('finalProfit')), status: fd.get('status'), payment: fd.get('payment') || '', carrier: fd.get('carrier') || '', shipBy: fd.get('shipBy') || '', tracking: tidy(fd.get('tracking')), ref: tidy(fd.get('ref')), notes: tidy(fd.get('notes')), refund: existing ? existing.refund : 0, reimb: existing ? existing.reimb : 0, stepDates: (() => { const sd = {}; FLOW.forEach((st, i) => { const v = fd.get('sd_' + i); if (v) sd[st] = v; }); return sd; })() };
+  const oskuRaw = tidy(fd.get('osku')), oskuAuto = autoOrderNo(existing ? existing.no : (state.counters.order || 0) + 1);
+  const o = { ...(existing || {}), sku: oskuRaw && oskuRaw !== oskuAuto ? oskuRaw : '', acct: fd.get('acct') || '', date: fd.get('date'), customer: tidy(fd.get('customer')), channel: fd.get('channel') || '', items, supplies, bulk, bulkPct: bulk ? Math.max(0, Math.min(100, num(fd.get('bulkPct')))) : 0, po: tidy(fd.get('po')), terms: fd.get('terms') || '', deposit: Math.max(0, num(fd.get('deposit'))), discount: Math.max(0, num(fd.get('discount'))), shipCharged: num(fd.get('shipCharged')), tax: Math.max(0, num(fd.get('tax'))), cur: tidy(fd.get('cur')).toUpperCase().slice(0, 3), fx: tidy(fd.get('cur')) && num(fd.get('fx')) > 0 ? num(fd.get('fx')) : '', postage: num(fd.get('postage')), feesManual: manual, finalProfit: String(fd.get('finalProfit') ?? '').trim() === '' ? '' : num(fd.get('finalProfit')), status: fd.get('status'), payment: fd.get('payment') || '', carrier: fd.get('carrier') || '', shipBy: fd.get('shipBy') || '', tracking: tidy(fd.get('tracking')), ref: tidy(fd.get('ref')), notes: tidy(fd.get('notes')), refund: existing ? existing.refund : 0, reimb: existing ? existing.reimb : 0, stepDates: (() => { const sd = {}; FLOW.forEach((st, i) => { const v = fd.get('sd_' + i); if (v) sd[st] = v; }); return sd; })() };
   if (!o.feeSnap || o.feeSnap.ch !== o.channel) o.feeSnap = feeSnapOf(o.channel);
   o.fees = manual ? num(feeRaw) : autoFees(o);
   return o;
@@ -4570,7 +4569,7 @@ function dupRecord(type, id) {
   }
   else if (type === 'supply') { c.name += ' (copy)'; c.sku = nextSupplySku(c.kind); c.qty = 0; state.supplies.push(c); }
   else if (type === 'listing') { c.title += ' (copy)'; c.sku = nextListingSku(); c.status = 'Planned'; c.pending = []; c.listedDate = ''; c.relistDate = ''; c.createdDate = today(); c.snaps = []; state.listings.push(c); }
-  else if (type === 'order') { state.counters.order++; c.no = state.counters.order; c.date = today(); c.status = 'Order Received'; c.tracking = ''; c.refund = 0; c.reimb = 0; c.deposit = 0; c.finalProfit = ''; c.unpaid = false; delete c.paidDate; delete c.stepDates; delete c.payments; delete c.invDue; delete c.ref; c.createdAt = Date.now(); c.items.forEach(l => { l.returned = 0; }); putOrder(c); }
+  else if (type === 'order') { state.counters.order++; c.no = state.counters.order; c.sku = ''; c.date = today(); c.status = 'Order Received'; c.tracking = ''; c.refund = 0; c.reimb = 0; c.deposit = 0; c.finalProfit = ''; c.unpaid = false; delete c.paidDate; delete c.stepDates; delete c.payments; delete c.invDue; delete c.ref; c.createdAt = Date.now(); c.items.forEach(l => { l.returned = 0; }); putOrder(c); }
   else if (type === 'expense') { c.date = today(); delete c.repeat; delete c.from; c.stockBuy = false; state.expenses.push(c); }
   else if (type === 'task') { c.done = false; delete c.doneAt; delete c.nextMade; state.tasks.push(c); }
   else if (type === 'bill') { c.paid = false; c.paidDate = ''; delete c.expenseId; delete c.nextId; delete c.paidAmt; delete c.poId; c.due = today(); state.bills.push(c); }
@@ -6584,7 +6583,6 @@ document.addEventListener('change', e => {
   }
   if (t.matches('form[data-form=order] select[data-lpick], form[data-form=order] select[name=lp], form[data-form=order] select[name=ll]')) {
     const row = t.closest('.line'), inf = row && $('[data-lpinfo]', row);
-    if (row) { const sk = $('[name=lsk]', row); if (sk) { const pp = find('products', $('[name=lp]', row).value), ln = $('[name=ll]', row), lx = pp && ln && ln.value && state.listings.find(y => y.id === ln.value); sk.placeholder = (lx && lx.sku) || (pp && pp.sku) || 'No SKU'; } }
     if (inf) inf.innerHTML = lpInfoHtml(find('products', $('[name=lp]', row).value), ($('[name=ll]', row) || {}).value);
   }
   if (t.matches('form[data-form=order] select[name=lp]')) {
@@ -8204,7 +8202,7 @@ function repSum(b) {
 
 /* ---------- a day being worked ---------- */
 /* ---------- business categories and links ---------- */
-const ordNo = o => 'ORD-' + String(o.no || 0).padStart(3, '0');
+const ordNo = o => String(o.sku || '').trim() || 'ORD-' + String(o.no || 0).padStart(3, '0');
 function linkLbl(k) {
   if (!k) return ''; const [ty, id] = String(k).split(':'), S = G.state;
   if (ty === 'order') { const o = (S.orders || []).find(x => x.id === id); return o ? ordNo(o) + (o.customer ? ' · ' + o.customer : '') : 'Removed order'; }
