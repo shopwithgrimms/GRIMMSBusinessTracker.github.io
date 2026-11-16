@@ -11141,5 +11141,710 @@ inject();
 </script>
 
 
+
+
+<!-- =====================================================================
+  FORMS ADD-ON for Grimms Business Tracker
+  Adds More > Forms: build custom forms (date, title, sections), attach orders / listings /
+  products / supplies / customers (shows SKU + names), true/false or done checkboxes, notes,
+  save as template, print / save as PDF, copy text, .txt, .csv, .json.
+  Saved inside your normal app data, so backups and restores include it.
+===================================================================== -->
+<style>
+#fm-print{display:none}
+#fm-modal{z-index:66}
+.fm-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fm-top .grow{flex:1}
+.fm-top.fm-ed{flex-wrap:nowrap}
+.fm-top.fm-ed .btn{white-space:nowrap;flex:none}
+.fm-title{font-size:18px;font-weight:800}
+.fm-sec{padding:14px}
+.fm-sh{display:flex;align-items:center;gap:6px}
+.fm-sh .fm-st{font-weight:800;font-size:15px;flex:1;min-width:0}
+.fm-sh .icon-btn{flex:none;width:32px;height:32px}
+.fm-sh .icon-btn[disabled]{opacity:.3}
+.fm-stat{font-size:11.5px;font-weight:700;color:var(--sub);margin:6px 2px 0}
+.fm-opts{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.fm-it{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:flex-start}
+.fm-ck{flex:none;display:flex;gap:6px;padding-top:1px}
+.fm-tf{width:32px;height:32px;border-radius:10px;border:1.5px solid var(--line);display:inline-flex;align-items:center;justify-content:center;color:var(--sub);background:var(--card);font-size:15px}
+.fm-tf.yes.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.fm-tf.no.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.fm-im{flex:1;min-width:0}
+.fm-line{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.fm-sku{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;background:var(--p-soft);color:var(--p);border-radius:6px;padding:1px 6px;white-space:nowrap}
+.fm-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;align-items:center}
+.fm-acts{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+.fm-it.yes .fm-line{opacity:.65}
+.fm-it .textarea{min-height:54px;margin-top:6px;font-size:13px}
+.fm-pk{display:flex;align-items:center;gap:12px;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;margin:0}
+.fm-pk:last-child{border-bottom:0}
+.fm-pk .grow{display:flex;flex-direction:column;min-width:0}
+.fm-pk b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fm-pk.dis{opacity:.55;cursor:default}
+.fm-pklist{max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.fm-pvwrap{max-height:46vh;overflow:auto;border-radius:12px;background:color-mix(in srgb,var(--sub) 12%,transparent);padding:10px}
+.fm-docrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:18px;background:var(--card)}
+.fm-docrow:hover{border-color:var(--p)}
+.fm-none{padding:18px 14px;text-align:center;color:var(--sub);font-size:12px}
+.fm-chips{display:flex;flex-wrap:wrap;gap:6px}
+.fm-chips .chip.on{background:var(--p);border-color:var(--p);color:var(--on-p,#fff)}
+.fm-fields{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.fm-fields .fld{flex:1;min-width:130px;margin:0}
+.fm-fields .fld>span{font-size:10px}
+.fm-tpl{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.fm-tpl:first-child{border-top:0}
+.fm-tpl .grow{min-width:0}
+.fm-exp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+#fm-modal .sheet{border-radius:22px 22px 0 0;padding:18px 18px 14px;max-width:520px}
+#fm-modal .sheet-head{align-items:flex-start;padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+#fm-modal .sheet-head h3{font-size:16px;font-weight:700}
+#fm-modal .sheet-foot{border-top:1px solid var(--line);margin-top:10px;padding-top:12px;align-items:center}
+#fm-modal .sheet-foot .btn-primary{flex:1}
+#fm-modal .fm-body{overflow-y:auto;flex:1;min-height:0}
+@media(min-width:640px){#fm-modal .sheet{border-radius:22px}}
+/* the paper (screen preview and print) */
+.fm-paper{background:#fff;color:#111;border:1px solid #d4d4d4;border-radius:8px;padding:22px 20px;font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-align:left;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.fm-paper *{box-sizing:border-box}
+.fm-paper .fp-top{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:12px}
+.fm-paper h1{font-size:22px;font-weight:800;margin:0;color:#111}
+.fm-paper .fp-sm{color:#555;font-size:11.5px}
+.fm-paper .fp-intro{margin:0 0 14px;white-space:pre-wrap}
+.fm-paper .fp-sec{margin-bottom:16px;break-inside:avoid-page}
+.fm-paper .fp-sec h2{font-size:14px;font-weight:800;margin:0 0 4px;padding-bottom:4px;border-bottom:1px solid #bbb;color:#111;display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.fm-paper .fp-sec h2 small{font-size:10.5px;font-weight:600;color:#666}
+.fm-paper .fp-it{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px dotted #ccc;break-inside:avoid}
+.fm-paper .fp-bx{display:flex;gap:10px;flex:none;padding-top:1px}
+.fm-paper .fp-b{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:#444}
+.fm-paper .fp-b i{width:16px;height:16px;border:1.5px solid #111;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-weight:800;font-size:12px;line-height:1;color:#111}
+.fm-paper .fp-tx{flex:1;min-width:0;overflow-wrap:anywhere}
+.fm-paper .fp-sku{font-family:ui-monospace,Menlo,monospace;font-weight:700;font-size:11px;border:1px solid #888;border-radius:4px;padding:0 5px;margin-right:6px;white-space:nowrap}
+.fm-paper .fp-subt{font-size:14px;color:#555;margin-top:2px}
+.fm-paper .fp-sd{color:#555;font-size:11.5px;margin:2px 0 4px}
+.fm-paper .fp-tag{display:inline-block;margin-left:6px;border:1px solid #999;border-radius:999px;padding:0 7px;font-size:10px;font-weight:700;color:#444;vertical-align:middle}
+.fm-paper .fp-sub{display:block;color:#666;font-size:11px}
+.fm-paper .fp-note{display:block;margin-top:2px;font-size:11.5px;font-style:italic;color:#333;white-space:pre-wrap}
+.fm-paper .fp-empty{color:#888;font-style:italic;padding:6px 0}
+.fm-paper .fp-notes{margin-top:14px;border:1px solid #bbb;border-radius:6px;padding:8px 10px;min-height:70px;white-space:pre-wrap}
+.fm-paper .fp-notes b{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#555;margin-bottom:2px}
+.fm-paper .fp-foot{margin-top:14px;color:#888;font-size:10px;text-align:center}
+@media print{
+  body.fm-printing>*:not(#fm-print){display:none!important}
+  body.fm-printing{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important;display:block!important;padding:0!important}
+  html:has(body.fm-printing){height:auto!important;overflow:visible!important}
+  body.fm-printing #fm-print{display:block!important;position:static!important}
+  body.fm-printing #fm-print .fm-paper{border:0;border-radius:0;padding:0}
+}
+</style>
+<script>
+(() => {
+'use strict';
+const G = window.GBT; if (!G || !G.V || !G.ic) return;
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ic = G.ic;
+const toast = m => { const t = $('#toast'); if (!t) return; t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); };
+const uid = () => 'fm' + Math.random().toString(36).slice(2, 10);
+const PAD = n => String(n).padStart(2, '0');
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + PAD(d.getMonth() + 1) + '-' + PAD(d.getDate()); };
+const fmtDate = (k, long) => { if (!k) return ''; const d = new Date(k + 'T12:00:00'); if (isNaN(d)) return k; return d.toLocaleDateString(undefined, long ? { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' } : { year: 'numeric', month: 'short', day: 'numeric' }); };
+const money = n => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: G.state.settings.currency || 'USD' }).format(n); } catch (e) { return (+n || 0).toFixed(2); } };
+const pill = (t, c) => `<span class="pill ${c || 'brand'}">${esc(t)}</span>`;
+const clone = o => JSON.parse(JSON.stringify(o));
+const persist = () => { try { G.save(); } catch (e) { } };
+const skuCmp = (a, b) => { a = String(a || ''); b = String(b || ''); if (!a && b) return 1; if (a && !b) return -1; return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }); };
+const MODES = [['done', 'Done checkbox (tick when finished)'], ['tf', 'True / False (yes or no)'], ['none', 'No checkboxes (just a list)']];
+const KINDS = { o: 'Order', l: 'Listing', p: 'Product', s: 'Supply', c: 'Customer', q: 'Purchase order', u: 'Supplier', t: 'Task', e: 'Event', b: 'Bill', n: 'Note', g: 'Goal', x: 'Expense' };
+const TABS = [['o', 'Orders'], ['l', 'Listings'], ['p', 'Products'], ['s', 'Supplies'], ['c', 'Customers'], ['q', 'Purchase orders'], ['u', 'Suppliers'], ['t', 'Tasks'], ['e', 'Events'], ['b', 'Bills'], ['n', 'Notes'], ['g', 'Goals'], ['x', 'Expenses']];
+const SKUK = new Set(['o', 'l', 'p', 's', 'q']);
+const rangeText = (a, b) => a && b ? fmtDate(a) + ' to ' + fmtDate(b) : fmtDate(a || b);
+
+/* ---------- saved data (lives in your normal app data, so backups include it) ---------- */
+function store() {
+  const st = G.state.settings; if (!st.forms || typeof st.forms !== 'object' || Array.isArray(st.forms)) st.forms = {};
+  const f = st.forms; if (!Array.isArray(f.docs)) f.docs = []; if (!Array.isArray(f.templates)) f.templates = [];
+  return f;
+}
+function fixDoc(d) {
+  d.id = d.id || uid(); d.title = String(d.title ?? ''); d.subtitle = String(d.subtitle ?? ''); d.date = String(d.date || today()); d.intro = String(d.intro ?? ''); d.notes = String(d.notes ?? '');
+  if (!Array.isArray(d.sections)) d.sections = [];
+  d.sections = d.sections.filter(s => s && typeof s === 'object');
+  d.sections.forEach(s => {
+    s.id = s.id || uid(); s.title = String(s.title ?? ''); s.desc = String(s.desc ?? ''); s.date = String(s.date ?? ''); s.date2 = String(s.date2 ?? ''); if (!['tf', 'done', 'none'].includes(s.mode)) s.mode = 'done';
+    if (!Array.isArray(s.items)) s.items = []; s.items = s.items.filter(i => i && typeof i === 'object');
+    s.items.forEach(i => { i.id = i.id || uid(); i.kind = i.kind || 'text'; if (i.v !== true && i.v !== false) i.v = null; i.note = String(i.note ?? ''); i.text = String(i.text ?? ''); i.desc = String(i.desc ?? ''); i.date = String(i.date ?? ''); i.tag = String(i.tag ?? ''); });
+  });
+  return d;
+}
+const VIEW = { id: null, pv: false };
+const OPENF = new Set();
+const cur = () => { const d = store().docs.find(x => x.id === VIEW.id); if (!d) { VIEW.id = null; return null; } return fixDoc(d); };
+const touch = d => { d.updated = Date.now(); persist(); };
+const newDoc = (o = {}) => fixDoc(Object.assign({ title: '', subtitle: '', date: today(), intro: '', notes: '', sections: [{ title: '', mode: 'done', items: [] }], updated: Date.now() }, o));
+
+/* ---------- what you can attach ---------- */
+const orderNo = o => String(o.sku || '').trim() || ('ORD-' + String(o.no || 0).padStart(3, '0'));
+let RC = {};
+const fresh = () => { RC = {}; };
+function rows(k, all) {
+  const st = G.state, live = a => (a || []).filter(x => all || !x.archived);
+  const prod = id => (st.products || []).find(p => p.id === id);
+  if (k === 'o') return live(st.orders).map(o => ({ ref: 'o:' + o.id, kind: 'o', tag: 'Order', sku: orderNo(o), name: o.customer || 'No customer', sub: [fmtDate(o.date), (o.items || []).map(i => i.name || (prod(i.productId) || {}).name).filter(Boolean).join(', '), o.status].filter(Boolean).join(' · ') }));
+  if (k === 'l') return live(st.listings).map(l => ({ ref: 'l:' + l.id, kind: 'l', tag: 'Listing', sku: l.sku || '', name: l.title || '', sub: [l.status, l.price ? money(l.price) : ''].filter(Boolean).join(' · ') }));
+  if (k === 'p') return live(st.products).map(p => ({ ref: 'p:' + p.id, kind: 'p', tag: 'Product', sku: p.sku || '', name: p.name || '', sub: '' }));
+  if (k === 's') return live(st.supplies).map(s => ({ ref: 's:' + s.id, kind: 's', tag: s.kind === 'component' ? 'Component' : 'Supply', sku: s.sku || '', name: s.name || '', sub: '' }));
+  if (k === 'c') return live(st.customers).map(c => ({ ref: 'c:' + c.id, kind: 'c', tag: 'Customer', sku: '', name: c.name || '', sub: [c.email, c.phone].filter(Boolean).join(' · ') }));
+  const sup = id => (st.suppliers || []).find(x => x.id === id);
+  if (k === 'q') return live(st.purchaseOrders).map(o => { const n = String(o.no ?? ''); return { ref: 'q:' + o.id, kind: 'q', tag: 'Purchase order', sku: /^\d+$/.test(n) ? 'PO-' + n.padStart(3, '0') : n, name: (sup(o.supplierId) || {}).name || 'Purchase order', sub: [o.expected ? 'Expected ' + fmtDate(o.expected) : fmtDate(o.date), o.status].filter(Boolean).join(' · '), date: o.expected || '' }; });
+  if (k === 'u') return live(st.suppliers).map(x => ({ ref: 'u:' + x.id, kind: 'u', tag: 'Supplier', sku: '', name: x.name || '', sub: [x.contact, x.website].filter(Boolean).join(' · ') }));
+  if (k === 't') return live(st.tasks).map(x => ({ ref: 't:' + x.id, kind: 't', tag: 'Task', sku: '', name: x.title || '', sub: [x.due ? 'Due ' + fmtDate(x.due) : '', x.priority, x.done ? 'Done' : ''].filter(Boolean).join(' · '), date: x.due || '' }));
+  if (k === 'e') return live(st.events).map(x => ({ ref: 'e:' + x.id, kind: 'e', tag: 'Event', sku: '', name: x.title || '', sub: [fmtDate(x.date), x.time].filter(Boolean).join(' · '), date: x.date || '' }));
+  if (k === 'b') return live(st.bills).map(x => ({ ref: 'b:' + x.id, kind: 'b', tag: 'Bill', sku: '', name: x.name || '', sub: [x.vendor, x.amount ? money(x.amount) : '', x.due ? 'Due ' + fmtDate(x.due) : '', x.paid ? 'Paid' : ''].filter(Boolean).join(' · '), date: x.due || '' }));
+  if (k === 'n') return live(st.notes).map(x => ({ ref: 'n:' + x.id, kind: 'n', tag: 'Note', sku: '', name: x.title || '(untitled note)', sub: fmtDate(x.date), date: '' }));
+  if (k === 'g') return live(st.goals).map(x => ({ ref: 'g:' + x.id, kind: 'g', tag: 'Goal', sku: '', name: x.name || '', sub: [x.metric, x.period].filter(Boolean).join(' · ') }));
+  if (k === 'x') return live(st.expenses).map(x => ({ ref: 'x:' + x.id, kind: 'x', tag: 'Expense', sku: '', name: x.desc || '', sub: [fmtDate(x.date), x.amount ? money(x.amount) : '', x.vendor].filter(Boolean).join(' · '), date: x.date || '' }));
+  return [];
+}
+function look(it) {
+  const k = String(it.ref || '').split(':')[0]; if (!KINDS[k]) return null;
+  if (!RC[k]) RC[k] = new Map(rows(k, true).map(r => [r.ref, r]));
+  return RC[k].get(it.ref) || null;
+}
+function disp(it) {
+  if (it.kind === 'text' || !it.ref) return { sku: '', name: it.text || '', sub: '', tag: '' };
+  const r = look(it);
+  if (r) return { sku: r.sku, name: r.name, sub: r.sub, tag: r.tag };
+  return { sku: it.sku || '', name: it.name || '(removed)', sub: it.sub || '', tag: KINDS[it.kind] || '', gone: true };
+}
+function pickRows() {
+  const q = PK.q.trim().toLowerCase(); let a = rows(PK.tab, false).filter(x => !q || (x.name + ' ' + x.sku + ' ' + x.sub).toLowerCase().includes(q));
+  return !SKUK.has(PK.tab) ? a.sort((x, y) => x.name.localeCompare(y.name)) : a.sort((x, y) => (!x.sku && y.sku) ? 1 : (x.sku && !y.sku) ? -1 : (-skuCmp(x.sku, y.sku) || x.name.localeCompare(y.name)));
+}
+
+/* ---------- ready-made starting points ---------- */
+const STARTERS = [
+  { name: 'Packing checklist', title: 'Packing checklist', sections: [{ title: 'Before packing', mode: 'done', items: ['Check the order details', 'Check the items match the listing', 'Look each item over'] }, { title: 'Packing', mode: 'done', items: ['Wrap items safely', 'Add the thank-you note', 'Seal and label the parcel'] }] },
+  { name: 'Quality check', title: 'Quality check', sections: [{ title: 'Is it true?', mode: 'tf', items: ['Matches the listing photos', 'No damage or marks', 'Everything included', 'Packaging is ready'] }] },
+  { name: 'Weekly stock check', title: 'Weekly stock check', sections: [{ title: 'Counts match?', mode: 'tf', items: [] }, { title: 'To reorder', mode: 'done', items: [] }] }
+];
+function fromTpl(t) {
+  const d = newDoc({ title: t.title || t.name || '', subtitle: t.subtitle || '', intro: t.intro || '', sections: [] });
+  d.sections = (t.sections || []).map(s => ({ id: uid(), title: s.title || '', desc: s.desc || '', mode: s.mode, items: (s.items || []).map(i => typeof i === 'string' ? { id: uid(), kind: 'text', text: i, v: null, note: '' } : Object.assign(clone(i), { id: uid(), v: null, note: '', date: '' })) }));
+  if (!d.sections.length) d.sections.push({ id: uid(), title: '', mode: 'done', items: [] });
+  return fixDoc(d);
+}
+
+/* ---------- counts ---------- */
+const nCheck = s => s.mode === 'none' ? 0 : s.items.length;
+const nDone = s => s.mode === 'tf' ? s.items.filter(i => i.v !== null).length : s.mode === 'done' ? s.items.filter(i => i.v === true).length : 0;
+function stat(s) {
+  const n = s.items.length;
+  if (s.mode === 'tf') { const y = s.items.filter(i => i.v === true).length, no = s.items.filter(i => i.v === false).length; return `${y} true · ${no} false · ${n - y - no} to answer`; }
+  if (s.mode === 'done') return `${nDone(s)} of ${n} done`;
+  return `${n} item${n === 1 ? '' : 's'}`;
+}
+
+/* ---------- screen: list ---------- */
+function listHTML() {
+  const f = store(), docs = f.docs.slice().sort((a, b) => (b.updated || 0) - (a.updated || 0));
+  const tpl = f.templates.map(t => `<div class="fm-tpl"><div class="grow"><b class="trunc" style="display:block;font-size:13px">${esc(t.name || t.title || 'Template')}</b><span class="xs sub">${(t.sections || []).length} section${(t.sections || []).length === 1 ? '' : 's'}</span></div><button class="btn btn-soft btn-sm" data-fm="tpl-use" data-id="${t.id}">Use</button><button class="icon-btn" data-fm="tpl-del" data-id="${t.id}" aria-label="Delete template">${ic('trash')}</button></div>`).join('');
+  const dl = docs.map(d => { fixDoc(d); const tot = d.sections.reduce((a, s) => a + nCheck(s), 0), dn = d.sections.reduce((a, s) => a + nDone(s), 0), items = d.sections.reduce((a, s) => a + s.items.length, 0);
+    return `<button class="fm-docrow" data-fm="open" data-id="${d.id}"><span style="color:var(--p);display:inline-flex;flex:none">${ic('file-text')}</span><span class="grow" style="min-width:0"><b class="trunc" style="display:block;font-size:14px">${esc(d.title || 'Untitled form')}</b><span class="xs sub">${esc(fmtDate(d.date))} · ${items} item${items === 1 ? '' : 's'}${tot ? ` · ${dn}/${tot} checked` : ''}</span></span>${ic('chevron-right', 'chev')}</button>`; }).join('');
+  return `<div class="fm-top"><button class="btn btn-primary btn-sm" data-fm="new">${ic('plus')} New form</button></div>
+  <div class="card fm-sec"><div class="fm-sh"><div class="fm-st">Quick start</div></div>
+    <p class="hint" style="margin:6px 0 10px">Pick one to begin with items already filled in. You can change everything.</p>
+    <div class="fm-chips">${STARTERS.map((s, i) => `<button class="chip" data-fm="starter" data-k="${i}">${esc(s.name)}</button>`).join('')}</div>
+    ${tpl ? `<div class="eyebrow" style="margin:14px 0 4px">Your templates</div>${tpl}` : ''}</div>
+  <div class="stack-sm"><h4 class="eyebrow">Your forms</h4>${dl || `<div class="card fm-none">No forms yet. Tap New form, or pick a quick start above.</div>`}</div>`;
+}
+
+/* ---------- screen: editor ---------- */
+function fld(id, f, label, input) { return `<label class="fld" data-fld="${id}:${f}"><span>${label}</span>${input}</label>`; }
+function itemHTML(s, it, ii, n) {
+  const d = disp(it), cls = it.v === true ? 'yes' : it.v === false ? 'no' : '', a = `data-sid="${s.id}" data-iid="${it.id}"`;
+  const ck = s.mode === 'tf' ? `<div class="fm-ck"><button class="fm-tf yes ${it.v === true ? 'on' : ''}" data-fm="set" ${a} data-val="yes" aria-label="True">${ic('check')}</button><button class="fm-tf no ${it.v === false ? 'on' : ''}" data-fm="set" ${a} data-val="no" aria-label="False">${ic('x')}</button></div>`
+    : s.mode === 'done' ? `<div class="fm-ck"><button class="fm-tf yes ${it.v === true ? 'on' : ''}" data-fm="set" ${a} data-val="yes" aria-label="Done">${ic('check')}</button></div>` : '';
+  const has = { desc: !!it.desc, date: !!it.date, tag: !!it.tag, note: !!it.note }, on = f => has[f] || OPENF.has(it.id + ':' + f);
+  const od = it.date && it.date < today() && s.mode !== 'none' && it.v !== true;
+  const main = it.kind === 'text' ? `<input class="input" data-fm-i="text" ${a} placeholder="Type an item" value="${esc(it.text)}">`
+    : `<div class="fm-line">${d.sku ? `<span class="fm-sku">${esc(d.sku)}</span> ` : ''}${esc(d.name)}</div><div class="fm-tags">${pill(d.tag)}${d.sub ? `<span class="xs sub">${esc(d.sub)}</span>` : ''}${d.gone ? pill('No longer in the app', 'warn') : ''}</div>`;
+  const tg = (f, lbl) => `<button class="link" data-fm="tog" data-f="${f}" ${a}>${on(f) ? 'Remove' : 'Add'} ${lbl}</button>`;
+  return `<div class="fm-it ${cls}" ${a}>${ck}<div class="fm-im">${main}${od ? `<div class="fm-tags">${pill('Overdue', 'bad')}</div>` : ''}
+    ${on('desc') ? `<div data-fld="${it.id}:desc" style="margin-top:6px"><input class="input" style="font-size:13px" data-fm-i="desc" ${a} placeholder="Description" value="${esc(it.desc)}"></div>` : ''}
+    ${on('date') || on('tag') ? `<div class="fm-fields">${on('date') ? fld(it.id, 'date', 'Date', `<input class="input" type="date" data-fm-i="date" ${a} value="${esc(it.date)}">`) : ''}${on('tag') ? fld(it.id, 'tag', 'Label', `<input class="input" data-fm-i="tag" ${a} placeholder="Urgent, Fragile…" value="${esc(it.tag)}">`) : ''}</div>` : ''}
+    ${on('note') ? `<div data-fld="${it.id}:note"><textarea class="textarea" data-fm-i="note" ${a} placeholder="Note for this item">${esc(it.note)}</textarea></div>` : ''}
+    <div class="fm-acts">${tg('desc', 'description')}${tg('date', 'date')}${tg('tag', 'label')}${tg('note', 'note')}<button class="link" data-fm="it-up" ${a} ${ii === 0 ? 'disabled style="opacity:.35"' : ''}>${ic('arrow-up')} Up</button><button class="link" data-fm="it-down" ${a} ${ii === n - 1 ? 'disabled style="opacity:.35"' : ''}>${ic('arrow-down')} Down</button><button class="link" data-fm="it-del" ${a} style="color:var(--bad)">${ic('trash')} Remove</button></div></div></div>`;
+}
+function secHTML(s, si, n) {
+  const a = `data-sid="${s.id}"`, has = { desc: !!s.desc, date: !!(s.date || s.date2) }, on = f => has[f] || OPENF.has(s.id + ':' + f);
+  const tg = (f, lbl) => `<button class="link" data-fm="tog" data-f="${f}" ${a}>${on(f) ? 'Remove' : 'Add'} ${lbl}</button>`;
+  return `<div class="card fm-sec" data-sec="${s.id}">
+    <div class="fm-sh"><input class="input fm-st" data-fm-s="title" ${a} placeholder="Section title (like Packing)" value="${esc(s.title)}">
+      <button class="icon-btn" data-fm="sec-up" ${a} ${si === 0 ? 'disabled' : ''} aria-label="Move section up">${ic('arrow-up')}</button>
+      <button class="icon-btn" data-fm="sec-down" ${a} ${si === n - 1 ? 'disabled' : ''} aria-label="Move section down">${ic('arrow-down')}</button>
+      <button class="icon-btn" data-fm="sec-del" ${a} aria-label="Delete section">${ic('trash')}</button></div>
+    ${on('desc') ? `<div data-fld="${s.id}:desc" style="margin-top:8px"><input class="input" style="font-size:13px" data-fm-s="desc" ${a} placeholder="Section description" value="${esc(s.desc)}"></div>` : ''}
+    ${on('date') ? `<div class="fm-fields">${fld(s.id, 'date', 'Date', `<input class="input" type="date" data-fm-s="date" ${a} value="${esc(s.date)}">`)}${fld(s.id, 'date2', 'End date (optional)', `<input class="input" type="date" data-fm-s="date2" ${a} value="${esc(s.date2)}">`)}</div>` : ''}
+    <div class="fm-acts" style="margin-top:8px">${tg('desc', 'description')}${tg('date', 'date')}</div>
+    <div class="fm-stat" data-stat>${esc(stat(s))}</div>
+    <div class="fm-opts">
+      <label class="fld" style="margin:0"><span>Checkbox type</span><select class="select" data-fm-s="mode" ${a}>${MODES.map(m => `<option value="${m[0]}" ${s.mode === m[0] ? 'selected' : ''}>${m[1]}</option>`).join('')}</select></label>
+      <div>${s.items.map((it, i) => itemHTML(s, it, i, s.items.length)).join('') || `<div class="fm-none" style="border-top:1px solid var(--line)">Nothing here yet. Type an item or attach something from your app.</div>`}</div>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn btn-line btn-sm" data-fm="add-item" ${a}>${ic('plus')} Type an item</button><button class="btn btn-soft btn-sm" data-fm="attach" ${a}>${ic('link')} Attach from your app…</button></div>
+    </div></div>`;
+}
+function editorHTML(d) {
+  const n = d.sections.length;
+  return `<div class="fm-top fm-ed"><button class="btn btn-line btn-sm" data-fm="close">${ic('arrow-left')} All forms</button><span class="grow"></span><button class="btn btn-soft btn-sm" data-fm="tpl-save">${ic('save')} Template</button><button class="btn btn-primary btn-sm" data-fm="print">${ic('printer')} Print / PDF</button></div>
+  <div class="card fm-sec"><input class="input fm-title" style="border:0;padding-left:0;box-shadow:none" data-fm-f="title" placeholder="Untitled form" value="${esc(d.title)}" aria-label="Form title">
+    <input class="input" style="border:0;padding-left:0;box-shadow:none;color:var(--sub);margin-bottom:10px" data-fm-f="subtitle" placeholder="Add a subtitle" value="${esc(d.subtitle)}" aria-label="Subtitle">
+    <label class="fld"><span>Date</span><input class="input" type="date" data-fm-f="date" value="${esc(d.date)}"></label>
+    <label class="fld" style="margin:0"><span>Description</span><textarea class="textarea" data-fm-f="intro" placeholder="What is this form for? Prints under the title">${esc(d.intro)}</textarea></label></div>
+  <div id="fm-secs" class="stack-sm">${d.sections.map((s, i) => secHTML(s, i, n)).join('')}</div>
+  <button class="btn btn-line block" data-fm="add-sec">${ic('plus')} Add section</button>
+  <div class="card fm-sec"><label class="fld" style="margin:0"><span>Notes</span><textarea class="textarea" data-fm-f="notes" placeholder="Anything else to remember. Prints at the bottom.">${esc(d.notes)}</textarea></label></div>
+  <div class="card fm-sec"><div class="fm-sh"><div class="fm-st">Share or save</div></div>
+    <div class="fm-exp"><button class="btn btn-line btn-sm" data-fm="copy">${ic('copy')} Copy text</button><button class="btn btn-line btn-sm" data-fm="txt">${ic('download')} .txt</button><button class="btn btn-line btn-sm" data-fm="csv">${ic('download')} .csv</button><button class="btn btn-line btn-sm" data-fm="json">${ic('download')} .json</button></div>
+    <button class="btn btn-soft btn-sm block" style="margin-top:8px" data-fm="pv-toggle">${ic('eye')} <span id="fm-pvl">${VIEW.pv ? 'Hide preview' : 'Show preview'}</span></button>
+    <div id="fm-pv" style="margin-top:10px"></div></div>
+  <div class="fm-top" style="justify-content:space-between"><button class="link" data-fm="dup">${ic('copy')} Duplicate this form</button><button class="link" data-fm="del-doc" style="color:var(--bad)">${ic('trash')} Delete this form</button></div>`;
+}
+function paint() {
+  const h = $('#fm-host'); if (!h) return; fresh();
+  const sc = $('#scroll'), y = sc ? sc.scrollTop : 0, d = cur();
+  h.innerHTML = d ? editorHTML(d) : listHTML();
+  if (sc) sc.scrollTop = y; if (d) pv();
+}
+function repaintSec(d, sid) {
+  fresh(); const si = d.sections.findIndex(s => s.id === sid), el = $(`.fm-sec[data-sec="${sid}"]`); if (si < 0 || !el) return paint();
+  el.outerHTML = secHTML(d.sections[si], si, d.sections.length); pv();
+}
+function refreshStat(d, sid) { const s = d.sections.find(x => x.id === sid), el = $(`.fm-sec[data-sec="${sid}"] [data-stat]`); if (s && el) el.textContent = stat(s); }
+
+/* ---------- the paper, text and files ---------- */
+function paperHTML(d) {
+  fresh(); const biz = G.state.settings.name || '';
+  const boxes = (s, it) => s.mode === 'tf' ? `<span class="fp-bx"><span class="fp-b"><i>${it.v === true ? '✓' : ''}</i>True</span><span class="fp-b"><i>${it.v === false ? '✕' : ''}</i>False</span></span>` : s.mode === 'done' ? `<span class="fp-bx"><span class="fp-b"><i>${it.v === true ? '✓' : ''}</i></span></span>` : '';
+  const secs = d.sections.map(s => `<div class="fp-sec"><h2><span>${esc(s.title || 'Items')}</span><small>${esc(s.mode === 'none' ? '' : stat(s))}</small></h2>${s.desc ? `<div class="fp-sd">${esc(s.desc)}</div>` : ''}${s.date || s.date2 ? `<div class="fp-sd">${esc(rangeText(s.date, s.date2))}</div>` : ''}${s.items.map(it => { const x = disp(it);
+    return `<div class="fp-it">${boxes(s, it)}<div class="fp-tx">${x.sku ? `<span class="fp-sku">${esc(x.sku)}</span>` : ''}${esc(x.name)}${it.tag ? `<span class="fp-tag">${esc(it.tag)}</span>` : ''}${x.tag ? `<span class="fp-sub">${esc(x.tag)}${x.sub ? ' · ' + esc(x.sub) : ''}</span>` : ''}${it.desc ? `<span class="fp-sub">${esc(it.desc)}</span>` : ''}${it.date ? `<span class="fp-sub">Date: ${esc(fmtDate(it.date))}</span>` : ''}${it.note ? `<span class="fp-note">${esc(it.note)}</span>` : ''}</div></div>`; }).join('') || '<div class="fp-empty">No items</div>'}</div>`).join('');
+  return `<div class="fm-paper"><div class="fp-top"><div><h1>${esc(d.title || 'Untitled form')}</h1>${d.subtitle ? `<div class="fp-subt">${esc(d.subtitle)}</div>` : ''}${biz ? `<div class="fp-sm">${esc(biz)}</div>` : ''}</div><div class="fp-sm" style="text-align:right">${esc(fmtDate(d.date, true))}</div></div>${d.intro ? `<p class="fp-intro">${esc(d.intro)}</p>` : ''}${secs}<div class="fp-notes"><b>Notes</b>${esc(d.notes)}</div><div class="fp-foot">Made with Grimms Business Tracker</div></div>`;
+}
+function pv() {
+  const box = $('#fm-pv'), lbl = $('#fm-pvl'); if (lbl) lbl.textContent = VIEW.pv ? 'Hide preview' : 'Show preview'; if (!box) return;
+  const d = cur(); box.innerHTML = VIEW.pv && d ? `<div class="fm-pvwrap">${paperHTML(d)}</div>` : '';
+}
+const ans = (s, it) => s.mode === 'tf' ? (it.v === true ? 'True' : it.v === false ? 'False' : '') : s.mode === 'done' ? (it.v === true ? 'Done' : '') : '';
+function flat(d) { fresh(); const out = []; d.sections.forEach(s => s.items.forEach(it => { const x = disp(it); out.push({ section: s.title || '', sdesc: s.desc, sdate: rangeText(s.date, s.date2), type: x.tag || 'Typed', sku: x.sku, name: x.name, details: x.sub, desc: it.desc, label: it.tag, date: it.date, answer: ans(s, it), note: it.note }); })); return out; }
+function docText(d) {
+  fresh(); const L = [(d.title || 'Untitled form').toUpperCase()]; if (d.subtitle) L.push(d.subtitle); L.push('Date: ' + fmtDate(d.date, true)); if (d.intro) L.push('', d.intro);
+  d.sections.forEach(s => { L.push('', '== ' + (s.title || 'Items') + (s.mode === 'none' ? '' : ' (' + stat(s) + ')') + ' =='); if (s.desc) L.push(s.desc); if (s.date || s.date2) L.push('Date: ' + rangeText(s.date, s.date2));
+    s.items.forEach(it => { const x = disp(it), mark = s.mode === 'tf' ? (it.v === true ? '[TRUE] ' : it.v === false ? '[FALSE] ' : '[ ] ') : s.mode === 'done' ? (it.v === true ? '[x] ' : '[ ] ') : '- ';
+      L.push(mark + (x.sku ? x.sku + ' - ' : '') + x.name + (it.tag ? ' {' + it.tag + '}' : '') + (x.tag ? ' (' + x.tag + (x.sub ? ', ' + x.sub : '') + ')' : '')); if (it.desc) L.push('    ' + it.desc); if (it.date) L.push('    Date: ' + fmtDate(it.date)); if (it.note) L.push('    Note: ' + it.note.replace(/\n/g, '\n    ')); }); });
+  if (d.notes) L.push('', 'NOTES', d.notes); return L.join('\n');
+}
+const csvCell = v => { v = String(v ?? ''); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+function docCsv(d) { const head = ['Form', 'Subtitle', 'Form date', 'Section', 'Section description', 'Section date', 'Type', 'SKU', 'Name', 'Details', 'Item description', 'Label', 'Item date', 'Answer', 'Note']; return '\ufeff' + [head].concat(flat(d).map(r => [d.title, d.subtitle, d.date, r.section, r.sdesc, r.sdate, r.type, r.sku, r.name, r.details, r.desc, r.label, r.date, r.answer, r.note])).map(r => r.map(csvCell).join(',')).join('\r\n'); }
+function docJson(d) { fresh(); return JSON.stringify({ title: d.title, subtitle: d.subtitle, date: d.date, description: d.intro, notes: d.notes, sections: d.sections.map(s => ({ title: s.title, description: s.desc, date: s.date, endDate: s.date2, checkboxes: s.mode, items: s.items.map(it => { const x = disp(it); return { type: x.tag || 'Typed', sku: x.sku, name: x.name, details: x.sub, description: it.desc, label: it.tag, date: it.date, answer: it.v === null ? null : it.v, note: it.note }; }) })) }, null, 2); }
+const slug = d => (String(d.title || 'form').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'form') + '-' + (d.date || today());
+function save(name, type, text) { const a = document.createElement('a'), url = URL.createObjectURL(new Blob([text], { type })); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch (e) { }
+  try { const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;left:-9999px;top:0'; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok; } catch (e) { return false; }
+}
+let oldTitle = null;
+function cleanupPrint() { const p = $('#fm-print'); if (p) p.remove(); document.body.classList.remove('fm-printing'); if (oldTitle !== null) { document.title = oldTitle; oldTitle = null; } }
+function printDoc(d) {
+  cleanupPrint(); const el = document.createElement('div'); el.id = 'fm-print'; el.innerHTML = paperHTML(d); document.body.appendChild(el);
+  document.body.classList.add('fm-printing'); oldTitle = document.title; document.title = d.title || 'Form';
+  window.addEventListener('afterprint', cleanupPrint, { once: true });
+  setTimeout(() => { try { window.print(); } catch (e) { cleanupPrint(); } }, 80);
+}
+
+/* ---------- pop-ups: attach picker and name box ---------- */
+const PK = { sid: '', tab: 'o', q: '', sel: new Map() };
+let ASK = null;
+function modalEl() { let m = $('#fm-modal'); if (!m) { m = document.createElement('div'); m.id = 'fm-modal'; m.className = 'modal-root'; ($('#frame') || document.body).appendChild(m); m.addEventListener('click', e => { if (e.target === m) closeModal(); }); } return m; }
+function closeModal() { const m = $('#fm-modal'); if (m) { m.classList.remove('on'); m.innerHTML = ''; } ASK = null; }
+function openPicker(sid) {
+  PK.sid = sid; PK.q = ''; PK.sel = new Map(); const d = cur(), s = d && d.sections.find(x => x.id === sid); if (!s) return;
+  const m = modalEl(); m.innerHTML = `<div class="sheet"><div class="sheet-head"><div class="grow" style="min-width:0"><h3>Attach to “${esc(s.title || 'this section')}”</h3><p class="xs sub">Tick as many as you like. SKU and name come along.</p></div><button class="icon-btn" data-fm="mclose" aria-label="Close">${ic('x')}</button></div>
+    <div class="fm-body"><div class="fm-chips" id="fm-tabs" style="margin-bottom:10px"></div><input class="input" id="fm-q" placeholder="Search name or SKU" style="margin-bottom:10px" autocomplete="off"><div class="fm-pklist" id="fm-pkl"></div></div>
+    <div class="sheet-foot"><button class="btn btn-line" data-fm="mclose">Cancel</button><button class="btn btn-primary" data-fm="pk-go" id="fm-go" disabled>Add</button></div></div>`;
+  m.classList.add('on'); paintPk();
+}
+function paintPk() {
+  const d = cur(), s = d && d.sections.find(x => x.id === PK.sid); if (!s) return; fresh();
+  const have = new Set(s.items.map(i => i.ref).filter(Boolean)), tabs = $('#fm-tabs'), list = $('#fm-pkl'); if (!tabs || !list) return;
+  tabs.innerHTML = TABS.map(t => `<button class="chip ${PK.tab === t[0] ? 'on' : ''}" data-fm="pk-tab" data-k="${t[0]}">${t[1]}</button>`).join('');
+  const all = pickRows(), r = all.slice(0, 300);
+  list.innerHTML = r.length ? r.map(x => { const dis = have.has(x.ref), on = dis || PK.sel.has(x.ref);
+    return `<label class="fm-pk ${dis ? 'dis' : ''}"><input type="checkbox" class="chk" data-fm-pk="${esc(x.ref)}" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''}><span class="grow"><b>${esc(x.name || '(no name)')}</b>${x.sub ? `<span class="xs sub trunc">${esc(x.sub)}</span>` : ''}</span>${x.sku ? `<span class="fm-sku">${esc(x.sku)}</span>` : ''}${dis ? pill('Added', 'mute') : ''}</label>`; }).join('') + (all.length > r.length ? `<div class="fm-none">Showing the first ${r.length}. Search to narrow it down.</div>` : '')
+    : `<div class="fm-none">${PK.q ? 'Nothing matches that search.' : 'Nothing here yet.'}</div>`;
+  const go = $('#fm-go'); if (go) { go.disabled = !PK.sel.size; go.textContent = PK.sel.size ? `Add ${PK.sel.size} selected` : 'Add'; }
+}
+function askName(title, label, val, ok, cb) {
+  const m = modalEl(); ASK = cb;
+  m.innerHTML = `<div class="sheet"><div class="sheet-head"><h3>${esc(title)}</h3><button class="icon-btn" data-fm="mclose" aria-label="Close">${ic('x')}</button></div><div class="fm-body"><label class="fld" style="margin:0"><span>${esc(label)}</span><input class="input" id="fm-ask" value="${esc(val)}" autocomplete="off"></label></div><div class="sheet-foot"><button class="btn btn-line" data-fm="mclose">Cancel</button><button class="btn btn-primary" data-fm="ask-ok">${esc(ok)}</button></div></div>`;
+  m.classList.add('on'); setTimeout(() => { const i = $('#fm-ask'); if (i) { i.focus(); i.select(); } }, 30);
+}
+
+/* ---------- clicks ---------- */
+const move = (a, i, j) => { if (j < 0 || j >= a.length) return false; const t = a[i]; a[i] = a[j]; a[j] = t; return true; };
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-fm]'); if (!t || !(t.closest('#fm-host') || t.closest('#fm-modal'))) return;
+  const k = t.dataset.fm, f = store(); let d = cur(); const sid = t.dataset.sid, iid = t.dataset.iid;
+  const sec = d && d.sections.find(s => s.id === sid), it = sec && sec.items.find(i => i.id === iid);
+  switch (k) {
+    case 'new': { const n = newDoc(); f.docs.unshift(n); VIEW.id = n.id; persist(); paint(); const i = $('[data-fm-f="title"]'); if (i) i.focus(); break; }
+    case 'starter': { const n = fromTpl(STARTERS[+t.dataset.k]); f.docs.unshift(n); VIEW.id = n.id; persist(); paint(); break; }
+    case 'tpl-use': { const tp = f.templates.find(x => x.id === t.dataset.id); if (!tp) break; const n = fromTpl(tp); f.docs.unshift(n); VIEW.id = n.id; persist(); paint(); toast('Form made from your template'); break; }
+    case 'tpl-del': { const tp = f.templates.find(x => x.id === t.dataset.id); if (!tp || !confirm('Delete the template "' + (tp.name || 'Template') + '"? Forms you already made from it are not changed.')) break; f.templates = f.templates.filter(x => x.id !== tp.id); persist(); paint(); break; }
+    case 'open': { VIEW.id = t.dataset.id; paint(); const sc = $('#scroll'); if (sc) sc.scrollTop = 0; break; }
+    case 'close': { VIEW.id = null; paint(); break; }
+    case 'del-doc': { if (!d || !confirm('Delete "' + (d.title || 'Untitled form') + '"? This cannot be undone.')) break; f.docs = f.docs.filter(x => x.id !== d.id); VIEW.id = null; persist(); paint(); break; }
+    case 'dup': { if (!d) break; const n = clone(d); n.id = uid(); n.title = (d.title || 'Untitled form') + ' (copy)'; n.updated = Date.now(); n.sections.forEach(s => { s.id = uid(); s.items.forEach(i => { i.id = uid(); }); }); f.docs.unshift(n); VIEW.id = n.id; persist(); paint(); toast('Duplicated'); break; }
+    case 'tpl-save': { if (!d) break; askName('Save as template', 'Template name', d.title || '', 'Save template', v => { v = String(v || '').trim(); if (!v) return toast('Give the template a name'); const c = clone(d); const tp = { id: uid(), name: v, title: d.title, subtitle: d.subtitle, intro: d.intro, sections: c.sections.map(s => ({ title: s.title, desc: s.desc, mode: s.mode, items: s.items.map(i => Object.assign(i, { v: null, note: '', date: '' })) })) }; f.templates.unshift(tp); persist(); closeModal(); toast('Template saved'); }); break; }
+    case 'add-sec': { if (!d) break; d.sections.push({ id: uid(), title: '', mode: 'done', items: [] }); touch(d); paint(); const x = $$('[data-fm-s="title"]'); if (x.length) { x[x.length - 1].focus(); x[x.length - 1].scrollIntoView({ block: 'center' }); } break; }
+    case 'sec-up': case 'sec-down': { if (!d) break; const i = d.sections.findIndex(s => s.id === sid); if (move(d.sections, i, i + (k === 'sec-up' ? -1 : 1))) { touch(d); paint(); } break; }
+    case 'sec-del': { if (!sec) break; if (sec.items.length && !confirm('Delete this section and its ' + sec.items.length + ' item' + (sec.items.length === 1 ? '' : 's') + '?')) break; d.sections = d.sections.filter(s => s.id !== sid); touch(d); paint(); break; }
+    case 'add-item': { if (!sec) break; const n = { id: uid(), kind: 'text', text: '', v: null, note: '' }; sec.items.push(n); touch(d); repaintSec(d, sid); const x = $(`.fm-it[data-iid="${n.id}"] input`); if (x) x.focus(); break; }
+    case 'attach': { if (sec) openPicker(sid); break; }
+    case 'set': { if (!it) break; const want = t.dataset.val === 'yes' ? true : false; it.v = it.v === want ? null : want; touch(d); const row = t.closest('.fm-it'); if (row) { row.classList.toggle('yes', it.v === true); row.classList.toggle('no', it.v === false); $$('.fm-tf', row).forEach(b => b.classList.toggle('on', b.dataset.val === 'yes' ? it.v === true : it.v === false)); } refreshStat(d, sid); pv(); break; }
+    case 'tog': { const f2 = t.dataset.f, tgt = it || sec; if (!tgt || !f2) break; const key = (it ? it.id : sec.id) + ':' + f2, props = f2 === 'date' && !it ? ['date', 'date2'] : [f2];
+      if (OPENF.has(key) || props.some(p => tgt[p])) { OPENF.delete(key); props.forEach(p => { tgt[p] = ''; }); touch(d); repaintSec(d, sid); }
+      else { OPENF.add(key); repaintSec(d, sid); const x = $(`[data-fld="${key}"] input, [data-fld="${key}"] textarea`); if (x) x.focus(); } break; }
+    case 'it-up': case 'it-down': { if (!sec) break; const i = sec.items.findIndex(x => x.id === iid); if (move(sec.items, i, i + (k === 'it-up' ? -1 : 1))) { touch(d); repaintSec(d, sid); } break; }
+    case 'it-del': { if (!sec) break; sec.items = sec.items.filter(x => x.id !== iid); touch(d); repaintSec(d, sid); break; }
+    case 'pv-toggle': { VIEW.pv = !VIEW.pv; pv(); break; }
+    case 'copy': { if (d) copyText(docText(d)).then(ok => toast(ok ? 'Copied. Paste it anywhere' : 'Could not copy. Try the .txt download')); break; }
+    case 'txt': { if (d) { save(slug(d) + '.txt', 'text/plain;charset=utf-8', docText(d)); toast('Downloaded .txt'); } break; }
+    case 'csv': { if (d) { save(slug(d) + '.csv', 'text/csv;charset=utf-8', docCsv(d)); toast('Downloaded .csv'); } break; }
+    case 'json': { if (d) { save(slug(d) + '.json', 'application/json', docJson(d)); toast('Downloaded .json'); } break; }
+    case 'print': { if (d) printDoc(d); break; }
+    case 'mclose': { closeModal(); break; }
+    case 'pk-tab': { PK.tab = t.dataset.k; paintPk(); break; }
+    case 'pk-go': { const dd = cur(), s = dd && dd.sections.find(x => x.id === PK.sid); if (!s || !PK.sel.size) { closeModal(); break; }
+      PK.sel.forEach(r => s.items.push({ id: uid(), kind: r.kind, ref: r.ref, name: r.name, sku: r.sku, sub: r.sub, v: null, note: '', date: r.date || '' })); const n = PK.sel.size; touch(dd); closeModal(); repaintSec(dd, s.id); toast(n + ' added'); break; }
+    case 'ask-ok': { const i = $('#fm-ask'), cb = ASK; if (cb) cb(i ? i.value : ''); break; }
+  }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'fm-ask') { e.preventDefault(); const b = $('[data-fm="ask-ok"]'); if (b) b.click(); } if (e.key === 'Escape' && $('#fm-modal.on')) closeModal(); });
+
+/* ---------- typing (saved as you type, no repaint so the cursor stays put) ---------- */
+document.addEventListener('input', e => {
+  const t = e.target; if (!t) return;
+  if (t.id === 'fm-q') { PK.q = t.value; paintPk(); return; }
+  if (!t.closest || !t.closest('#fm-host')) return; const d = cur(); if (!d) return;
+  if (t.dataset.fmF) { d[t.dataset.fmF] = t.value; touch(d); pv(); return; }
+  const sec = d.sections.find(s => s.id === t.dataset.sid);
+  if (['title', 'desc', 'date', 'date2'].includes(t.dataset.fmS) && sec) { sec[t.dataset.fmS] = t.value; touch(d); pv(); return; }
+  if (t.dataset.fmI && sec) { const it = sec.items.find(i => i.id === t.dataset.iid); if (!it || !['text', 'note', 'desc', 'tag', 'date'].includes(t.dataset.fmI)) return; it[t.dataset.fmI] = t.value; touch(d); pv(); }
+});
+document.addEventListener('change', e => {
+  const t = e.target; if (!t || !t.dataset) return;
+  if (t.dataset.fmPk) { if (t.checked) { const r = rows(t.dataset.fmPk[0], false).find(x => x.ref === t.dataset.fmPk); if (r) PK.sel.set(r.ref, r); } else PK.sel.delete(t.dataset.fmPk); const go = $('#fm-go'); if (go) { go.disabled = !PK.sel.size; go.textContent = PK.sel.size ? `Add ${PK.sel.size} selected` : 'Add'; } return; }
+  if (t.dataset.fmI === 'date' && t.closest('#fm-host')) { const d = cur(); if (d) repaintSec(d, t.dataset.sid); return; }
+  if (t.dataset.fmS === 'mode' && t.closest('#fm-host')) { const d = cur(); const sec = d && d.sections.find(s => s.id === t.dataset.sid); if (sec) { sec.mode = t.value; if (t.value === 'done') sec.items.forEach(i => { if (i.v === false) i.v = null; }); touch(d); repaintSec(d, sec.id); } }
+});
+
+/* ---------- plug into the app ---------- */
+G.TITLES.forms = 'Forms';
+G.V.forms = () => '<div class="page stack-sm fade" id="fm-host"></div>';
+function inject() {
+  if (G.ui.sub === 'forms') { const h = $('#fm-host'); if (h && !h.dataset.ready) { h.dataset.ready = '1'; paint(); } }
+  else { if ($('#fm-print') || document.body.classList.contains('fm-printing')) cleanupPrint(); if ($('#fm-modal.on')) closeModal(); }
+  const lab = $('#scroll .list-row[data-sub="labels"]');
+  if (lab && !$('#scroll .list-row[data-sub="forms"]')) {
+    const b = document.createElement('button'); b.className = 'list-row'; b.dataset.act = 'sub'; b.dataset.sub = 'forms';
+    b.innerHTML = `<span class="ico">${ic('file-text')}</span><span class="grow"><b style="display:block;font-size:14px">Forms</b><span class="xs sub">Checklists and forms with your orders, listings and products. Print, save as PDF or copy</span></span>${ic('chevron-right', 'chev')}`;
+    lab.after(b);
+  }
+}
+new MutationObserver(inject).observe($('#scroll'), { childList: true });
+inject();
+})();
+</script>
+
+
+
+<!-- =====================================================================
+  FORM BUILDER ADD-ON for Grimms Business Tracker
+  More > Form builder: design forms with real field types (text, number, currency, date, dropdown,
+  multi-select, radio, true/false, rating, email, phone, URL, formula, related record), required fields,
+  show-when rules, and optionally create a product on submit. Designs (templates) and submitted
+  records are kept apart, and Records shows them in a filterable table.
+  Saved in settings.forms.designs / settings.forms.entries, next to your existing Forms data, so
+  your old forms, templates and backups keep working unchanged.
+===================================================================== -->
+<style>
+.fb-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fb-top .grow{flex:1}
+.fb-tabs{display:flex;gap:6px}
+.fb-tabs .chip.on{background:var(--p);border-color:var(--p);color:var(--on-p,#fff)}
+.fb-card{padding:14px}
+.fb-row{display:flex;gap:8px;align-items:center}
+.fb-row .grow{flex:1;min-width:0}
+.fb-ico{font-size:26px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:var(--p-soft);flex:none}
+.fb-iin{width:56px;text-align:center;font-size:22px}
+.fb-name{font-size:18px;font-weight:800}
+.fb-acts{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+.fb-fc{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.fb-fc:first-child{border-top:0;margin-top:0;padding-top:0}
+.fb-fc .fld{margin:8px 0 0}
+.fb-opt{display:flex;align-items:center;gap:6px;font-size:13px;margin:4px 0}
+.fb-f{margin-bottom:14px}
+.fb-f>.fb-l{display:block;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:5px}
+.fb-f .fb-r{color:var(--bad)}
+.fb-star{display:flex;gap:4px}
+.fb-star button{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);font-size:17px;color:var(--sub)}
+.fb-star button.on{background:var(--p);border-color:var(--p);color:var(--on-p,#fff)}
+.fb-calc{padding:10px 12px;border-radius:12px;background:var(--p-soft);font-weight:800}
+.fb-err{color:var(--bad);font-size:12px;margin-top:4px}
+.fb-tw{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.fb-tw table{border-collapse:collapse;width:100%;font-size:13px}
+.fb-tw th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--sub);padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.fb-tw td{padding:10px 12px;border-bottom:1px solid var(--line);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fb-tw tr[data-fb]{cursor:pointer}
+.fb-tw tr[data-fb]:hover{background:var(--p-soft)}
+.fb-none{padding:18px 14px;text-align:center;color:var(--sub);font-size:12px}
+</style>
+<script>
+(() => {
+'use strict';
+const G = window.GBT; if (!G || !G.V || !G.ic) return;
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ic = G.ic, uid = () => 'fb' + Math.random().toString(36).slice(2, 10), clone = o => JSON.parse(JSON.stringify(o));
+const toast = m => { const t = $('#toast'); if (!t) return; t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); };
+const persist = () => { try { G.save(); } catch (e) { } };
+const fmtD = ts => { const d = new Date(ts); return isNaN(d) ? '' : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); };
+const money = n => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: G.state.settings.currency || 'USD' }).format(n); } catch (e) { return (+n || 0).toFixed(2); } };
+const TYPES = [['short', 'Short text'], ['long', 'Long text'], ['number', 'Number'], ['currency', 'Currency'], ['date', 'Date'], ['dropdown', 'Dropdown'], ['multi', 'Multi-select'], ['checkbox', 'Checkbox'], ['radio', 'Radio buttons'], ['tf', 'True / False'], ['rating', 'Rating (1 to 5)'], ['email', 'Email'], ['phone', 'Phone'], ['url', 'URL'], ['formula', 'Formula'], ['related', 'Related record']];
+const OPTS = new Set(['dropdown', 'multi', 'radio']);
+const RELS = { p: 'Product', o: 'Order', c: 'Customer', l: 'Listing', u: 'Supplier' };
+const MAPS = [['', 'Nothing'], ['name', 'Product name'], ['cost', 'Cost'], ['price', 'Price'], ['category', 'Category'], ['supplier', 'Supplier'], ['notes', 'Notes']];
+
+function store() {
+  const st = G.state.settings; if (!st.forms || typeof st.forms !== 'object' || Array.isArray(st.forms)) st.forms = {};
+  const f = st.forms; if (!Array.isArray(f.designs)) f.designs = []; if (!Array.isArray(f.entries)) f.entries = []; return f;
+}
+const mkField = (type, label, x) => Object.assign({ id: uid(), type, label, opts: [], req: false, rel: 'p', formula: '', showFid: '', showVal: '', map: '' }, x || {});
+const fixD = d => { d.id = d.id || uid(); d.name = String(d.name ?? ''); d.icon = d.icon || '📋'; d.desc = String(d.desc ?? ''); d.make = !!d.make; if (!Array.isArray(d.fields)) d.fields = []; d.fields.forEach(f => { f.id = f.id || uid(); f.opts = Array.isArray(f.opts) ? f.opts : []; f.label = String(f.label ?? ''); }); return d; };
+const VIEW = { tab: 'forms', mode: 'list', id: null, eid: null, vals: {}, errs: {}, rf: '', q: '' };
+const design = id => store().designs.find(d => d.id === id);
+
+/* ---------- ready-made starting points ---------- */
+const cats = () => (G.state.settings.stockCats && G.state.settings.stockCats.length ? G.state.settings.stockCats : ['General']);
+const STARTERS = [
+  { name: 'Inventory intake', icon: '📦', desc: 'Record newly acquired stock. Creates a product when you submit.', make: true, f: () => { const ins = mkField('tf', 'Inspection complete?'); return [mkField('short', 'Product name', { req: true, map: 'name' }), mkField('related', 'Supplier', { rel: 'u', map: 'supplier' }), mkField('currency', 'Purchase price', { map: 'cost' }), mkField('currency', 'Selling price', { map: 'price' }), mkField('dropdown', 'Category', { opts: cats(), map: 'category' }), mkField('dropdown', 'Condition', { opts: ['New', 'Like new', 'Good', 'Fair'] }), ins, mkField('long', 'What needs fixing?', { showFid: ins.id, showVal: 'no' }), mkField('long', 'Product notes', { map: 'notes' })]; } },
+  { name: 'Product inspection', icon: '🔍', desc: 'Check a product before listing it.', f: () => { const dm = mkField('checkbox', 'Damage found'); return [mkField('related', 'Product', { rel: 'p', req: true }), mkField('dropdown', 'Condition', { opts: ['New', 'Like new', 'Good', 'Fair'] }), mkField('tf', 'Matches the listing photos?'), dm, mkField('long', 'Describe the damage', { showFid: dm.id, showVal: 'yes' }), mkField('rating', 'Quality score')]; } },
+  { name: 'Shipping checklist', icon: '🚚', desc: 'Verify an order before it ships.', f: () => [mkField('related', 'Order', { rel: 'o', req: true }), mkField('tf', 'Items match the order?'), mkField('checkbox', 'Packed safely'), mkField('short', 'Tracking number'), mkField('date', 'Shipped on')] },
+  { name: 'Business expense', icon: '🧾', desc: 'Record an expense, with the total worked out for you.', f: () => [mkField('short', 'Description', { req: true }), mkField('date', 'Date'), mkField('short', 'Vendor'), mkField('currency', 'Amount', { req: true }), mkField('number', 'Tax rate %'), mkField('formula', 'Total with tax', { formula: '{Amount} + {Amount} * {Tax rate %} / 100' })] }
+];
+
+/* ---------- related records, formulas, show-when ---------- */
+function relAll(k) {
+  const s = G.state, A = x => x || [];
+  return ({ p: () => A(s.products).map(p => [p.id, (p.sku ? p.sku + ' · ' : '') + (p.name || ''), p.archived]), o: () => A(s.orders).map(o => [o.id, (String(o.sku || '').trim() || 'ORD-' + String(o.no || 0).padStart(3, '0')) + ' · ' + (o.customer || ''), o.archived]), c: () => A(s.customers).map(c => [c.id, c.name || '', c.archived]), l: () => A(s.listings).map(l => [l.id, (l.sku ? l.sku + ' · ' : '') + (l.title || ''), l.archived]), u: () => A(s.suppliers).map(x => [x.id, x.name || '', x.archived]) }[k] || (() => []))().filter(x => x[1]);
+}
+function formulaVal(f, d, vals) {
+  let ex = String(f.formula || ''); if (!ex.trim()) return '';
+  ex = ex.replace(/\{([^}]+)\}/g, (m, n) => { const t = d.fields.find(x => x.id !== f.id && x.label.trim().toLowerCase() === n.trim().toLowerCase()), v = t ? parseFloat(vals[t.id]) : 0; return '(' + (isFinite(v) ? v : 0) + ')'; });
+  if (!/^[\d\s+\-*/().]*$/.test(ex)) return '';
+  try { const r = Function('"use strict";return (' + ex + ')')(); return isFinite(r) ? Math.round(r * 100) / 100 : ''; } catch (e) { return ''; }
+}
+const norm = v => Array.isArray(v) ? v.map(x => String(x).toLowerCase()) : v === true ? ['yes'] : v === false ? ['no'] : [String(v ?? '').trim().toLowerCase()];
+const visible = (f, vals) => !f.showFid || norm(vals[f.showFid]).includes(String(f.showVal || '').trim().toLowerCase());
+function cell(f, v) {
+  if (v == null || v === '' || (Array.isArray(v) && !v.length)) return '';
+  if (f.type === 'related') { const r = relAll(f.rel).find(x => x[0] === v); return r ? r[1] : '(removed)'; }
+  if (f.type === 'multi') return v.join(', '); if (f.type === 'checkbox') return v ? 'Yes' : 'No';
+  if (f.type === 'tf') return v === 'yes' ? 'True' : v === 'no' ? 'False' : '';
+  if (f.type === 'rating') return '★'.repeat(+v) + '☆'.repeat(5 - v); if (f.type === 'currency' || (f.type === 'formula' && /total|price|cost|profit|amount/i.test(f.label))) return money(+v) ;
+  return String(v);
+}
+
+/* ---------- screens ---------- */
+const topTabs = () => `<div class="fb-tabs"><button class="chip ${VIEW.tab === 'forms' ? 'on' : ''}" data-fb="tab" data-k="forms">Forms</button><button class="chip ${VIEW.tab === 'records' ? 'on' : ''}" data-fb="tab" data-k="records">Records (${store().entries.length})</button></div>`;
+function listHTML() {
+  const f = store(), ds = f.designs;
+  const cards = ds.map(d => { fixD(d); const n = f.entries.filter(e => e.designId === d.id).length;
+    return `<div class="card fb-card"><div class="fb-row"><span class="fb-ico">${esc(d.icon)}</span><div class="grow"><b style="display:block;font-size:15px">${esc(d.name || 'Untitled form')}</b><span class="xs sub">${d.fields.length} field${d.fields.length === 1 ? '' : 's'} · ${n} record${n === 1 ? '' : 's'}${(k => k ? ' (' + k + ' draft' + (k === 1 ? '' : 's') + ')' : '')(f.entries.filter(e => e.designId === d.id && e.status === 'draft').length)}${d.make ? ' · creates a product' : ''}</span>${d.desc ? `<div class="xs sub" style="margin-top:2px">${esc(d.desc)}</div>` : ''}</div></div>
+    <div class="fb-acts"><button class="btn btn-primary btn-sm" data-fb="fill" data-id="${d.id}">Fill in</button><button class="btn btn-line btn-sm" data-fb="edit" data-id="${d.id}">Edit design</button><button class="link" data-fb="dup" data-id="${d.id}">${ic('copy')} Duplicate</button></div></div>`; }).join('');
+  return `<div class="fb-top">${topTabs()}<span class="grow"></span><button class="btn btn-primary btn-sm" data-fb="new">${ic('plus')} New form</button></div>
+  <div class="card fb-card"><b style="font-size:14px">Quick start</b><p class="hint" style="margin:4px 0 10px">Pick one to begin with fields already set up. Change anything.</p><div class="row" style="gap:6px;flex-wrap:wrap">${STARTERS.map((s, i) => `<button class="chip" data-fb="starter" data-k="${i}">${s.icon} ${esc(s.name)}</button>`).join('')}</div></div>
+  <div class="stack-sm"><h4 class="eyebrow">Your form designs</h4>${cards || '<div class="card fb-none">No form designs yet. Tap New form, or pick a quick start.</div>'}</div>
+  <p class="hint">Your older checklist forms are still under More › Forms.</p>`;
+}
+function fieldCard(d, f, i) {
+  const a = `data-fid="${f.id}"`, prev = d.fields.slice(0, i).filter(x => x.type !== 'formula');
+  return `<div class="fb-fc" data-fc="${f.id}"><div class="fb-row"><input class="input grow" data-fe="label" ${a} placeholder="Field label" value="${esc(f.label)}"><select class="select" style="width:auto;max-width:44%" data-fe="type" ${a}>${TYPES.map(t => `<option value="${t[0]}" ${f.type === t[0] ? 'selected' : ''}>${t[1]}</option>`).join('')}</select></div>
+  ${OPTS.has(f.type) ? `<label class="fld"><span>Choices (one per line)</span><textarea class="textarea" data-fe="opts" ${a}>${esc(f.opts.join('\n'))}</textarea></label>` : ''}
+  ${f.type === 'related' ? `<label class="fld"><span>Links to</span><select class="select" data-fe="rel" ${a}>${Object.entries(RELS).map(r => `<option value="${r[0]}" ${f.rel === r[0] ? 'selected' : ''}>${r[1]}s</option>`).join('')}</select></label>` : ''}
+  ${f.type === 'formula' ? `<label class="fld"><span>Formula using other field labels</span><input class="input" data-fe="formula" ${a} placeholder="{Amount} * {Quantity}" value="${esc(f.formula)}"></label>` : ''}
+  ${d.make && f.type !== 'formula' ? `<label class="fld"><span>Fills product…</span><select class="select" data-fe="map" ${a}>${MAPS.map(m => `<option value="${m[0]}" ${f.map === m[0] ? 'selected' : ''}>${m[1]}</option>`).join('')}</select></label>` : ''}
+  ${prev.length ? `<div class="fld"><span>Show only when</span><div class="fb-row"><select class="select" data-fe="showFid" ${a}><option value="">Always show</option>${prev.map(p => `<option value="${p.id}" ${f.showFid === p.id ? 'selected' : ''}>${esc(p.label || 'Untitled')}</option>`).join('')}</select>${f.showFid ? `<span class="xs sub">is</span><input class="input" data-fe="showVal" ${a} placeholder="Yes, No, a choice…" value="${esc(f.showVal)}">` : ''}</div></div>` : ''}
+  <div class="fb-acts">${f.type !== 'formula' ? `<label class="fb-opt"><input type="checkbox" class="chk" data-fe="req" ${a} ${f.req ? 'checked' : ''}> Required</label>` : ''}<button class="link" data-fb="f-up" ${a} ${i === 0 ? 'disabled style="opacity:.35"' : ''}>${ic('arrow-up')} Up</button><button class="link" data-fb="f-down" ${a} ${i === d.fields.length - 1 ? 'disabled style="opacity:.35"' : ''}>${ic('arrow-down')} Down</button><button class="link" data-fb="f-del" ${a} style="color:var(--bad)">${ic('trash')} Remove</button></div></div>`;
+}
+function editHTML(d) {
+  return `<div class="fb-top"><button class="btn btn-line btn-sm" data-fb="back">${ic('arrow-left')} All forms</button><span class="grow"></span><button class="btn btn-line btn-sm" data-fb="fill" data-id="${d.id}">Try it</button><button class="btn btn-primary btn-sm" data-fb="f-save">${ic('save')} Save</button></div>
+  <div class="card fb-card"><div class="fb-row"><input class="input fb-iin" data-fd="icon" value="${esc(d.icon)}" maxlength="4" aria-label="Icon"><input class="input grow fb-name" data-fd="name" placeholder="Untitled form" value="${esc(d.name)}"></div>
+    <label class="fld" style="margin:10px 0 0"><span>What is this form for?</span><textarea class="textarea" data-fd="desc">${esc(d.desc)}</textarea></label>
+    <label class="fb-opt" style="margin-top:10px"><input type="checkbox" class="chk" data-fd="make" ${d.make ? 'checked' : ''}> Create a product in Inventory when a record is submitted</label></div>
+  <div class="card fb-card" id="fb-fields">${d.fields.map((f, i) => fieldCard(d, f, i)).join('') || '<div class="fb-none">No fields yet.</div>'}
+    <div class="fb-row" style="margin-top:12px"><select class="select" id="fb-nt">${TYPES.map(t => `<option value="${t[0]}">${t[1]}</option>`).join('')}</select><button class="btn btn-soft btn-sm" data-fb="f-add" style="white-space:nowrap">${ic('plus')} Add field</button></div></div>
+  <div class="fb-top" style="justify-content:space-between"><button class="link" data-fb="dup" data-id="${d.id}">${ic('copy')} Duplicate</button><button class="link" data-fb="del" data-id="${d.id}" style="color:var(--bad)">${ic('trash')} Delete this design</button></div>`;
+}
+function inputHTML(f, v) {
+  const a = `data-fb-f="${f.id}"`, ph = f.type === 'currency' ? '0.00' : '';
+  const t = { number: 'number', currency: 'number', date: 'date', email: 'email', phone: 'tel', url: 'url' }[f.type];
+  if (t) return `<input class="input" type="${t}" ${t === 'number' ? 'step="any" inputmode="decimal"' : ''} ${a} placeholder="${ph}" value="${esc(v)}">`;
+  switch (f.type) {
+    case 'long': return `<textarea class="textarea" ${a}>${esc(v)}</textarea>`;
+    case 'dropdown': return `<select class="select" ${a}><option value="">Choose…</option>${f.opts.map(o => `<option ${v === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+    case 'related': return `<select class="select" ${a}><option value="">Choose a ${RELS[f.rel].toLowerCase()}…</option>${relAll(f.rel).filter(x => !x[2] || x[0] === v).map(x => `<option value="${esc(x[0])}" ${v === x[0] ? 'selected' : ''}>${esc(x[1])}</option>`).join('')}</select>`;
+    case 'radio': return f.opts.map(o => `<label class="fb-opt"><input type="radio" class="chk" name="r${f.id}" ${a} value="${esc(o)}" ${v === o ? 'checked' : ''}> ${esc(o)}</label>`).join('');
+    case 'multi': return f.opts.map(o => `<label class="fb-opt"><input type="checkbox" class="chk" ${a} value="${esc(o)}" ${(v || []).includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('');
+    case 'checkbox': return `<label class="fb-opt"><input type="checkbox" class="chk" ${a} ${v ? 'checked' : ''}> Yes</label>`;
+    case 'tf': return `<div class="row" style="gap:14px">${[['yes', 'True'], ['no', 'False']].map(o => `<label class="fb-opt"><input type="radio" class="chk" name="r${f.id}" ${a} value="${o[0]}" ${v === o[0] ? 'checked' : ''}> ${o[1]}</label>`).join('')}</div>`;
+    case 'rating': return `<div class="fb-star" data-star="${f.id}">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-fb="star" data-fid="${f.id}" data-n="${n}" class="${+v >= n ? 'on' : ''}">★</button>`).join('')}</div>`;
+    case 'formula': return `<div class="fb-calc" data-calc="${f.id}">${esc(cell(f, v) || '0')}</div>`;
+    default: return `<input class="input" ${a} value="${esc(v)}">`;
+  }
+}
+function fillHTML(d) {
+  const e = VIEW.eid ? store().entries.find(x => x.id === VIEW.eid) : null;
+  return `<div class="fb-top"><button class="btn btn-line btn-sm" data-fb="back">${ic('arrow-left')} ${e ? 'Records' : 'All forms'}</button><span class="grow"></span>${e && e.status === 'draft' ? '<span class="pill warn">Draft</span>' : ''}${e && e.productId ? '<span class="pill ok">Product created</span>' : ''}</div>
+  <div class="card fb-card"><div class="fb-row" style="margin-bottom:12px"><span class="fb-ico">${esc(d.icon)}</span><div><b style="font-size:17px">${esc(d.name || 'Untitled form')}</b>${d.desc ? `<div class="xs sub">${esc(d.desc)}</div>` : ''}</div></div>
+  ${d.fields.map(f => `<div class="fb-f" data-fw="${f.id}"><span class="fb-l">${esc(f.label || 'Untitled')}${f.req ? ' <span class="fb-r">*</span>' : ''}</span>${inputHTML(f, VIEW.vals[f.id])}<div class="fb-err" data-err="${f.id}"></div></div>`).join('') || '<div class="fb-none">This form has no fields yet. Use Edit design to add some.</div>'}
+  <div class="fb-acts"><button class="btn btn-primary" data-fb="submit">${e && e.status !== 'draft' ? 'Save changes' : 'Submit'}</button>${!e || e.status === 'draft' ? `<button class="btn btn-line" data-fb="draft">Save draft</button>` : ''}${e ? `<button class="link" data-fb="e-del" style="color:var(--bad)">${ic('trash')} Delete record</button>` : ''}</div></div>`;
+}
+function recordsHTML() {
+  const f = store(), ds = f.designs, q = VIEW.q.trim().toLowerCase(), d = VIEW.rf ? design(VIEW.rf) : null;
+  const flds = d ? d.fields.filter(x => visFieldCols(x)).slice(0, 5) : [];
+  let rows = f.entries.filter(e => !d || e.designId === d.id).slice().sort((a, b) => b.created - a.created);
+  const txt = e => { const dd = design(e.designId); return dd ? dd.fields.map(x => cell(x, e.values[x.id])).join(' ') : ''; };
+  if (q) rows = rows.filter(e => (e.designName + ' ' + txt(e)).toLowerCase().includes(q));
+  const head = d ? flds.map(x => `<th>${esc(x.label)}</th>`).join('') : '<th>Summary</th>';
+  const body = rows.map(e => { const dd = design(e.designId); const c = d ? flds.map(x => `<td>${esc(cell(x, e.values[x.id]))}</td>`).join('') : `<td>${esc(txt(e).trim().slice(0, 80))}</td>`;
+    return `<tr data-fb="open-e" data-id="${e.id}"><td>${esc(e.designName || (dd && dd.name) || 'Form')}</td><td>${e.status === 'draft' ? '<span class="pill warn">Draft</span>' : '<span class="pill ok">Submitted</span>'}</td><td>${fmtD(e.created)}</td>${c}</tr>`; }).join('');
+  return `<div class="fb-top">${topTabs()}<span class="grow"></span><button class="btn btn-line btn-sm" data-fb="csv">${ic('download')} .csv</button></div>
+  <div class="fb-row"><select class="select" data-fb-rf><option value="">All forms</option>${ds.map(x => `<option value="${x.id}" ${VIEW.rf === x.id ? 'selected' : ''}>${esc(x.icon + ' ' + (x.name || 'Untitled'))}</option>`).join('')}</select><input class="input grow" data-fb-q placeholder="Search records" value="${esc(VIEW.q)}"></div>
+  <div class="fb-tw">${rows.length ? `<table><thead><tr><th>Form</th><th>Status</th><th>Created</th>${head}</tr></thead><tbody>${body}</tbody></table>` : '<div class="fb-none">No records yet. Fill in a form and it shows up here.</div>'}</div>`;
+}
+const visFieldCols = x => x.type !== 'long';
+function paint() {
+  const h = $('#fb-host'); if (!h) return; const sc = $('#scroll'), y = sc ? sc.scrollTop : 0; let d = VIEW.id && design(VIEW.id);
+  if (VIEW.id && !d) { VIEW.id = null; VIEW.mode = 'list'; }
+  if (d) fixD(d);
+  h.innerHTML = VIEW.mode === 'edit' && d ? editHTML(d) : VIEW.mode === 'fill' && d ? fillHTML(d) : VIEW.tab === 'records' ? recordsHTML() : listHTML();
+  if (VIEW.mode === 'fill' && d) refresh(d); if (sc) sc.scrollTop = y;
+}
+
+/* ---------- filling in ---------- */
+function read(d) {
+  const v = {};
+  d.fields.forEach(f => { const els = $$(`[data-fb-f="${f.id}"]`); if (f.type === 'formula') return;
+    if (f.type === 'rating') v[f.id] = VIEW.vals[f.id] || '';
+    else if (f.type === 'multi') v[f.id] = els.filter(e => e.checked).map(e => e.value);
+    else if (f.type === 'checkbox') v[f.id] = !!(els[0] && els[0].checked);
+    else if (f.type === 'radio' || f.type === 'tf') { const c = els.find(e => e.checked); v[f.id] = c ? c.value : ''; }
+    else v[f.id] = els[0] ? els[0].value : ''; });
+  return v;
+}
+function refresh(d) {
+  const vals = VIEW.vals = read(d);
+  d.fields.filter(f => f.type === 'formula').forEach(f => { vals[f.id] = formulaVal(f, d, vals); const el = $(`[data-calc="${f.id}"]`); if (el) el.textContent = cell(f, vals[f.id]) || '0'; });
+  $$('[data-fw]').forEach(w => { const f = d.fields.find(x => x.id === w.dataset.fw); w.style.display = f && visible(f, vals) ? '' : 'none'; });
+}
+function newProduct(d, vals) {
+  const s = G.state, m = {}; d.fields.forEach(f => { if (f.map && vals[f.id] !== '' && vals[f.id] != null && visible(f, vals)) m[f.map] = vals[f.id]; });
+  if (!m.name) return null;
+  const n = Math.max(0, ...s.products.map(p => parseInt(String(p.sku || '').replace(/\D/g, '')) || 0));
+  const p = { id: 'p' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3), name: String(m.name), title: '', description: '', sku: 'PROD-' + String(n + 1).padStart(3, '0'), barcode: '', category: m.category || (s.settings.stockCats || [])[0] || '', price: parseFloat(m.price) || 0, cost: parseFloat(m.cost) || 0, qty: 0, low: '', location: '', supplierId: m.supplier || '', tags: '', notes: m.notes || '', recipe: [], batch: 1, tiers: [] };
+  s.products.push(p); return p;
+}
+function submit(d, draft) {
+  refresh(d); const vals = VIEW.vals; let bad = 0; $$('[data-err]').forEach(x => { x.textContent = ''; });
+  if (!draft) d.fields.forEach(f => { if (!f.req || f.type === 'formula' || !visible(f, vals)) return; const v = vals[f.id]; if (v === '' || v == null || (Array.isArray(v) && !v.length) || (f.type === 'checkbox' && !v)) { bad++; const el = $(`[data-err="${f.id}"]`); if (el) el.textContent = 'Required'; } });
+  if (bad) { const el = $('[data-err]:not(:empty)'); if (el) el.scrollIntoView({ block: 'center' }); return toast(bad + ' required field' + (bad === 1 ? '' : 's') + ' to fill in'); }
+  const out = {}; d.fields.forEach(f => { if (visible(f, vals)) out[f.id] = vals[f.id]; });
+  const f = store(); let e = VIEW.eid && f.entries.find(x => x.id === VIEW.eid), msg = 'Saved';
+  if (draft) { if (e) { e.values = out; e.updated = Date.now(); } else { e = { id: uid(), designId: d.id, designName: d.name, values: out, created: Date.now(), updated: Date.now(), status: 'draft' }; f.entries.push(e); VIEW.eid = e.id; } persist(); paint(); return toast('Draft saved. Find it under Records'); }
+  if (e) { e.values = out; e.updated = Date.now(); if (e.status === 'draft') { e.status = 'submitted'; msg = 'Submitted'; if (d.make && !e.productId) { const p = newProduct(d, vals); if (p) { e.productId = p.id; msg = 'Submitted, and ' + p.sku + ' added to Products'; } } } }
+  else { e = { id: uid(), designId: d.id, designName: d.name, values: out, created: Date.now(), updated: Date.now() }; if (d.make) { const p = newProduct(d, vals); if (p) { e.productId = p.id; msg = 'Saved, and ' + p.sku + ' added to Products'; } else msg = 'Saved. Fill a field marked “Product name” to also create a product'; } f.entries.push(e); }
+  persist(); VIEW.eid = null; VIEW.vals = {}; VIEW.mode = 'list'; VIEW.tab = 'records'; VIEW.rf = d.id; paint(); toast(msg);
+}
+const csvCell = v => { v = String(v ?? ''); return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+function csv() {
+  const d = VIEW.rf ? design(VIEW.rf) : null, f = store(), rows = f.entries.filter(e => !d || e.designId === d.id);
+  const cols = d ? d.fields : []; const head = ['Form', 'Created'].concat(d ? cols.map(c => c.label) : ['Summary']);
+  const lines = [head].concat(rows.map(e => { const dd = design(e.designId); return [e.designName || '', fmtD(e.created)].concat(d ? cols.map(c => cell(c, e.values[c.id])) : [dd ? dd.fields.map(c => c.label + ': ' + cell(c, e.values[c.id])).join(' | ') : '']); }));
+  const blob = new Blob(['\ufeff' + lines.map(r => r.map(csvCell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'form-records.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---------- events ---------- */
+const go = (mode, id) => { VIEW.mode = mode; VIEW.id = id || null; VIEW.eid = null; VIEW.vals = {}; paint(); const sc = $('#scroll'); if (sc) sc.scrollTop = 0; };
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-fb]'); if (!t || !t.closest('#fb-host')) return;
+  const k = t.dataset.fb, f = store(), id = t.dataset.id || VIEW.id, d = id && design(id), fid = t.dataset.fid;
+  switch (k) {
+    case 'tab': VIEW.tab = t.dataset.k; paint(); break;
+    case 'back': VIEW.mode = 'list'; VIEW.eid = null; VIEW.vals = {}; paint(); break;
+    case 'new': { const n = fixD({ name: '', fields: [mkField('short', 'Name')] }); f.designs.unshift(n); persist(); go('edit', n.id); break; }
+    case 'starter': { const s = STARTERS[+t.dataset.k], n = fixD({ name: s.name, icon: s.icon, desc: s.desc, make: !!s.make, fields: s.f() }); f.designs.unshift(n); persist(); go('edit', n.id); toast('Form ready. Change anything you like'); break; }
+    case 'edit': go('edit', id); break;
+    case 'fill': VIEW.vals = {}; VIEW.eid = null; VIEW.mode = 'fill'; VIEW.id = id; paint(); { const sc = $('#scroll'); if (sc) sc.scrollTop = 0; } break;
+    case 'dup': { if (!d) break; const n = clone(d); n.id = uid(); n.name = (d.name || 'Untitled form') + ' (copy)'; const m = {}; n.fields.forEach(x => { m[x.id] = uid(); }); n.fields.forEach(x => { if (x.showFid) x.showFid = m[x.showFid] || ''; x.id = m[x.id]; }); f.designs.unshift(n); persist(); paint(); toast('Duplicated'); break; }
+    case 'del': { if (!d) break; const n = f.entries.filter(x => x.designId === d.id).length; if (!confirm('Delete the design "' + (d.name || 'Untitled') + '"?' + (n ? ' Its ' + n + ' submitted record' + (n === 1 ? '' : 's') + ' will be kept.' : ''))) break; f.designs = f.designs.filter(x => x.id !== d.id); persist(); go('list'); break; }
+    case 'f-add': { if (!d) break; const ty = $('#fb-nt').value; d.fields.push(mkField(ty, TYPES.find(x => x[0] === ty)[1], OPTS.has(ty) ? { opts: ['Option 1', 'Option 2'] } : {})); persist(); paint(); break; }
+    case 'f-up': case 'f-down': { if (!d) break; const i = d.fields.findIndex(x => x.id === fid), j = i + (k === 'f-up' ? -1 : 1); if (j < 0 || j >= d.fields.length) break; [d.fields[i], d.fields[j]] = [d.fields[j], d.fields[i]]; persist(); paint(); break; }
+    case 'f-del': { if (!d) break; d.fields = d.fields.filter(x => x.id !== fid); d.fields.forEach(x => { if (x.showFid === fid) { x.showFid = ''; x.showVal = ''; } }); persist(); paint(); break; }
+    case 'star': { const n = +t.dataset.n; VIEW.vals[fid] = VIEW.vals[fid] === n ? '' : n; $$(`[data-star="${fid}"] button`).forEach(b => b.classList.toggle('on', +b.dataset.n <= (+VIEW.vals[fid] || 0))); break; }
+    case 'submit': if (d) submit(d); break;
+    case 'draft': if (d) submit(d, true); break;
+    case 'f-save': persist(); toast('Saved'); VIEW.mode = 'list'; VIEW.tab = 'forms'; paint(); break;
+    case 'open-e': { const en = f.entries.find(x => x.id === id); if (!en) break; if (!design(en.designId)) return toast('The design for this record was deleted'); VIEW.id = en.designId; VIEW.eid = en.id; VIEW.vals = clone(en.values); VIEW.mode = 'fill'; paint(); const sc = $('#scroll'); if (sc) sc.scrollTop = 0; break; }
+    case 'e-del': { if (!VIEW.eid || !confirm('Delete this record? A product it created stays in Inventory.')) break; f.entries = f.entries.filter(x => x.id !== VIEW.eid); persist(); VIEW.eid = null; VIEW.mode = 'list'; VIEW.tab = 'records'; paint(); break; }
+    case 'csv': csv(); break;
+  }
+});
+document.addEventListener('input', e => {
+  const t = e.target; if (!t || !t.closest || !t.closest('#fb-host')) return;
+  if (t.dataset.fbQ !== undefined) { VIEW.q = t.value; const p = t.selectionStart; paint(); const n = $('[data-fb-q]'); if (n) { n.focus(); try { n.setSelectionRange(p, p); } catch (x) { } } return; }
+  const d = VIEW.id && design(VIEW.id); if (!d) return;
+  if (t.dataset.fbF) return refresh(d);
+  if (t.dataset.fd && ['name', 'desc', 'icon'].includes(t.dataset.fd)) { d[t.dataset.fd] = t.value; d.updated = Date.now(); persist(); return; }
+  const f = t.dataset.fid && d.fields.find(x => x.id === t.dataset.fid); if (!f) return;
+  const k = t.dataset.fe; if (k === 'label' || k === 'formula' || k === 'showVal') f[k] = t.value; else if (k === 'opts') f.opts = t.value.split('\n').map(x => x.trim()).filter(Boolean); else return; persist();
+});
+document.addEventListener('change', e => {
+  const t = e.target; if (!t || !t.closest || !t.closest('#fb-host')) return;
+  if (t.dataset.fbRf !== undefined) { VIEW.rf = t.value; paint(); return; }
+  const d = VIEW.id && design(VIEW.id); if (!d) return;
+  if (t.dataset.fbF) return refresh(d);
+  if (t.dataset.fd === 'make') { d.make = t.checked; if (!d.make) d.fields.forEach(x => { x.map = ''; }); persist(); paint(); return; }
+  const f = t.dataset.fid && d.fields.find(x => x.id === t.dataset.fid); if (!f) return; const k = t.dataset.fe;
+  if (k === 'req') f.req = t.checked; else if (['type', 'rel', 'map', 'showFid'].includes(k)) { f[k] = t.value; if (k === 'showFid') f.showVal = ''; if (k === 'type' && OPTS.has(f.type) && !f.opts.length) f.opts = ['Option 1', 'Option 2']; persist(); paint(); return; } persist();
+});
+
+/* ---------- plug into the app ---------- */
+G.TITLES.fb = 'Form builder';
+G.V.fb = () => '<div class="page stack-sm fade" id="fb-host"></div>';
+function inject() {
+  if (G.ui.sub === 'fb') { const h = $('#fb-host'); if (h && !h.dataset.ready) { h.dataset.ready = '1'; paint(); } }
+  const anchor = $('#scroll .list-row[data-sub="forms"]');
+  if (anchor && !$('#scroll .list-row[data-sub="fb"]')) {
+    const b = document.createElement('button'); b.className = 'list-row'; b.dataset.act = 'sub'; b.dataset.sub = 'fb';
+    b.innerHTML = `<span class="ico">${ic('file-text')}</span><span class="grow"><b style="display:block;font-size:14px">Form builder</b><span class="xs sub">Design forms with real fields, then collect records. Can add products to Inventory</span></span>${ic('chevron-right', 'chev')}`;
+    anchor.after(b);
+  }
+}
+new MutationObserver(inject).observe($('#scroll'), { childList: true });
+inject();
+})();
+</script>
+
 </body>
 </html>
