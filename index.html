@@ -1464,6 +1464,7 @@ function removeOrder(id) {
   state.orders.splice(i, 1);
 }
 const autoOrderNo = n => 'ORD-' + String(n || 0).padStart(3, '0');
+const nextOrderSku = () => { let m = 0; (state.orders || []).forEach(o => { const x = /^ORD-(\d+)$/i.exec(orderNo(o)); if (x) m = Math.max(m, parseInt(x[1], 10)); }); return autoOrderNo(m + 1); };
 const orderNo = o => String(o.sku || '').trim() || autoOrderNo(o.no);
 /* Changing an order's status: a full "Refunded to Customer" fills the refund in for you. */
 function setOrderStatus(o, st) {
@@ -3846,7 +3847,7 @@ OPEN.order = (id, pre = {}) => {
   const d = o ? clone(o) : { acct: defaultAcct('orders'), date: today(), customer: pre.customer || '', channel: (state.settings.channels[0] || {}).name || '', items: [{ productId: '', name: '', qty: 1, price: '', cost: '' }], supplies: [], discount: '', bulk: !!pre.bulk, bulkPct: '', po: '', terms: pre.bulk ? 'Net 15' : '', deposit: '', shipCharged: '', tax: '', postage: '', fees: '', feesManual: false, finalProfit: '', status: 'Order Received', payment: '', carrier: '', shipBy: '', tracking: '', ref: '', notes: '', unpaid: !!pre.unpaid, invTerms: pre.unpaid ? 'Net 15' : '', invDue: '' };
   const chans = activeChans().map(c => c.name); if (d.channel && !chans.includes(d.channel)) chans.push(d.channel);
   openSheet(o ? 'Edit sale ' + orderNo(o) : (d.bulk ? 'New bulk order' : d.unpaid ? 'New invoice' : 'New sale'), formWrap('order', id, `
-    ${fText('Sale SKU / order #', 'osku', d.sku || autoOrderNo(o ? o.no : (state.counters.order || 0) + 1), 'maxlength=\"30\" autocomplete=\"off\" placeholder=\"' + autoOrderNo(o ? o.no : (state.counters.order || 0) + 1) + '\"')}<p class=\"hint\" style=\"margin:-6px 0 10px\">Filled in automatically. Type over it to use your own. Clear it to go back to the automatic number.</p>
+    ${fText('Sale SKU / order #', 'osku', d.sku || (o ? autoOrderNo(o.no) : nextOrderSku()), 'maxlength=\"30\" autocomplete=\"off\" placeholder=\"' + (o ? autoOrderNo(o.no) : nextOrderSku()) + '\"')}<p class=\"hint\" style=\"margin:-6px 0 10px\">Filled in automatically. Type over it to use your own. Clear it to go back to the automatic number.</p>
     <div class=\"grid2\">${fDate('Date', 'date', d.date)}${fSel('Sold via', 'channel', chans.length ? chans : [''], d.channel)}</div>
     <label class=\"fld\"><span>Customer</span><input class="input" name="customer" list="cust-list" value="${esc(d.customer)}" maxlength="80" placeholder="Name (optional)"><datalist id="cust-list">${customerNames().map(c => `<option value="${esc(c)}">`).join('')}</datalist></label>
     ${fCheck('Bulk / wholesale order', 'bulk', d.bulk)}
@@ -3899,8 +3900,8 @@ function readOrder0(f, existing) {
   items.forEach(l => { l.returned = Math.min(l.returned, l.qty); });
   const supplies = $$('.sup-line', f).map(row => { const sid = $('[name=su]', row).value, sp = sid && state.supplies.find(x => x.id === sid); return sp ? { supplyId: sp.id, name: sp.name, qty: Math.max(0, num($('[name=sq]', row).value)), cost: num($('[name=sk]', row).value) } : null; }).filter(u => u && u.qty > 0);
   const feeRaw = String(fd.get('fees') || '').trim(), manual = feeRaw !== '', bulk = fd.get('bulk') === 'on';
-  const oskuRaw = tidy(fd.get('osku')), oskuAuto = autoOrderNo(existing ? existing.no : (state.counters.order || 0) + 1);
-  const o = { ...(existing || {}), sku: oskuRaw && oskuRaw !== oskuAuto ? oskuRaw : '', acct: fd.get('acct') || '', date: fd.get('date'), customer: tidy(fd.get('customer')), channel: fd.get('channel') || '', items, supplies, bulk, bulkPct: bulk ? Math.max(0, Math.min(100, num(fd.get('bulkPct')))) : 0, po: tidy(fd.get('po')), terms: fd.get('terms') || '', deposit: Math.max(0, num(fd.get('deposit'))), discount: Math.max(0, num(fd.get('discount'))), shipCharged: num(fd.get('shipCharged')), tax: Math.max(0, num(fd.get('tax'))), cur: tidy(fd.get('cur')).toUpperCase().slice(0, 3), fx: tidy(fd.get('cur')) && num(fd.get('fx')) > 0 ? num(fd.get('fx')) : '', postage: num(fd.get('postage')), feesManual: manual, finalProfit: String(fd.get('finalProfit') ?? '').trim() === '' ? '' : num(fd.get('finalProfit')), status: fd.get('status'), payment: fd.get('payment') || '', carrier: fd.get('carrier') || '', shipBy: fd.get('shipBy') || '', tracking: tidy(fd.get('tracking')), ref: tidy(fd.get('ref')), notes: tidy(fd.get('notes')), refund: existing ? existing.refund : 0, reimb: existing ? existing.reimb : 0, stepDates: (() => { const sd = {}; FLOW.forEach((st, i) => { const v = fd.get('sd_' + i); if (v) sd[st] = v; }); return sd; })() };
+  const oskuRaw = tidy(fd.get('osku')), oskuAuto = existing ? autoOrderNo(existing.no) : nextOrderSku();
+  const o = { ...(existing || {}), sku: existing ? (oskuRaw && oskuRaw !== oskuAuto ? oskuRaw : '') : (oskuRaw || oskuAuto), acct: fd.get('acct') || '', date: fd.get('date'), customer: tidy(fd.get('customer')), channel: fd.get('channel') || '', items, supplies, bulk, bulkPct: bulk ? Math.max(0, Math.min(100, num(fd.get('bulkPct')))) : 0, po: tidy(fd.get('po')), terms: fd.get('terms') || '', deposit: Math.max(0, num(fd.get('deposit'))), discount: Math.max(0, num(fd.get('discount'))), shipCharged: num(fd.get('shipCharged')), tax: Math.max(0, num(fd.get('tax'))), cur: tidy(fd.get('cur')).toUpperCase().slice(0, 3), fx: tidy(fd.get('cur')) && num(fd.get('fx')) > 0 ? num(fd.get('fx')) : '', postage: num(fd.get('postage')), feesManual: manual, finalProfit: String(fd.get('finalProfit') ?? '').trim() === '' ? '' : num(fd.get('finalProfit')), status: fd.get('status'), payment: fd.get('payment') || '', carrier: fd.get('carrier') || '', shipBy: fd.get('shipBy') || '', tracking: tidy(fd.get('tracking')), ref: tidy(fd.get('ref')), notes: tidy(fd.get('notes')), refund: existing ? existing.refund : 0, reimb: existing ? existing.reimb : 0, stepDates: (() => { const sd = {}; FLOW.forEach((st, i) => { const v = fd.get('sd_' + i); if (v) sd[st] = v; }); return sd; })() };
   if (!o.feeSnap || o.feeSnap.ch !== o.channel) o.feeSnap = feeSnapOf(o.channel);
   o.fees = manual ? num(feeRaw) : autoFees(o);
   return o;
@@ -4569,7 +4570,7 @@ function dupRecord(type, id) {
   }
   else if (type === 'supply') { c.name += ' (copy)'; c.sku = nextSupplySku(c.kind); c.qty = 0; state.supplies.push(c); }
   else if (type === 'listing') { c.title += ' (copy)'; c.sku = nextListingSku(); c.status = 'Planned'; c.pending = []; c.listedDate = ''; c.relistDate = ''; c.createdDate = today(); c.snaps = []; state.listings.push(c); }
-  else if (type === 'order') { state.counters.order++; c.no = state.counters.order; c.sku = ''; c.date = today(); c.status = 'Order Received'; c.tracking = ''; c.refund = 0; c.reimb = 0; c.deposit = 0; c.finalProfit = ''; c.unpaid = false; delete c.paidDate; delete c.stepDates; delete c.payments; delete c.invDue; delete c.ref; c.createdAt = Date.now(); c.items.forEach(l => { l.returned = 0; }); putOrder(c); }
+  else if (type === 'order') { state.counters.order++; c.no = state.counters.order; c.sku = nextOrderSku(); c.date = today(); c.status = 'Order Received'; c.tracking = ''; c.refund = 0; c.reimb = 0; c.deposit = 0; c.finalProfit = ''; c.unpaid = false; delete c.paidDate; delete c.stepDates; delete c.payments; delete c.invDue; delete c.ref; c.createdAt = Date.now(); c.items.forEach(l => { l.returned = 0; }); putOrder(c); }
   else if (type === 'expense') { c.date = today(); delete c.repeat; delete c.from; c.stockBuy = false; state.expenses.push(c); }
   else if (type === 'task') { c.done = false; delete c.doneAt; delete c.nextMade; state.tasks.push(c); }
   else if (type === 'bill') { c.paid = false; c.paidDate = ''; delete c.expenseId; delete c.nextId; delete c.paidAmt; delete c.poId; c.due = today(); state.bills.push(c); }
@@ -4974,7 +4975,12 @@ function render() {
   if (lastView === v) $$('.fade', sc).forEach(x => x.classList.remove('fade'));
   if (xpSets(v).length) { const pg = $('.page', sc); if (pg) pg.insertAdjacentHTML('beforeend', `<button class="btn btn-line btn-sm block" style="margin-top:12px" data-act="export-page">${ic('download')} Export this page</button>`); }
   sc.scrollTop = keep; if (lastView !== v && state.settings.look && state.settings.look.pageAnim !== 'none') pageIn(sc); lastView = v;
+  navSave();
 }
+/* remember which page you are on, so if the browser reloads this tab after you switch away, you land back where you were */
+const NAV_KEY = 'app-nav-v1';
+function navSave(scroll) { try { const sc = $('#scroll'); sessionStorage.setItem(NAV_KEY, JSON.stringify({ tab: ui.tab, sub: ui.sub, ret: ui.ret, seg: ui.seg, scroll: scroll === undefined ? 0 : (sc ? sc.scrollTop : 0) })); } catch (e) { } }
+function navRestore() { try { const n = JSON.parse(sessionStorage.getItem(NAV_KEY) || 'null'); if (!n || !V[n.sub || n.tab]) return; ui.tab = n.tab || 'home'; ui.sub = n.sub || null; ui.ret = n.ret || null; if (n.seg) Object.assign(ui.seg, n.seg); lastView = null; return n; } catch (e) { } }
 function syncSelUI() { try { document.body.classList.toggle('sel-on', !!ui.selMode); } catch (e) { } }
 function refreshList() {
   syncSelUI(); const el = $('#list'); if (!el) return;
@@ -5009,11 +5015,13 @@ function navTo(g) {
 }
 const screens = { welcome: $('#screen-welcome'), setup: $('#screen-setup'), app: $('#screen-app') };
 function showScreen(n) { Object.entries(screens).forEach(([k, el]) => el.classList.toggle('on', k === n)); }
-function enterApp() {
+function enterApp(keepPlace) {
   applyTheme(state.settings.theme, state.settings.font);
   ui.tab = 'home'; ui.sub = null; ui.ret = null; lastView = null; resetFilters();
+  const nav = keepPlace ? navRestore() : null;
   if (processRecurring()) save();
   showScreen('app'); render();
+  if (nav && nav.scroll) { const sc = $('#scroll'); if (sc) sc.scrollTop = nav.scroll; }
 }
 
 /* =====================================================================
@@ -7149,7 +7157,7 @@ Object.assign(ACT, {
 ACT['as-glb-clear'] = () => { asCfg().customGlb = ''; try { idbSet('asGlb', null); } catch (e) { } const el = $('#as-glbn'); if (el) el.textContent = 'Using the built-in avatar'; save(); };
 ACT['as-pick'] = el => { const c = asCfg(), k = el.dataset.k, v = el.dataset.v; c[k] = v; const ed = $('#as-edit'); if (ed) { const x = $('[data-c=' + k + ']', ed), y = $('[data-h=' + k + ']', ed); if (x) x.value = v; if (y) y.value = v; } asEdPaint(); save(); };
 try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (state.setup && state.settings.look.auto) applyTheme(state.settings.theme, state.settings.font); }); } catch (e) { /* older browser */ }
-if (state.setup) enterApp(); else applyTheme('blush', FONTS[0][0]);
+if (state.setup) { enterApp(true); const sc = $('#scroll'); let st; if (sc) sc.addEventListener('scroll', () => { clearTimeout(st); st = setTimeout(() => navSave(1), 250); }, { passive: true }); document.addEventListener('visibilitychange', () => { if (document.hidden) navSave(1); }); window.addEventListener('pagehide', () => navSave(1)); } else applyTheme('blush', FONTS[0][0]);
 
 })();
 </script>
