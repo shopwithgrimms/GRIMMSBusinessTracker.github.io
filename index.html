@@ -2204,8 +2204,11 @@ V.home = () => {
 };
 
 /* ---------------- SALES ---------------- */
-const itemSku = i => { const p = i.productId && state.products.find(x => x.id === i.productId); return p ? (p.sku || '') : ''; };
-const orderSku = o => { for (const i of (o.items || [])) { const s = itemSku(i); if (s) return s; } return ''; };
+/* SKU shown for a sale line: the SKU you typed on the sale, else the listing's SKU, else the product's SKU */
+const autoItemSku = i => { const l = i.listingId && state.listings.find(x => x.id === i.listingId); if (l && l.sku) return l.sku; const p = i.productId && state.products.find(x => x.id === i.productId); return p ? (p.sku || '') : ''; };
+const itemSku = i => String(i.sku || '').trim() || autoItemSku(i);
+/* order SKU for sorting: highest SKU on the order when sorting high to low, lowest when low to high; no SKU goes last */
+const orderSku = (o, dir) => { const a = (o.items || []).map(itemSku).filter(Boolean); if (!a.length) return ''; return a.sort(dir === 'desc' ? skuDesc : skuCmp)[0]; };
 function salesFiltered() {
   let l = state.orders.filter(o => !!o.archived === ui.arch);
   const f = ui.filter;
@@ -2216,7 +2219,7 @@ function salesFiltered() {
   if (ui.ch) l = l.filter(o => o.channel === ui.ch);
   if (ui.q) { const q = ui.q.toLowerCase(); l = l.filter(o => [orderNo(o), o.customer, o.channel, o.tracking, o.po, o.ref, o.status, ...(o.items || []).map(i => i.name), ...(o.items || []).map(itemSku)].join(' ').toLowerCase().includes(q)); }
   const so = ui.sort || 'sku_d';
-  l.sort((a, b) => so === 'profit_l' ? (oc(a).profit - oc(b).profit) : so === 'profit_h' ? (oc(b).profit - oc(a).profit) : so === 'sku_d' ? (skuDesc(orderSku(a), orderSku(b)) || b.no - a.no) : so === 'sku' ? (skuCmp(orderSku(a), orderSku(b)) || b.no - a.no) : so === 'no' ? b.no - a.no : so === 'no_a' ? a.no - b.no : so === 'oldest' ? (a.date.localeCompare(b.date) || a.no - b.no) : so === 'high' ? oc(b).gross - oc(a).gross : so === 'low' ? oc(a).gross - oc(b).gross : so === 'ship' ? (a.shipBy || '9999').localeCompare(b.shipBy || '9999') : (b.date.localeCompare(a.date) || b.no - a.no));
+  l.sort((a, b) => so === 'profit_l' ? (oc(a).profit - oc(b).profit) : so === 'profit_h' ? (oc(b).profit - oc(a).profit) : so === 'sku_d' ? (skuDesc(orderSku(a, 'desc'), orderSku(b, 'desc')) || b.no - a.no) : so === 'sku' ? (skuCmp(orderSku(a, 'asc'), orderSku(b, 'asc')) || b.no - a.no) : so === 'no' ? b.no - a.no : so === 'no_a' ? a.no - b.no : so === 'oldest' ? (a.date.localeCompare(b.date) || a.no - b.no) : so === 'high' ? oc(b).gross - oc(a).gross : so === 'low' ? oc(a).gross - oc(b).gross : so === 'ship' ? (a.shipBy || '9999').localeCompare(b.shipBy || '9999') : (b.date.localeCompare(a.date) || b.no - a.no));
   return l;
 }
 function orderCard(o) {
@@ -3833,6 +3836,7 @@ const lineRow = l => {
     <input class="input sm" name="ln" placeholder="Item name" value="${esc(custom ? l.name : (p ? p.name : ''))}" ${custom ? '' : 'hidden'} style="margin-bottom:8px">
     <select class="select sm" name="ll" style="margin-bottom:8px" ${p ? '' : 'hidden'}>${p ? listingOpts(p.id, l.listingId) : ''}</select>
     <div class="hint" data-lpinfo style="margin:-2px 0 8px">${lpInfoHtml(p, l.listingId)}</div>
+    <label style="display:block;margin-bottom:8px">SKU for this sale <small style="font-weight:600">(type your own, or leave blank to use the listing / product SKU)</small><input class="input sm" name="lsk" maxlength="30" value="${esc(l.sku || '')}" placeholder="${esc(autoItemSku(l) || 'No SKU')}" autocomplete="off"></label>
     <select class="select sm" name="lv" style="margin-bottom:8px" ${p && (p.variants || []).length ? '' : 'hidden'}>${p && (p.variants || []).length ? variantOpts(p, l) : ''}</select><input type="hidden" name="lsz" value="${esc(l.size || '')}"><input type="hidden" name="lcl" value="${esc(l.color || '')}">
     <input type="hidden" name="lr" value="${l.returned || 0}">
     <div class="grid3"><label>Qty<input class="input" type="number" step="1" min="1" name="lq" value="${l.qty ?? 1}"></label><label>Price each<input class="input" type="number" step="any" min="0" name="lc" value="${l.price ?? ''}" placeholder="0.00"></label><label>Cost per unit<input class="input" type="number" step="any" min="0" name="lk" value="${l.cost ?? ''}" placeholder="0.00"></label></div>
@@ -3892,7 +3896,7 @@ function readOrder0(f, existing) {
   const fd = new FormData(f);
   const items = $$('.line', f).map(row => {
     const pid = $('[name=lp]', row).value, p = pid && find('products', pid), ll = $('[name=ll]', row);
-    return { productId: p ? p.id : '', name: p ? p.name : tidy($('[name=ln]', row).value), listingId: p && ll ? ll.value : '', qty: Math.max(0, Math.round(num($('[name=lq]', row).value))), price: num($('[name=lc]', row).value), cost: num($('[name=lk]', row).value), free: !(num($('[name=lk]', row).value) > 0) && !!($('[name=lf]', row) || {}).checked, returned: num($('[name=lr]', row).value), ...varOf(row) };
+    return { productId: p ? p.id : '', name: p ? p.name : tidy($('[name=ln]', row).value), listingId: p && ll ? ll.value : '', sku: tidy(($('[name=lsk]', row) || {}).value || ''), qty: Math.max(0, Math.round(num($('[name=lq]', row).value))), price: num($('[name=lc]', row).value), cost: num($('[name=lk]', row).value), free: !(num($('[name=lk]', row).value) > 0) && !!($('[name=lf]', row) || {}).checked, returned: num($('[name=lr]', row).value), ...varOf(row) };
   }).filter(l => l.qty > 0 && (l.productId || l.name));
   items.forEach(l => { l.returned = Math.min(l.returned, l.qty); });
   const supplies = $$('.sup-line', f).map(row => { const sid = $('[name=su]', row).value, sp = sid && state.supplies.find(x => x.id === sid); return sp ? { supplyId: sp.id, name: sp.name, qty: Math.max(0, num($('[name=sq]', row).value)), cost: num($('[name=sk]', row).value) } : null; }).filter(u => u && u.qty > 0);
@@ -6580,6 +6584,7 @@ document.addEventListener('change', e => {
   }
   if (t.matches('form[data-form=order] select[data-lpick], form[data-form=order] select[name=lp], form[data-form=order] select[name=ll]')) {
     const row = t.closest('.line'), inf = row && $('[data-lpinfo]', row);
+    if (row) { const sk = $('[name=lsk]', row); if (sk) { const pp = find('products', $('[name=lp]', row).value), ln = $('[name=ll]', row), lx = pp && ln && ln.value && state.listings.find(y => y.id === ln.value); sk.placeholder = (lx && lx.sku) || (pp && pp.sku) || 'No SKU'; } }
     if (inf) inf.innerHTML = lpInfoHtml(find('products', $('[name=lp]', row).value), ($('[name=ll]', row) || {}).value);
   }
   if (t.matches('form[data-form=order] select[name=lp]')) {
