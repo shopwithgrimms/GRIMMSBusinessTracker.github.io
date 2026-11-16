@@ -3828,10 +3828,20 @@ const linePickOpts = (selPid, selLid) => {
   if (selPid && !hit) { const p = state.products.find(y => y.id === selPid), x = state.listings.find(y => y.id === selLid); if (p) po += o(selLid ? `L|${selLid}|${selPid}` : `P||${selPid}`, (x ? `Listing: ${sk(x)}${x.title}  |  ` : 'No listing  |  ') + `Product: ${sk(p)}${p.name}`, true); }
   return `<option value="">Custom item / service</option>` + (lo ? `<optgroup label="Sell from a listing">${lo}</optgroup>` : '') + (po ? `<optgroup label="Products with no listing">${po}</optgroup>` : '');
 };
+const LP_FULL = new WeakMap();
+function lpFilter(sel, q) {
+  if (!LP_FULL.has(sel)) LP_FULL.set(sel, [...sel.children].map(c => c.tagName === 'OPTGROUP' ? { g: c.label, o: [...c.children].map(x => [x.value, x.textContent]) } : { o: [[c.value, c.textContent]] }));
+  const terms = lc(String(q || '')).split(/\s+/).filter(Boolean), cur = sel.value; let n = 0;
+  const keep = (v, t) => { if (v === '' || v === cur) return true; const h = lc(t); const ok = terms.every(w => h.includes(w)); if (ok) n++; return ok; };
+  const opt = x => `<option value="${esc(x[0])}">${esc(x[1])}</option>`;
+  sel.innerHTML = LP_FULL.get(sel).map(g => { const items = g.o.filter(x => keep(x[0], x[1])); return g.g !== undefined ? (items.length ? `<optgroup label="${esc(g.g)}">${items.map(opt).join('')}</optgroup>` : '') : items.map(opt).join(''); }).join('');
+  sel.value = cur;
+  const c = sel.closest('.line') && $('[data-lpcnt]', sel.closest('.line')); if (c) { c.hidden = !terms.length; c.textContent = n ? n + (n === 1 ? ' match. Open the list below to pick it.' : ' matches. Open the list below to pick one.') : 'No matches. Try another word or SKU.'; }
+}
 const lpInfoHtml = (p, lid) => { if (!p) return ''; const x = lid && state.listings.find(y => y.id === lid); return (x ? `<b>Listing:</b> ${esc(x.title)} · SKU ${esc(x.sku || 'none')}<br>` : '') + `<b>Product:</b> ${esc(p.name)} · SKU ${esc(p.sku || 'none')}`; };
 const lineRow = l => {
   const p = l.productId && find('products', l.productId), custom = !p, free = l.free !== undefined ? !!l.free : !!(p && p.free);
-  return `<div class="line"><div class="row" style="margin-bottom:8px"><select class="select sm" data-lpick aria-label="Pick the listing or product you sold">${linePickOpts(p ? p.id : '', l.listingId || '')}</select><select class="select sm" name="lp" style="display:none" tabindex="-1" aria-hidden="true"><option value="">Custom item / service</option>${state.products.filter(x => active(x) || (p && x.id === p.id)).map(x => `<option value="${x.id}" ${p && x.id === p.id ? 'selected' : ''}>${esc(pLabel(x))} (${x.qty} in stock)</option>`).join('')}</select><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove item">${ic('x')}</button></div>
+  return `<div class="line"><input class="input sm" data-lpfilter placeholder="Search listings or products by name or SKU…" aria-label="Search listings and products" autocomplete="off" style="margin-bottom:6px"><div class="hint" data-lpcnt style="margin:-2px 0 6px" hidden></div><div class="row" style="margin-bottom:8px"><select class="select sm" data-lpick aria-label="Pick the listing or product you sold">${linePickOpts(p ? p.id : '', l.listingId || '')}</select><select class="select sm" name="lp" style="display:none" tabindex="-1" aria-hidden="true"><option value="">Custom item / service</option>${state.products.filter(x => active(x) || (p && x.id === p.id)).map(x => `<option value="${x.id}" ${p && x.id === p.id ? 'selected' : ''}>${esc(pLabel(x))} (${x.qty} in stock)</option>`).join('')}</select><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove item">${ic('x')}</button></div>
     <input class="input sm" name="ln" placeholder="Item name" value="${esc(custom ? l.name : (p ? p.name : ''))}" ${custom ? '' : 'hidden'} style="margin-bottom:8px">
     <select class="select sm" name="ll" style="margin-bottom:8px" ${p ? '' : 'hidden'}>${p ? listingOpts(p.id, l.listingId) : ''}</select>
     <div class="hint" data-lpinfo style="margin:-2px 0 8px">${lpInfoHtml(p, l.listingId)}</div>
@@ -6592,6 +6602,7 @@ document.addEventListener('change', e => {
   const t = e.target; if (!t || !t.matches) return;
   if (t.matches('form[data-form=order] select[data-lpick]')) {
     const row = t.closest('.line'), lp = $('[name=lp]', row), ll = $('[name=ll]', row), parts = t.value.split('|');
+    { const fi = $('[data-lpfilter]', row); if (fi && fi.value) { fi.value = ''; lpFilter(t, ''); } }
     lp.value = parts[2] || '';
     lp.dispatchEvent(new Event('change', { bubbles: true }));
     if (parts[0] === 'L' && parts[1] && lp.value) { ll.value = parts[1]; ll.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -6643,6 +6654,7 @@ document.addEventListener('input', e => {
   if (t.dataset.lookRange) { state.settings.look[t.dataset.lookRange] = t.value; save(); playSound('tap'); const b = t.closest('label') && t.closest('label').querySelector('b'); if (b) b.textContent = t.value + '%'; return; }
   if (t.dataset.lookText) { state.settings.look[t.dataset.lookText] = t.value; applyLook(); save(); return; }
   if (t.dataset.lookColor) { state.settings.look[t.dataset.lookColor] = t.value; applyTheme(state.settings.theme, state.settings.font); return; }
+  if (t.dataset.lpfilter !== undefined) { const row = t.closest('.line'), sel = row && $('[data-lpick]', row); if (sel) lpFilter(sel, t.value); return; }
   if (t.dataset.selfilter !== undefined) {
     const n = t.nextElementSibling, sel = n && (n.tagName === 'SELECT' ? n : n.querySelector('select')), f0 = t.closest('form[data-form]');
     if (sel) { const changed = fillSelect(sel, t.value); if (changed && f0) formLive(f0, sel); }
