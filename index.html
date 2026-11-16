@@ -2661,6 +2661,7 @@ function moneyOverview0() {
     ${!none && ex.length ? `<div class="card"><h4 class="eyebrow" style="margin-bottom:12px">Where the money goes</h4>${ex.map(x => barRow(x.k, '', money(x.v), x.v / (ex[0].v || 1), 'var(--warn)')).join('')}</div>` : ''}
     ${!none && tc.length ? `<div class="card"><h4 class="eyebrow" style="margin-bottom:12px">Top customers</h4>${tc.map(x => barRow(x.name, `${x.n} order${x.n > 1 ? 's' : ''}`, money(x.net), x.net / (tc[0].net || 1))).join('')}</div>` : ''}
     <button class="btn btn-line block btn-sm" data-act="export-report">${ic('download')} Download this report (CSV)</button>
+    <button class="btn btn-line block btn-sm" data-act="export-report-pdf">${ic('download')} Download this report (PDF)</button>
   </div>`;
 }
 function expenseList() {
@@ -3216,7 +3217,8 @@ V.taxes = () => {
       ${dates.map(d => `<div class="kv"><span>${fmtDateLong(d)}</span><span class="xs sub b">${daysBetween(today(), d)} days</span></div>`).join('')}
       <p class="hint">Turn this off in Settings if you are outside the US or your dates differ.</p></div>` : ''}
     <div class="stack-sm"><div class="row between"><h4 class="eyebrow">Payments you have made</h4><button class="link" data-act="add" data-type="taxpay">${ic('plus')} Log payment</button></div>${taxPayList()}</div>
-    <button class="btn btn-line block btn-sm" data-act="export-tax">${ic('download')} Download tax summary (CSV)</button></div>`;
+    <button class="btn btn-line block btn-sm" data-act="export-tax">${ic('download')} Download tax summary (CSV)</button>
+    <button class="btn btn-line block btn-sm" data-act="export-tax-pdf">${ic('download')} Download tax summary (PDF)</button></div>`;
 };
 
 /* ---------------- MORE hub ---------------- */
@@ -4910,14 +4912,16 @@ function exportCsv(kind) {
   const t = T[kind]; if (!t) return;
   download(`grimms-${kind}-${today()}.csv`, 'text/csv;charset=utf-8', csvText(t[0], t[1])); toast('Download started');
 }
-function exportReport() {
+function exportReport(pdf) {
   const p = state.prefs.period, s = summary(periodRange(p));
   const rows = [['Sales (before discounts)', r2(s.gross + s.disc)], ['Discounts given', r2(s.disc)], ['Refunds', r2(s.refunds)], ['Net sales', r2(s.net)], ['Fees', r2(s.fees)], ['Postage', r2(s.post)], ['Money made (before cost of goods)', r2(s.made)], ['Cost of goods', r2(s.cogs)], ['Gross profit (after cost of goods)', r2(s.gp)], ['Expenses', r2(s.expenses)], ['Other income', r2(s.income)], ['Adjusted to final amounts entered', r2(s.adj)], ['Net profit', r2(s.profit)], ['Net profit before cost of goods', r2(s.profitBefore)], ['', ''], ['Orders', s.orders], ['Items sold', s.units], ['Deductible expenses', r2(s.deductible)], ['Business distance (' + state.settings.mileUnit + ')', r2(s.miles)], ['Mileage deduction', r2(s.miles * num(state.settings.mileRate))]];
+  if (pdf) { download(`grimms-report-${today()}.pdf`, 'application/pdf', pdfMake(pdfBizName() + ' report', periodLabel(p) + ' · ' + today(), [{ name: 'Report: ' + periodLabel(p), rows: rows.map(r => [r[0], r[0] === '' ? '' : pdfRowFmt(r[0], r[1])]) }])); return toast('PDF downloaded'); }
   download(`grimms-report-${today()}.csv`, 'text/csv;charset=utf-8', csvText(['Report: ' + periodLabel(p), 'Amount'], rows)); toast('Download started');
 }
-function exportTax() {
+function exportTax(pdf) {
   const p = state.prefs.period, t = taxInfo(periodRange(p)), s = t.s;
   const rows = [['Net sales', r2(s.net)], ['Fees', r2(s.fees)], ['Postage', r2(s.post)], ['Cost of goods', r2(s.cogs)], ['Expenses', r2(s.expenses)], ['Other income', r2(s.income)], ['Net profit', r2(s.profit)], ['Deductible expenses', r2(s.deductible)], ['Mileage deduction', r2(t.mileDed)], ['Taxable profit (estimate)', r2(t.taxable)], ['Tax set-aside rate %', t.rate], ['Self-employment tax (estimate)', r2(t.se)], ['Set aside (estimate)', r2(t.aside)], ['Income tax paid', r2(t.paid)], ['Still to set aside', r2(t.left)], ['Sales tax collected by you', r2(s.salesTax)], ['Sales tax still owed', r2(t.salesOwed)], ['Sales tax paid', r2(t.salesPaid)]];
+  if (pdf) { download(`grimms-tax-summary-${today()}.pdf`, 'application/pdf', pdfMake(pdfBizName() + ' tax summary', periodLabel(p) + ' · ' + today() + ' · Estimate only, not tax advice', [{ name: 'Tax summary: ' + periodLabel(p), rows: rows.map(r => [r[0], pdfRowFmt(r[0], r[1])]) }])); return toast('PDF downloaded. This is an estimate, not tax advice'); }
   download(`grimms-tax-summary-${today()}.csv`, 'text/csv;charset=utf-8', csvText(['Tax summary: ' + periodLabel(p), 'Amount'], rows)); toast('Download started. This is an estimate, not tax advice');
 }
 
@@ -5092,6 +5096,91 @@ function xpOut(text, title) {
   const done = ok => { if (ok) toast('Copied. Paste it anywhere'); else openSheet(title, `<div class="sheet-body"><p class="hint" style="margin:0 0 10px">Your browser blocked automatic copying. Tap inside the box, select all, and copy.</p><textarea class="textarea" id="copy-box" readonly style="min-height:260px">${esc(text)}</textarea></div>`); };
   (navigator.clipboard ? navigator.clipboard.writeText(text).then(() => true, () => false) : Promise.resolve(false)).then(done);
 }
+/* ---------- tiny PDF writer: text only, no libraries, standard Helvetica fonts ---------- */
+const PDF_SPECIAL = { '\u2018': 145, '\u2019': 146, '\u201c': 147, '\u201d': 148, '\u2022': 149, '\u2013': 150, '\u2014': 151, '\u2026': 133, '\u20ac': 128 };
+function pdfClean(v) {
+  let o = '';
+  for (const ch of String(v == null ? '' : v).replace(/[\r\n\t\u00a0\u2009\u202f]+/g, ' ')) {
+    const c = ch.codePointAt(0);
+    if (PDF_SPECIAL[ch] || (c >= 32 && c <= 126) || (c >= 161 && c <= 255)) o += ch;
+    else if (c === 0x2212) o += '-';
+    else if ((c >= 0xfe00 && c <= 0xfe0f) || (c >= 0x200b && c <= 0x200d) || c === 0xfeff) continue;
+    else o += '?';
+  }
+  return o;
+}
+const pdfEsc = t => Array.from(t).map(ch => { const c = PDF_SPECIAL[ch] || ch.charCodeAt(0); return ch === '\\' || ch === '(' || ch === ')' ? '\\' + ch : c > 126 ? '\\' + c.toString(8).padStart(3, '0') : ch; }).join('');
+let PDF_CTX = null;
+function pdfW(t, size, bold) { if (!PDF_CTX) PDF_CTX = document.createElement('canvas').getContext('2d'); PDF_CTX.font = (bold ? 'bold ' : '') + size + 'px Arial, Helvetica, sans-serif'; return PDF_CTX.measureText(t).width; }
+function pdfWrap(text, size, bold, firstW, restW) {
+  const lines = []; let cur = '', w = Math.max(firstW, 60);
+  const push = () => { lines.push(cur); cur = ''; w = restW; };
+  text.split(' ').filter(x => x !== '').forEach(word => {
+    const trial = cur ? cur + ' ' + word : word;
+    if (pdfW(trial, size, bold) <= w) { cur = trial; return; }
+    if (cur) push();
+    while (pdfW(word, size, bold) > w) { let k = word.length; while (k > 1 && pdfW(word.slice(0, k), size, bold) > w) k--; cur = word.slice(0, k); push(); word = word.slice(k); }
+    cur = word;
+  });
+  if (cur || !lines.length) lines.push(cur);
+  return lines;
+}
+/* sections: [{ name, rows: [[label, value]] }  or  { name, items: [{ head, fields: [[label, value]] }] }] */
+function pdfMake(title, sub, sections) {
+  const W = 612, H = 792, M = 48, CW = W - 2 * M, pages = []; let ops, y;
+  const np = () => { ops = []; pages.push(ops); y = H - M; };
+  const need = h => { if (y - h < M + 10) np(); };
+  const txt = (runs, x, yy, size) => { let cx = x; runs.forEach(r => { ops.push(`BT /F${r.b ? 2 : 1} ${size} Tf ${r.g != null ? r.g : 0} g 1 0 0 1 ${cx.toFixed(2)} ${yy.toFixed(2)} Tm (${pdfEsc(r.t)}) Tj ET`); cx += pdfW(r.t, size, r.b); }); };
+  np();
+  pdfClean(title).length && (txt([{ t: pdfClean(title), b: true }], M, y - 18, 18), y -= 28);
+  if (sub) { txt([{ t: pdfClean(sub), g: 0.4 }], M, y - 10, 10); y -= 18; }
+  sections.forEach(sec => {
+    need(70); y -= 8;
+    txt([{ t: pdfClean(sec.name), b: true }], M, y - 14, 14); y -= 20;
+    ops.push(`0.75 G 0.6 w ${M} ${y + 2} m ${W - M} ${y + 2} l S`); y -= 8;
+    (sec.rows || []).forEach(r => {
+      if (r[0] === '' && r[1] === '') { y -= 8; return; }
+      need(18); const v = pdfClean(r[1]);
+      txt([{ t: pdfClean(r[0]) }], M, y - 11, 10.5); txt([{ t: v, b: true }], W - M - pdfW(v, 10.5, true), y - 11, 10.5);
+      ops.push(`0.9 G 0.4 w ${M} ${y - 4} m ${W - M} ${y - 4} l S`); y -= 18;
+    });
+    if (sec.items) {
+      if (!sec.items.length) { need(16); txt([{ t: '(nothing here)', g: 0.5 }], M, y - 11, 10); y -= 16; }
+      sec.items.forEach(it => {
+        const head = pdfWrap(pdfClean(it.head), 11, true, CW, CW); need(head.length * 14 + 26);
+        head.forEach(l => { txt([{ t: l, b: true }], M, y - 11, 11); y -= 14; }); y -= 1;
+        it.fields.forEach(f => {
+          const lbl = pdfClean(f[0]) + ': ', lw = pdfW(lbl, 9, true), val = pdfClean(f[1]).slice(0, 3000), ind = 14;
+          pdfWrap(val, 9, false, CW - ind - lw, CW - ind).forEach((l, i) => { need(12); txt(i ? [{ t: l }] : [{ t: lbl, b: true, g: 0.3 }, { t: l }], M + ind, y - 9, 9); y -= 12; });
+        });
+        y -= 8;
+      });
+    }
+  });
+  pages.forEach((p, i) => { ops = p; txt([{ t: pdfClean(title), g: 0.5 }], M, 26, 8); const t = 'Page ' + (i + 1) + ' of ' + pages.length; txt([{ t, g: 0.5 }], W - M - pdfW(t, 8, false), 26, 8); });
+  let out = '%PDF-1.4\n'; const offs = [];
+  const add = body => { offs.push(out.length); out += offs.length + ' 0 obj\n' + body + '\nendobj\n'; };
+  const kids = pages.map((_, i) => (6 + 2 * i) + ' 0 R').join(' ');
+  add('<< /Type /Catalog /Pages 2 0 R >>');
+  add(`<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`);
+  add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  pages.forEach((p, i) => {
+    const c = p.join('\n');
+    add(`<< /Length ${c.length} >>\nstream\n${c}\nendstream`);
+    add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${5 + 2 * i} 0 R >>`);
+  });
+  const xr = out.length;
+  out += `xref\n0 ${offs.length + 1}\n0000000000 65535 f \n` + offs.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('') + `trailer\n<< /Size ${offs.length + 1} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF`;
+  return out;
+}
+const pdfBizName = () => state.settings.name || 'Grimms Business Tracker';
+function xpPdf(sets, scope) {
+  const ids = xpIdMap(), L = { both: 'Archived and unarchived', unarchived: 'Unarchived only', archived: 'Archived only' };
+  const secs = sets.map(k => { const rows = xpRecords(k, scope); return { name: `${XP_NAMES[k] || xpLabel(k)} (${rows.length})`, items: rows.map((r, i) => ({ head: (r.name || r.title || (r.no ? 'Order #' + r.no : '') || r.description || r.text || r.id || 'Item ' + (i + 1)) + (r.archived ? ' [archived]' : ''), fields: Object.keys(r).filter(f => f !== 'id' && f !== 'archived').map(f => [xpLabel(f), String(xpVal(r[f], ids, 0)).replace(/data:[a-z]+\/[^\s,;]+;base64,[A-Za-z0-9+\/=]+/gi, '[attached file]')]).filter(f => f[1] !== '') })) }; });
+  return pdfMake(pdfBizName() + ' export', (L[scope] || '') + ' · ' + today(), secs);
+}
+const pdfRowFmt = (label, v) => /^(Orders|Items sold)$/.test(label) ? String(v) : /^Business distance/.test(label) ? String(v) : /rate %/.test(label) ? v + '%' : money(num(v));
 function xpOpen() {
   const v = ui.sub || ui.tab, sets = xpSets(v); if (!sets.length) return;
   const cur = ((ui.seg && ui.seg[v]) || '');
@@ -5101,12 +5190,13 @@ function xpOpen() {
     <label class="lbl">Which items</label><select class="select" id="xp-scope"><option value="both">Archived and unarchived</option><option value="unarchived">Unarchived only</option><option value="archived">Archived only</option></select>
     <button class="btn btn-primary block" data-act="xp-run" data-m="copy">${ic('copy')} Copy as text</button>
     <div class="grid2"><button class="btn btn-line btn-sm" data-act="xp-run" data-m="txt">Download .txt</button><button class="btn btn-line btn-sm" data-act="xp-run" data-m="csv">Download .csv</button></div>
-    <button class="btn btn-line btn-sm block" data-act="xp-run" data-m="json">Download .json</button></div>`);
+    <div class="grid2"><button class="btn btn-line btn-sm" data-act="xp-run" data-m="pdf">Download .pdf</button><button class="btn btn-line btn-sm" data-act="xp-run" data-m="json">Download .json</button></div></div>`);
 }
 function xpRun(m) {
   const v = ui.sub || ui.tab, all = xpSets(v), pick = $('#xp-set').value, sets = pick === 'all' ? all : [pick], scope = $('#xp-scope').value;
   const base = `grimms-${v}-${scope}-${today()}`;
   if (m === 'copy') return xpOut(xpText(sets, scope), 'Copy your export');
+  if (m === 'pdf') { download(base + '.pdf', 'application/pdf', xpPdf(sets, scope)); toast('PDF downloaded'); return; }
   if (m === 'txt') download(base + '.txt', 'text/plain', xpText(sets, scope));
   else if (m === 'json') download(base + '.json', 'application/json', JSON.stringify(Object.fromEntries(sets.map(k => [k, xpRecords(k, scope)])), null, 2));
   else sets.forEach((k, i) => setTimeout(() => download(`${base}${sets.length > 1 ? '-' + k : ''}.csv`, 'text/csv', xpCsv(k, scope)), i * 350));
@@ -5356,6 +5446,8 @@ const ACT = {
     save(); render(); toast(n ? `Added ${n} dates to your calendar` : 'Already on your calendar');
   },
   'export-tax': () => exportTax(),
+  'export-tax-pdf': () => exportTax(true),
+  'export-report-pdf': () => exportReport(true),
   'export-page': () => xpOpen(),
   'xp-run': el => xpRun(el.dataset.m),
 
