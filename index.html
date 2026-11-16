@@ -276,6 +276,17 @@ body.sel-on #ts-bar,body.sel-on #gw-dock{display:none!important}
 button.tile,button.metric{width:100%;cursor:pointer;font:inherit}
 button.metric{text-align:left}
 .card.click{cursor:pointer}
+.ts-note{margin-top:10px}
+.ts-note .textarea{min-height:56px;font-size:13px;margin-top:4px;resize:vertical}
+.ocard{display:block;padding:12px 14px}
+.ocard .oitem{background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer}
+.ocard .onext{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.ocard .ostep{flex:1;min-width:0}
+.ocard .obar{height:5px;border-radius:99px;background:color-mix(in srgb,var(--sub) 18%,transparent);overflow:hidden;margin-top:5px}
+.ocard .obar>i{display:block;height:100%;border-radius:99px;background:var(--p)}
+.ocard .obtn{flex:none;min-height:40px;padding:10px 16px;font-size:13px}
+.ocard .onext .btn-line{flex:none;min-height:40px}
+
 .card.selected{border-color:var(--p);background:var(--p-soft)}
 .selbar{box-shadow:0 8px 28px rgba(0,0,0,.2);border-color:var(--p)}
 .sticky-bar{padding-top:6px}
@@ -1269,12 +1280,12 @@ function oc(o) {
   const sub = sum(items, l => l.qty * l.price) * fx;
   const bulkPct = Math.max(0, Math.min(100, num(o.bulkPct)));
   const disc = Math.min(sub, Math.max(0, num(o.discount)) * fx + sub * bulkPct / 100);
-  /* Shipping the buyer paid is not counted as a sale, but it IS money you received: it goes toward your postage,
-     so it is added into "money you made". Platforms take fees on it too, which are already in fees. */
+  /* Shipping the buyer paid is not a sale and not profit. It only offsets your postage cost (up to the postage). */
   const gross = sub - disc;
   const shipPaid = num(o.shipCharged) * fx, buyerTotal = gross + shipPaid;
   const units = sum(items, l => Math.max(0, l.qty - (l.returned || 0)));
-  const cogs = sum(items, l => Math.max(0, l.qty - (l.returned || 0)) * l.cost);
+  const supCost = sum(o.supplies || [], u => num(u.qty) * num(u.cost));
+  const cogs = sum(items, l => Math.max(0, l.qty - (l.returned || 0)) * l.cost) + supCost;
   const refund = num(o.refund) * fx, fees = num(o.fees) * fx, post = num(o.postage) * fx, reimb = num(o.reimb) * fx;
   const net = gross - refund;
   const payout = gross - fees - refund;
@@ -1283,14 +1294,16 @@ function oc(o) {
        profit = made minus cost of goods
      The optional "final" number the owner types in replaces the estimate of what they MADE only.
      Cost of goods is never overridden: it is always taken off afterwards so you can see both views. */
-  const calcMade = payout + shipPaid - post + reimb;
+  /* Shipping the buyer paid only ever covers YOUR postage. It is never extra profit: with no postage cost, it adds nothing. */
+  const shipUsed = Math.min(shipPaid, post);
+  const calcMade = payout + shipUsed - post + reimb;
   const calcProfit = calcMade - cogs;
   const hasFinal = String(o.finalProfit ?? '').trim() !== '' && Number.isFinite(parseFloat(o.finalProfit));
   const made = hasFinal ? parseFloat(o.finalProfit) * fx : calcMade;
   const profit = made - cogs;
   const taxAmt = num(o.tax) * fx, taxNet = r2(taxAmt * (1 - (buyerTotal > 0 ? Math.min(1, refund / buyerTotal) : 0)));
   const owed = Math.max(0, r2(buyerTotal + taxAmt - refund - num(o.deposit) * fx));
-  return { sub, disc, gross, shipPaid, buyerTotal, units, cogs, refund, fees, post, reimb, net, payout, made, calcMade, profit, calcProfit, hasFinal, owed, tax: taxAmt, taxNet, margin: net > 0 ? profit / net * 100 : null };
+  return { sub, disc, gross, shipPaid, shipUsed, buyerTotal, units, cogs, supCost, refund, fees, post, reimb, net, payout, made, calcMade, profit, calcProfit, hasFinal, owed, tax: taxAmt, taxNet, margin: net > 0 ? profit / net * 100 : null };
 }
 const chanByName = n => state.settings.channels.find(c => c.name === n);
 /* Platforms you removed are kept (archived) when sales or listings still use them, so their fees/history stay correct.
@@ -1422,7 +1435,16 @@ function stockEffect(o) {
   (o.items || []).forEach(l => { if (l.productId) m[l.productId] = (m[l.productId] || 0) + Math.max(0, l.qty - (l.returned || 0)); });
   return m;
 }
+/* Supplies used on a sale (bubble mailers, stickers...) come out of Materials stock, and go back if the sale is cancelled or deleted */
+function supEffect(o) {
+  const m = {};
+  if (!o || NO_STOCK.includes(o.status)) return m;
+  (o.supplies || []).forEach(u => { if (u.supplyId) m[u.supplyId] = (m[u.supplyId] || 0) + Math.max(0, num(u.qty)); });
+  return m;
+}
 function applyStock(oldO, newO) {
+  { const sa = supEffect(oldO), sb = supEffect(newO);
+    new Set([...Object.keys(sa), ...Object.keys(sb)]).forEach(id => { const sp = state.supplies.find(x => x.id === id); if (sp) sp.qty = r2(num(sp.qty) + (sa[id] || 0) - (sb[id] || 0)); }); }
   const a = stockEffect(oldO), b = stockEffect(newO);
   new Set([...Object.keys(a), ...Object.keys(b)]).forEach(id => {
     const p = state.products.find(x => x.id === id);
@@ -2201,11 +2223,25 @@ function orderCard(o) {
   const c = oc(o), title = o.customer || (o.items[0] && o.items[0].name) || 'Sale', t = today();
   const lines = o.items.map(i => `${i.qty}× ${lineName(i)}${itemSku(i) ? ' (' + itemSku(i) + ')' : ''}`).join(', ');
   const shipping = ['Order Received', 'In Preparation', 'Packaged'].includes(o.status);
-  return `<button class="card sm item click ${NOT_SALE.includes(o.status) ? 'done' : ''} ${selCls(o.id)}" ${selAttr(o.id)} data-act="open-order" data-id="${o.id}">
+  return `<div class="card sm ocard ${NOT_SALE.includes(o.status) ? 'done' : ''} ${selCls(o.id)}" ${selAttr(o.id)}>
+    <button class="item click oitem" data-act="open-order" data-id="${o.id}">
     ${selMark(o.id)}<div class="ava">${esc(initial(o.channel || title))}</div>
     <div class="grow"><h4 class="trunc t">${esc(title)}</h4><div class="meta trunc">${orderNo(o)} · ${fmtDate(o.date)}${o.channel ? ' · ' + esc(o.channel) : ''}</div><div class="meta trunc">${esc(lines)}</div>${shipping && o.shipBy ? `<div class="meta ${o.shipBy < t ? 'bad-t b' : ''}">Ship by ${fmtDate(o.shipBy)}</div>` : ''}
       ${(o.bulk || (num(o.deposit) > 0 && c.owed > 0 && !closedOrder(o))) ? `<div class="row" style="gap:6px;margin-top:3px">${o.bulk ? pill('Bulk', 'brand', 'layers') : ''}${num(o.deposit) > 0 && c.owed > 0 && !closedOrder(o) ? pill('Balance ' + money(c.owed), 'warn') : ''}</div>` : ''}</div>
-    <div class="side"><div class="amt num t">${money(c.net)}</div>${NOT_SALE.includes(o.status) ? '' : `<div class="xs num b" style="color:${toneVar(c.profit < 0 ? 'bad' : c.net > 0 ? marginTone(c.profit / c.net * 100) : 'ok')}">${c.profit < 0 ? '−' : '+'}${money(Math.abs(c.profit))} profit</div>`}${statusPill(o.status)}${isOwed(o) ? pill('Unpaid ' + money(owedAmt(o)), invDueDate(o) < today() ? 'bad' : 'warn') : ''}</div></button>`;
+    <div class="side"><div class="amt num t">${money(c.net)}</div>${NOT_SALE.includes(o.status) ? '' : `<div class="xs num b" style="color:${toneVar(c.profit < 0 ? 'bad' : c.net > 0 ? marginTone(c.profit / c.net * 100) : 'ok')}">${c.profit < 0 ? '−' : '+'}${money(Math.abs(c.profit))} profit</div>`}${statusPill(o.status)}${isOwed(o) ? pill('Unpaid ' + money(owedAmt(o)), invDueDate(o) < today() ? 'bad' : 'warn') : ''}</div></button>
+    ${ui.selMode ? '' : orderNextRow(o)}</div>`;
+}
+/* The next step, right on the sales list: one tap moves the order along (no need to open it). */
+const STEP_VERB = { 'Payment Processing': 'Payment received', 'Order Received': 'Start preparing', 'In Preparation': 'Mark packaged', Packaged: 'Mark shipped', Shipped: 'Out for delivery', 'Out for Delivery': 'Mark delivered', Delivered: 'Customer received it', 'Customer Received': 'Waiting for feedback', 'Awaiting Feedback': 'Waiting to fulfil', 'Awaiting Fulfillment': 'Mark fulfilled' };
+function orderNextRow(o) {
+  if (o.archived || NOT_SALE.includes(o.status)) return '';
+  const i = FLOW.indexOf(o.status);
+  if (i < 0) return o.status && !RESOLVED.includes(o.status) ? `<div class="onext"><span class="xs sub grow">Needs attention: open it to update the ${esc(o.status.toLowerCase())}.</span></div>` : '';
+  if (o.status === 'Fulfilled') return '';
+  const next = FLOW[i + 1], last = next === 'Fulfilled';
+  const skip = !last && i >= FLOW.indexOf('Shipped') ? `<button class="btn btn-line btn-sm" data-act="advance-quick" data-id="${o.id}" data-to="Fulfilled" title="Skip straight to Fulfilled">${ic('check')} Fulfilled</button>` : '';
+  return `<div class="onext"><div class="ostep"><span class="xs sub">Step ${i + 1} of ${FLOW.length} · next</span><div class="obar"><i style="width:${Math.round((i + 1) / FLOW.length * 100)}%"></i></div></div>
+    <button class="btn btn-primary btn-sm obtn" data-act="advance-quick" data-id="${o.id}" data-to="${esc(next)}">${esc(STEP_VERB[o.status] || 'Mark ' + next)} ${ic('arrow-right')}</button>${skip}</div>`;
 }
 function salesList() {
   const l = salesFiltered(); ui.vis = l.map(o => o.id);
@@ -3769,11 +3805,34 @@ const listingOpts = (pid, sel, channel) => {
   return `<option value="">${ls.length ? 'Which listing sold? (optional)' : 'No listing'}</option>` + ls.map(l => `<option value="${l.id}" ${l.id === sel ? 'selected' : ''}>${esc(l.title)} · ${esc(listingChans(l).join('/') || 'no platform')}</option>`).join('');
 };
 const pickListing = (pid, channel) => { const ls = state.listings.filter(l => listingProducts(l).includes(pid) && active(l) && l.status !== 'Sold'); return (ls.find(l => listingChans(l).includes(channel) && l.status === 'Active') || ls.find(l => l.status === 'Active') || ls[0] || {}).id || ''; };
+/* Supplies used on a sale */
+const supOpts = sel => `<option value="">Pick a supply…</option>` + state.supplies.filter(x => x.kind !== 'component' && (active(x) || x.id === sel)).sort((a, b) => String(a.name).localeCompare(String(b.name))).map(x => `<option value="${x.id}" ${x.id === sel ? 'selected' : ''}>${esc((x.sku ? x.sku + ' · ' : '') + x.name)} (${avail(x)}${x.unit ? ' ' + esc(x.unit) : ''} free)</option>`).join('');
+const supRow = u => `<div class="sup-line" style="margin-bottom:10px"><div class="row" style="margin-bottom:6px"><select class="select sm" name="su" aria-label="Supply used">${supOpts(u.supplyId || '')}</select><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove supply">${ic('x')}</button></div>
+  <div class="grid2"><label>Qty used<input class="input" type="number" step="any" min="0" name="sq" value="${u.qty ?? 1}"></label><label>Cost each<input class="input" type="number" step="any" min="0" name="sk" value="${u.cost ?? ''}" placeholder="0.00"></label></div><div class="warn-txt" data-supwarn></div></div>`;
+/* Sale line picker: choose by LISTING (shows listing name + SKU and product name + SKU), or a product that has no listing */
+const linePickOpts = (selPid, selLid) => {
+  const o = (v, t, sel) => `<option value="${esc(v)}" ${sel ? 'selected' : ''}>${esc(t)}</option>`;
+  const sk = x => x.sku ? x.sku + ' · ' : 'no SKU · ';
+  const lsts = state.listings.filter(x => active(x) || x.id === selLid).sort((a, b) => skuDesc(a.sku, b.sku));
+  const inList = new Set(); let lo = '', hit = false;
+  lsts.forEach(x => listingProducts(x).forEach(pid => {
+    const p = state.products.find(y => y.id === pid); if (!p) return;
+    if (active(x)) inList.add(pid);
+    const sel = !!selLid && selLid === x.id && selPid === pid; if (sel) hit = true;
+    lo += o(`L|${x.id}|${pid}`, `Listing: ${sk(x)}${x.title}  |  Product: ${sk(p)}${p.name} (${p.qty} in stock)`, sel);
+  }));
+  const prods = state.products.filter(x => (active(x) && !inList.has(x.id)) || (x.id === selPid && !selLid)).sort((a, b) => skuDesc(a.sku, b.sku));
+  let po = prods.map(x => { const sel = !selLid && selPid === x.id; if (sel) hit = true; return o(`P||${x.id}`, `No listing  |  Product: ${sk(x)}${x.name} (${x.qty} in stock)`, sel); }).join('');
+  if (selPid && !hit) { const p = state.products.find(y => y.id === selPid), x = state.listings.find(y => y.id === selLid); if (p) po += o(selLid ? `L|${selLid}|${selPid}` : `P||${selPid}`, (x ? `Listing: ${sk(x)}${x.title}  |  ` : 'No listing  |  ') + `Product: ${sk(p)}${p.name}`, true); }
+  return `<option value="">Custom item / service</option>` + (lo ? `<optgroup label="Sell from a listing">${lo}</optgroup>` : '') + (po ? `<optgroup label="Products with no listing">${po}</optgroup>` : '');
+};
+const lpInfoHtml = (p, lid) => { if (!p) return ''; const x = lid && state.listings.find(y => y.id === lid); return (x ? `<b>Listing:</b> ${esc(x.title)} · SKU ${esc(x.sku || 'none')}<br>` : '') + `<b>Product:</b> ${esc(p.name)} · SKU ${esc(p.sku || 'none')}`; };
 const lineRow = l => {
   const p = l.productId && find('products', l.productId), custom = !p, free = l.free !== undefined ? !!l.free : !!(p && p.free);
-  return `<div class="line"><div class="row" style="margin-bottom:8px"><select class="select sm" name="lp"><option value="">Custom item / service</option>${state.products.filter(x => active(x) || (p && x.id === p.id)).map(x => `<option value="${x.id}" ${p && x.id === p.id ? 'selected' : ''}>${esc(pLabel(x))} (${x.qty} in stock)</option>`).join('')}</select><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove item">${ic('x')}</button></div>
+  return `<div class="line"><div class="row" style="margin-bottom:8px"><select class="select sm" data-lpick aria-label="Pick the listing or product you sold">${linePickOpts(p ? p.id : '', l.listingId || '')}</select><select class="select sm" name="lp" style="display:none" tabindex="-1" aria-hidden="true"><option value="">Custom item / service</option>${state.products.filter(x => active(x) || (p && x.id === p.id)).map(x => `<option value="${x.id}" ${p && x.id === p.id ? 'selected' : ''}>${esc(pLabel(x))} (${x.qty} in stock)</option>`).join('')}</select><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove item">${ic('x')}</button></div>
     <input class="input sm" name="ln" placeholder="Item name" value="${esc(custom ? l.name : (p ? p.name : ''))}" ${custom ? '' : 'hidden'} style="margin-bottom:8px">
     <select class="select sm" name="ll" style="margin-bottom:8px" ${p ? '' : 'hidden'}>${p ? listingOpts(p.id, l.listingId) : ''}</select>
+    <div class="hint" data-lpinfo style="margin:-2px 0 8px">${lpInfoHtml(p, l.listingId)}</div>
     <select class="select sm" name="lv" style="margin-bottom:8px" ${p && (p.variants || []).length ? '' : 'hidden'}>${p && (p.variants || []).length ? variantOpts(p, l) : ''}</select><input type="hidden" name="lsz" value="${esc(l.size || '')}"><input type="hidden" name="lcl" value="${esc(l.color || '')}">
     <input type="hidden" name="lr" value="${l.returned || 0}">
     <div class="grid3"><label>Qty<input class="input" type="number" step="1" min="1" name="lq" value="${l.qty ?? 1}"></label><label>Price each<input class="input" type="number" step="any" min="0" name="lc" value="${l.price ?? ''}" placeholder="0.00"></label><label>Cost per unit<input class="input" type="number" step="any" min="0" name="lk" value="${l.cost ?? ''}" placeholder="0.00"></label></div>
@@ -3783,7 +3842,7 @@ const lineRow = l => {
 const customerNames = () => [...new Set(state.customers.map(c => c.name).concat(state.orders.map(o => o.customer)).filter(Boolean))];
 OPEN.order = (id, pre = {}) => {
   const o = id ? find('orders', id) : null;
-  const d = o ? clone(o) : { acct: defaultAcct('orders'), date: today(), customer: pre.customer || '', channel: (state.settings.channels[0] || {}).name || '', items: [{ productId: '', name: '', qty: 1, price: '', cost: '' }], discount: '', bulk: !!pre.bulk, bulkPct: '', po: '', terms: pre.bulk ? 'Net 15' : '', deposit: '', shipCharged: '', tax: '', postage: '', fees: '', feesManual: false, finalProfit: '', status: 'Order Received', payment: '', carrier: '', shipBy: '', tracking: '', ref: '', notes: '', unpaid: !!pre.unpaid, invTerms: pre.unpaid ? 'Net 15' : '', invDue: '' };
+  const d = o ? clone(o) : { acct: defaultAcct('orders'), date: today(), customer: pre.customer || '', channel: (state.settings.channels[0] || {}).name || '', items: [{ productId: '', name: '', qty: 1, price: '', cost: '' }], supplies: [], discount: '', bulk: !!pre.bulk, bulkPct: '', po: '', terms: pre.bulk ? 'Net 15' : '', deposit: '', shipCharged: '', tax: '', postage: '', fees: '', feesManual: false, finalProfit: '', status: 'Order Received', payment: '', carrier: '', shipBy: '', tracking: '', ref: '', notes: '', unpaid: !!pre.unpaid, invTerms: pre.unpaid ? 'Net 15' : '', invDue: '' };
   const chans = activeChans().map(c => c.name); if (d.channel && !chans.includes(d.channel)) chans.push(d.channel);
   openSheet(o ? 'Edit sale ' + orderNo(o) : (d.bulk ? 'New bulk order' : d.unpaid ? 'New invoice' : 'New sale'), formWrap('order', id, `
     <div class="grid2">${fDate('Date', 'date', d.date)}${fSel('Sold via', 'channel', chans.length ? chans : [''], d.channel)}</div>
@@ -3794,6 +3853,7 @@ OPEN.order = (id, pre = {}) => {
       <div class="grid2">${fNum('Wholesale discount %', 'bulkPct', d.bulkPct, '0', 'min="0" max="100"')}${fNum('Deposit paid so far', 'deposit', d.deposit, '0.00', 'min="0"')}</div>
       <p class="hint" style="margin:0">Quantity price breaks you set on a product fill in by themselves. The balance still owed shows on the order and invoice.</p></div>
     <div class="fld"><span class="lbl">Items</span><div id="lines">${d.items.map(lineRow).join('')}</div><div class="row" style="gap:16px"><button type="button" class="link" data-act="line-add">${ic('plus')} Add another item</button><button type="button" class="link" data-act="add-multi">${ic('layers')} Add several products</button></div></div>
+    <div class="fld"><span class="lbl">Supplies used on this order <span class="xs sub">(bubble mailers, stickers, etc.)</span></span><div id="sup-lines">${(d.supplies || []).map(supRow).join('')}</div><button type="button" class="link" data-act="sup-add">${ic('plus')} Add a supply used</button><p class="hint" style="margin:6px 0 0">Comes out of your Materials stock and counts in cost of goods, so your profit is right.</p></div>
     <div class="grid2">${fNum('Discount (total)', 'discount', d.discount || '', '0.00', 'min="0"')}${fNum('Buyer paid for shipping', 'shipCharged', d.shipCharged || '', '0.00', 'min="0"')}</div>
     <div class="grid2">${fNum('Your postage cost', 'postage', d.postage || '', '0.00', 'min="0"')}${fNum('Fees (blank = auto)', 'fees', d.feesManual ? d.fees : '', 'Auto', 'min="0"')}</div>
     ${fNum('Sales tax collected', 'tax', d.tax || '', '0.00', 'min="0"')}
@@ -3835,8 +3895,9 @@ function readOrder0(f, existing) {
     return { productId: p ? p.id : '', name: p ? p.name : tidy($('[name=ln]', row).value), listingId: p && ll ? ll.value : '', qty: Math.max(0, Math.round(num($('[name=lq]', row).value))), price: num($('[name=lc]', row).value), cost: num($('[name=lk]', row).value), free: !(num($('[name=lk]', row).value) > 0) && !!($('[name=lf]', row) || {}).checked, returned: num($('[name=lr]', row).value), ...varOf(row) };
   }).filter(l => l.qty > 0 && (l.productId || l.name));
   items.forEach(l => { l.returned = Math.min(l.returned, l.qty); });
+  const supplies = $$('.sup-line', f).map(row => { const sid = $('[name=su]', row).value, sp = sid && state.supplies.find(x => x.id === sid); return sp ? { supplyId: sp.id, name: sp.name, qty: Math.max(0, num($('[name=sq]', row).value)), cost: num($('[name=sk]', row).value) } : null; }).filter(u => u && u.qty > 0);
   const feeRaw = String(fd.get('fees') || '').trim(), manual = feeRaw !== '', bulk = fd.get('bulk') === 'on';
-  const o = { ...(existing || {}), acct: fd.get('acct') || '', date: fd.get('date'), customer: tidy(fd.get('customer')), channel: fd.get('channel') || '', items, bulk, bulkPct: bulk ? Math.max(0, Math.min(100, num(fd.get('bulkPct')))) : 0, po: tidy(fd.get('po')), terms: fd.get('terms') || '', deposit: Math.max(0, num(fd.get('deposit'))), discount: Math.max(0, num(fd.get('discount'))), shipCharged: num(fd.get('shipCharged')), tax: Math.max(0, num(fd.get('tax'))), cur: tidy(fd.get('cur')).toUpperCase().slice(0, 3), fx: tidy(fd.get('cur')) && num(fd.get('fx')) > 0 ? num(fd.get('fx')) : '', postage: num(fd.get('postage')), feesManual: manual, finalProfit: String(fd.get('finalProfit') ?? '').trim() === '' ? '' : num(fd.get('finalProfit')), status: fd.get('status'), payment: fd.get('payment') || '', carrier: fd.get('carrier') || '', shipBy: fd.get('shipBy') || '', tracking: tidy(fd.get('tracking')), ref: tidy(fd.get('ref')), notes: tidy(fd.get('notes')), refund: existing ? existing.refund : 0, reimb: existing ? existing.reimb : 0, stepDates: (() => { const sd = {}; FLOW.forEach((st, i) => { const v = fd.get('sd_' + i); if (v) sd[st] = v; }); return sd; })() };
+  const o = { ...(existing || {}), acct: fd.get('acct') || '', date: fd.get('date'), customer: tidy(fd.get('customer')), channel: fd.get('channel') || '', items, supplies, bulk, bulkPct: bulk ? Math.max(0, Math.min(100, num(fd.get('bulkPct')))) : 0, po: tidy(fd.get('po')), terms: fd.get('terms') || '', deposit: Math.max(0, num(fd.get('deposit'))), discount: Math.max(0, num(fd.get('discount'))), shipCharged: num(fd.get('shipCharged')), tax: Math.max(0, num(fd.get('tax'))), cur: tidy(fd.get('cur')).toUpperCase().slice(0, 3), fx: tidy(fd.get('cur')) && num(fd.get('fx')) > 0 ? num(fd.get('fx')) : '', postage: num(fd.get('postage')), feesManual: manual, finalProfit: String(fd.get('finalProfit') ?? '').trim() === '' ? '' : num(fd.get('finalProfit')), status: fd.get('status'), payment: fd.get('payment') || '', carrier: fd.get('carrier') || '', shipBy: fd.get('shipBy') || '', tracking: tidy(fd.get('tracking')), ref: tidy(fd.get('ref')), notes: tidy(fd.get('notes')), refund: existing ? existing.refund : 0, reimb: existing ? existing.reimb : 0, stepDates: (() => { const sd = {}; FLOW.forEach((st, i) => { const v = fd.get('sd_' + i); if (v) sd[st] = v; }); return sd; })() };
   if (!o.feeSnap || o.feeSnap.ch !== o.channel) o.feeSnap = feeSnapOf(o.channel);
   o.fees = manual ? num(feeRaw) : autoFees(o);
   return o;
@@ -3862,9 +3923,9 @@ OPEN.orderDetail = id => {
     <p class="sm-t sub">${fmtDateLong(o.date)}${o.customer ? ' · <b style="color:var(--text)">' + esc(o.customer) + '</b>' : ''}${o.channel ? ' · ' + esc(o.channel) : ''}${o.payment ? ' · paid by ' + esc(o.payment) : ''}${o.ref ? ' · #' + esc(o.ref) : ''}</p>
     ${STATUS_HELP[o.status] ? `<div class="notice warn">${ic('info')}<span>${esc(STATUS_HELP[o.status])}.</span></div>` : ''}
     <div class="card sm">${o.items.map(l => `<div class="kv"><span>${l.qty}× ${esc(lineName(l))}${l.returned ? ` <span class="warn-t xs">(${l.returned} returned)</span>` : ''}</span><span class="num">${money(l.qty * l.price)}</span></div>`).join('')}</div>
-    <div class="card sm">${kv('Items', c.sub)}${c.disc ? kv('Discount', c.disc, '', 1) : ''}${num(o.shipCharged) ? kv('Shipping buyer paid (goes toward your postage)', num(o.shipCharged)) : ''}${c.tax ? kv('Sales tax collected (not income)', c.tax) : ''}${(c.post || c.shipPaid) ? kv(c.shipPaid === 0 ? 'Free shipping: you paid the postage' : c.shipPaid >= c.post ? 'Shipping left over after postage' : 'Postage you covered beyond what the buyer paid', c.shipPaid === 0 ? c.post : Math.abs(c.shipPaid - c.post)) : ''}${o.cur && fxOf(o) !== 1 ? `<p class="hint">Sold in ${esc(o.cur)} at 1 ${esc(o.cur)} = ${money(fxOf(o))}. Totals here are converted.</p>` : ''}${c.refund ? kv('Refunded', c.refund, '', 1) : ''}${kv('Fees' + (o.feesManual ? '' : ' (auto)'), c.fees, '', 1)}<div class="kv b"><span>You receive after fees</span><span class="num">${money(c.payout)}</span></div>${c.shipPaid ? kv('Shipping buyer paid', c.shipPaid) : ''}${kv('Postage', c.post, '', 1)}${c.reimb ? kv('Claim paid back to you', c.reimb) : ''}
+    <div class="card sm">${kv('Items', c.sub)}${c.disc ? kv('Discount', c.disc, '', 1) : ''}${num(o.shipCharged) ? kv('Shipping buyer paid (goes toward your postage)', num(o.shipCharged)) : ''}${c.tax ? kv('Sales tax collected (not income)', c.tax) : ''}${(c.post || c.shipPaid) ? kv(c.shipPaid === 0 ? 'Free shipping: you paid the postage' : c.shipPaid >= c.post ? 'Extra shipping (not counted as profit)' : 'Postage you covered beyond what the buyer paid', c.shipPaid === 0 ? c.post : Math.abs(c.shipPaid - c.post)) : ''}${o.cur && fxOf(o) !== 1 ? `<p class="hint">Sold in ${esc(o.cur)} at 1 ${esc(o.cur)} = ${money(fxOf(o))}. Totals here are converted.</p>` : ''}${c.refund ? kv('Refunded', c.refund, '', 1) : ''}${kv('Fees' + (o.feesManual ? '' : ' (auto)'), c.fees, '', 1)}<div class="kv b"><span>You receive after fees</span><span class="num">${money(c.payout)}</span></div>${c.shipUsed ? kv('Shipping that covers your postage', c.shipUsed) : ''}${kv('Postage', c.post, '', 1)}${c.reimb ? kv('Claim paid back to you', c.reimb) : ''}
       ${c.hasFinal ? kv('Estimated amount made (not used)', c.calcMade) : ''}<div class="kv b sec"><span>${c.hasFinal ? 'Money you made (actual)' : 'Money you made'} <span class="xs sub">before cost of goods</span></span><span class="num ${c.made < 0 ? 'bad-t' : 'ok-t'}">${c.made < 0 ? '− ' : ''}${money(Math.abs(c.made))}</span></div>
-      ${kv('Cost of goods', c.cogs, '', 1)}<div class="kv total sec"><span>Profit after cost of goods</span><span class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${c.profit < 0 ? '− ' : ''}${money(Math.abs(c.profit))}</span></div>${c.margin != null ? `<p class="hint">${pct(c.margin)} margin after cost of goods · cost of goods is what the materials or stock cost you. It is shown separately so you can see what you made with and without it.</p>` : ''}</div>
+      ${(o.supplies || []).map(u => kv(esc(u.qty + '× ' + u.name) + ' <span class="xs sub">(supply used)</span>', num(u.qty) * num(u.cost), '', 1)).join('')}${kv('Cost of goods' + (c.supCost ? ' (incl. supplies)' : ''), c.cogs, '', 1)}<div class="kv total sec"><span>Profit after cost of goods</span><span class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${c.profit < 0 ? '− ' : ''}${money(Math.abs(c.profit))}</span></div>${c.margin != null ? `<p class="hint">${pct(c.margin)} margin after cost of goods · cost of goods is what the materials or stock cost you. It is shown separately so you can see what you made with and without it.</p>` : ''}</div>
     <div class="card sm"><h4 class="eyebrow" style="margin-bottom:6px">Dates</h4><div class="kv"><span>Ordered</span><span class="num">${fmtDate(o.date)}</span></div>${FLOW.map(st => `<div class="kv" style="align-items:center;${o.status === st ? 'font-weight:800' : ''}"><span>${st}</span><input class="input sm" type="date" style="width:auto;flex:none" data-order-date="${o.id}" data-step="${esc(st)}" value="${esc((o.stepDates || {})[st] || '')}" aria-label="${esc(st)} date"></div>`).join('')}</div>
     ${(o.bulk || num(o.deposit) > 0) ? `<div class="card sm"><h4 class="eyebrow" style="margin-bottom:6px">Bulk order</h4>${o.po ? `<div class="kv"><span>PO</span><b>${esc(o.po)}</b></div>` : ''}${o.terms ? `<div class="kv"><span>Terms</span><b>${esc(o.terms)}</b></div>` : ''}${num(o.bulkPct) ? `<div class="kv"><span>Wholesale discount</span><b>${pct(num(o.bulkPct))}</b></div>` : ''}${num(o.deposit) ? kv('Deposit paid', num(o.deposit)) : ''}<div class="kv total"><span>Balance due</span><span class="num ${c.owed > 0 && !closedOrder(o) ? 'warn-t' : ''}">${money(closedOrder(o) ? 0 : c.owed)}</span></div></div>` : ''}
     ${isOwed(o) ? `<div class="card sm" style="border-color:var(--warn)"><h4 class="eyebrow" style="margin-bottom:6px">Unpaid invoice</h4><div class="kv"><span>Still owed</span><b class="num warn-t">${money(owedAmt(o))}</b></div><div class="kv"><span>Due</span><b>${fmtDate(invDueDate(o))}${invDueDate(o) < today() ? ' · overdue' : ''}</b></div><div class="row" style="gap:8px;margin-top:8px"><button class="btn btn-primary btn-sm grow" data-act="pay-invoice" data-id="${o.id}">Record payment</button><button class="btn btn-line btn-sm" data-act="inv-remind" data-id="${o.id}">${ic('copy')} Reminder</button></div></div>` : (o.paidDate ? `<p class="xs sub">Invoice paid ${fmtDate(o.paidDate)}</p>` : '')}
@@ -4217,6 +4278,7 @@ OPEN.listing = id => {
     <div class="grid2">${fSel('Shipping', 'shipMode', [['buyer', 'Buyer pays shipping'], ['free', 'Free shipping (I pay)']], d.shipMode || 'buyer')}${fNum('Postage I expect to pay', 'shipCost', d.shipCost || '', 'Optional', 'min="0"')}</div>
     <p class="hint" id="est-hint" style="margin:-6px 0 12px" hidden></p>
     <div class="grid2">${fText('Listing SKU', 'sku', d.sku, 'maxlength="30"')}${fDate('Listed on', 'listedDate', d.listedDate, false)}</div>
+    <p class="hint" id="plan-hint" style="margin:-6px 0 12px;color:var(--brand,inherit);font-weight:600" hidden></p>
     <div id="renew-box" ${d.status === 'Sold' ? 'hidden' : ''}>
       <label class="row b sm-t" style="margin-bottom:8px"><input type="checkbox" class="chk" name="autoRenew" ${listingAutoRenew(d) ? 'checked' : ''}> Auto-renew: fill in the next renewal date for me</label>
       <div class="grid2">${fNum('Renew every (days)', 'renewDays', d.renewDays || '', String(renewEvery(d.channels || [])), 'min="1" step="1"')}${fDate('Renew on', 'relistDate', d.relistDate, false)}</div>
@@ -4261,12 +4323,13 @@ FORMS.listing = async (f, fd, id) => {
   if (rec.status !== 'Planned' && !rec.channels.length) return toast('Choose at least one platform it is listed on');
   if (rec.discounts.some(d => d.start && d.end && d.end < d.start)) return toast('A discount ends before it starts');
   const prev = id ? find('listings', id) : null;
+  const autoPlanned = fd.get('status') === 'Active' && rec.status === 'Planned' && rec.listedDate > today();
   if (rec.status === 'Sold') {
     if (!prev || prev.status !== 'Sold') { const c = await askSoldPlatform(rec.title, rec.channels); if (c === null) return; applySold(rec, c); }
     else rec.relistDate = '';
   }
   if (id) Object.assign(find('listings', id), rec); else { state.counters.listing++; state.listings.push({ id: uid('l'), createdDate: today(), snaps: [], ...rec }); }
-  done('Listing saved', [`${id ? 'Updated' : 'New'} listing ${rec.title}${rec.channels.length ? ' on ' + rec.channels.join(', ') : ''}`, 'store']);
+  done(autoPlanned ? `Saved as Planned: it is listed for ${fmtDate(rec.listedDate)}, a future date` : 'Listing saved', [`${id ? 'Updated' : 'New'} listing ${rec.title}${rec.channels.length ? ' on ' + rec.channels.join(', ') : ''}`, 'store']);
 };
 
 /* ---------- analytics: snapshots of how a listing is doing on each platform ---------- */
@@ -4358,6 +4421,9 @@ function formLive0(f, target) {
     if (target && target.classList && target.classList.contains('d-no')) { const row = target.closest('.disc-row'), e = $('.d-end', row); e.disabled = target.checked; if (target.checked) e.value = ''; }
     const r = readListing(f), p = find('products', r.productId), plist = listingProducts(r).map(id => find('products', id)).filter(Boolean), unit = plist.length ? sum(plist, unitCost) : null, lp = listingPrice(r);
     { const rb = $('#renew-box', f); if (rb) rb.hidden = r.status === 'Sold'; }
+    { const st = $('[name=status]', f), ph = $('#plan-hint', f), fut = !!r.listedDate && r.listedDate > today() && r.status === 'Planned';
+      if (st && fut && st.value === 'Active') st.value = 'Planned';
+      if (ph) { ph.hidden = !fut; if (fut) ph.textContent = `Heads up: ${fmtDate(r.listedDate)} is a future date, so this is set to Planned. It is not live yet. On that day you will be asked to confirm it is listed.`; } }
     { const ar = $('[name=autoRenew]', f), rdE = $('[name=renewDays]', f), rl = $('[name=relistDate]', f), rh = $('#renew-hint', f);
       if (ar && rdE && rl && rh) {
         const own = Math.round(num(rdE.value)) > 0, days = own ? Math.round(num(rdE.value)) : renewEvery(r.channels);
@@ -4410,9 +4476,11 @@ function formLive0(f, target) {
       { const lf = $('[name=lf]', row); if (lf) lf.checked = !!(p && p.free); }
       if (p) { const pr = $('[name=lc]', row); pr.value = tierPrice(p, qty); pr.dataset.auto = 1; $('[name=lk]', row).value = r2(unitCost(p)); ll.innerHTML = listingOpts(p.id, pickListing(p.id, $('[name=channel]', f).value)); ll.value = pickListing(p.id, $('[name=channel]', f).value); } else { nm.value = ''; ll.innerHTML = ''; }
     }
+    if (target && target.name === 'su') { const row = target.closest('.sup-line'), sp = state.supplies.find(x => x.id === target.value); if (sp && row) { $('[name=sk]', row).value = num(sp.cost) ? r2(num(sp.cost)) : ''; if (!(num($('[name=sq]', row).value) > 0)) $('[name=sq]', row).value = 1; } }
     if (target && target.name === 'lc') delete target.dataset.auto;
     if (target && target.name === 'lq') { const row = target.closest('.line'), p = find('products', $('[name=lp]', row).value), pr = $('[name=lc]', row); if (p && pr.dataset.auto) pr.value = tierPrice(p, Math.max(1, Math.round(num(target.value)))); }
-    const old = f.dataset.id ? find('orders', f.dataset.id) : null, back = stockEffect(old), o = readOrder(f, old), c = oc(o);
+    const old = f.dataset.id ? find('orders', f.dataset.id) : null, back = stockEffect(old), o = readOrder(f, old), c = oc(o), sback = supEffect(old);
+    $$('.sup-line', f).forEach(row => { const sp = state.supplies.find(x => x.id === $('[name=su]', row).value), w = $('[data-supwarn]', row), q = num($('[name=sq]', row).value); if (w) w.textContent = sp && q > avail(sp) + (sback[sp.id] || 0) + 1e-9 ? `Only ${Math.max(0, r2(avail(sp) + (sback[sp.id] || 0)))} free in stock` : ''; });
     $$('.line', f).forEach(row => {
       const p = find('products', $('[name=lp]', row).value), q = Math.round(num($('[name=lq]', row).value)), w = $('[data-stockwarn]', row), th = $('[data-tierhint]', row);
       const avl = p ? p.qty + (back[p.id] || 0) : null;
@@ -4423,7 +4491,7 @@ function formLive0(f, target) {
     });
     $('#pv-total', f).textContent = money(c.buyerTotal); $('#pv-payout', f).textContent = money(c.payout); $('#pv-made', f).textContent = money(c.made); const pp = $('#pv-profit', f); pp.textContent = money(c.profit); pp.className = 'num ' + (c.profit < 0 ? 'bad-t' : 'ok-t');
     const kv = (l, v, neg) => `<div class="kv"><span>${l}</span><b class="num">${neg ? '− ' : ''}${money(v)}</b></div>`;
-    pv.innerHTML = kv('Items', c.sub) + (c.disc ? kv('Discount', c.disc, 1) : '') + `<div class="kv b"><span>Your sales (after discount)</span><b class="num">${money(c.gross)}</b></div>` + (o.shipCharged ? kv('Shipping buyer paid (goes toward your postage)', o.shipCharged) : '') + `<div class="kv"><span>Buyer paid in total (before sales tax)</span><b class="num">${money(c.buyerTotal)}</b></div>` + kv(o.feesManual ? 'Platform fees (entered)' : 'Platform fees (auto from platform)', c.fees, 1) + `<div class="kv b"><span>You receive (est.)</span><b class="num">${money(c.payout)}</b></div>` + (c.shipPaid ? kv('Shipping buyer paid', c.shipPaid) : '') + kv('Your postage', c.post, 1) + (c.reimb ? kv('Claim paid back to you', c.reimb) : '') + (c.hasFinal ? kv('Estimated amount made (not used)', c.calcMade) : '') + `<div class="kv b"><span>${c.hasFinal ? 'Money you made (actual)' : 'Money you made (est.)'} <small class="sub">before cost of goods</small></span><b class="num ${c.made < 0 ? 'bad-t' : ''}">${money(c.made)}</b></div>` + kv('Cost of goods', c.cogs, 1) + `<div class="kv"><span><b>Profit after cost of goods</b></span><b class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${money(c.profit)}${c.margin != null ? ' · ' + pct(c.margin) : ''}</b></div>` + (num(o.deposit) > 0 ? `<div class="kv"><span>Balance still due</span><b class="num">${money(c.owed)}</b></div>` : '');
+    pv.innerHTML = kv('Items', c.sub) + (c.disc ? kv('Discount', c.disc, 1) : '') + `<div class="kv b"><span>Your sales (after discount)</span><b class="num">${money(c.gross)}</b></div>` + (o.shipCharged ? kv('Shipping buyer paid (goes toward your postage)', o.shipCharged) : '') + `<div class="kv"><span>Buyer paid in total (before sales tax)</span><b class="num">${money(c.buyerTotal)}</b></div>` + kv(o.feesManual ? 'Platform fees (entered)' : 'Platform fees (auto from platform)', c.fees, 1) + `<div class="kv b"><span>You receive (est.)</span><b class="num">${money(c.payout)}</b></div>` + (c.shipUsed ? kv('Shipping that covers your postage', c.shipUsed) : '') + kv('Your postage', c.post, 1) + (c.reimb ? kv('Claim paid back to you', c.reimb) : '') + (c.hasFinal ? kv('Estimated amount made (not used)', c.calcMade) : '') + `<div class="kv b"><span>${c.hasFinal ? 'Money you made (actual)' : 'Money you made (est.)'} <small class="sub">before cost of goods</small></span><b class="num ${c.made < 0 ? 'bad-t' : ''}">${money(c.made)}</b></div>` + kv('Cost of goods' + (c.supCost ? ' (incl. ' + money(c.supCost) + ' supplies)' : ''), c.cogs, 1) + `<div class="kv"><span><b>Profit after cost of goods</b></span><b class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${money(c.profit)}${c.margin != null ? ' · ' + pct(c.margin) : ''}</b></div>` + (num(o.deposit) > 0 ? `<div class="kv"><span>Balance still due</span><b class="num">${money(c.owed)}</b></div>` : '');
   }
 }
 const price_ = r => num(r.price);
@@ -4555,7 +4623,7 @@ FORMS.bulk = async (f, fd, type) => {
         if (g('pmode')) { const f_ = type === 'product' ? 'price' : 'cost'; r[f_] = adjust(r[f_], g('pmode'), num(fd.get('pval'))); }
         if (type === 'product' && g('tag')) { const tags = String(r.tags || '').split(',').map(x => x.trim()).filter(Boolean); if (!tags.includes(g('tag').trim())) tags.push(g('tag').trim()); r.tags = tags.join(', '); }
       } else if (type === 'listing') {
-        if (g('status')) { r.status = g('status'); if (r.status === 'Active' && !r.listedDate) { r.listedDate = today(); r.relistDate = listingAutoRenew(r) ? addDays(today(), listingRenewDays(r)) : ''; } }
+        if (g('status')) { r.status = g('status'); if (r.status === 'Active' && r.listedDate && r.listedDate > today()) r.status = 'Planned'; if (r.status === 'Active' && !r.listedDate) { r.listedDate = today(); r.relistDate = listingAutoRenew(r) ? addDays(today(), listingRenewDays(r)) : ''; } }
         fd.getAll('addch').forEach(c => { if (!listingChans(r).includes(c)) r.channels.push(c); });
         if (g('pmode')) r.price = adjust(r.price, g('pmode'), num(fd.get('pval')));
         const p = Math.max(0, Math.min(100, num(fd.get('dpct'))));
@@ -4595,6 +4663,7 @@ OPEN.bulkListings = () => {
     <p class="eyebrow" style="margin-bottom:6px">Platforms</p>
     <div class="mchips" style="margin-bottom:14px">${chans.map((c, i) => `<label class="mchip"><input type="checkbox" name="bc" value="${esc(c)}" ${i === 0 ? 'checked' : ''}><span>${esc(c)}</span></label>`).join('')}</div>
     <div class="grid2">${fSel('Status', 'status', ['Active', 'Planned'], 'Active')}${fDate('Listed on', 'listedDate', today(), false)}</div>
+    <p class="hint" style="margin:-6px 0 12px">If the Listed on date is after today, these are saved as Planned automatically, because they are not live yet.</p>
     ${adjFields('Price vs. product price', 'p').replace('<option value="set">Set to</option>', '')}
     ${descTpls().length ? fSel('Description', 'tpl', [['auto', 'Automatic: the template set for the product, if any'], ['', 'None']].concat(descTpls().map(t => [t.id, t.name])), 'auto') : ''}
     ${fCheck('Combine ALL picked products into ONE listing (a bundle or lot)', 'combine', false)}
@@ -4617,9 +4686,9 @@ function bulkListPlan(fd) {
 FORMS.bulklist = (f, fd) => {
   const plan = bulkListPlan(fd).filter(x => !x.skip); if (!plan.length) return toast(fd.get('combine') === 'on' ? 'Pick at least two products and a platform to make a bundle' : 'Nothing to create. Pick products and platforms');
   if (plan.some(x => x.combine) && !tidy(fd.get('btitle'))) return toast('Give the bundle a title');
-  const status = fd.get('status'), listed = fd.get('listedDate') || (status === 'Active' ? today() : ''), mode = fd.get('pmode'), val = num(fd.get('pval')), tm = fd.get('tpl') == null ? 'auto' : fd.get('tpl');
+  const status0 = fd.get('status'), listed = fd.get('listedDate') || (status0 === 'Active' ? today() : ''), status = (status0 === 'Active' && listed > today()) ? 'Planned' : status0, autoPlanned = status !== status0, mode = fd.get('pmode'), val = num(fd.get('pval')), tm = fd.get('tpl') == null ? 'auto' : fd.get('tpl');
   closeSheet();
-  undoable(`Created ${plan.length} listing${plan.length > 1 ? 's' : ''}`, () => {
+  undoable(`Created ${plan.length} listing${plan.length > 1 ? 's' : ''}${autoPlanned ? ' as Planned, because ' + fmtDate(listed) + ' is a future date' : ''}`, () => {
     plan.forEach(x => {
       if (x.combine) {
         const ps = x.pids.map(id => find('products', id)).filter(Boolean); if (ps.length < 2) return;
@@ -5076,7 +5145,8 @@ const ACT = {
   'sale-for': el => { closeSheet(); OPEN.order('', { customer: el.dataset.name }); },
   'add-bulk': () => OPEN.order('', { bulk: true }),
   'close-sheet': () => closeSheet(),
-  'row-del': el => { const row = el.closest('.line, .rec-wrap, .tier-row, .disc-row'), f = el.closest('form'); if (row) row.remove(); if (f) formLive(f); },
+  'row-del': el => { const row = el.closest('.line, .sup-line, .rec-wrap, .tier-row, .disc-row'), f = el.closest('form'); if (row) row.remove(); if (f) formLive(f); },
+  'sup-add': el => { const f = formOf(el); $('#sup-lines', f).insertAdjacentHTML('beforeend', supRow({ supplyId: '', qty: 1, cost: '' })); formLive(f); },
   'line-add': el => { const f = formOf(el); $('#lines', f).insertAdjacentHTML('beforeend', lineRow({ productId: '', name: '', qty: 1, price: '', cost: '' })); formLive(f); },
   'add-multi': async el => {
     const f = formOf(el), ps = state.products.filter(active).sort((a, b) => a.name.localeCompare(b.name)); if (!ps.length) return toast('Add a product first');
@@ -5185,6 +5255,11 @@ const ACT = {
     const type = el.dataset.type, nid = dupRecord(type, el.dataset.id); if (!nid) return;
     closeSheet(); save(); render(); toast(type === 'supply' || type === 'product' ? 'Copy made. Rename it and save' : 'Duplicated');
     if (type === 'order') OPEN.orderDetail(nid); else OPEN[type](nid);
+  },
+  'advance-quick': el => {
+    const o = find('orders', el.dataset.id); if (!o) return;
+    const to = el.dataset.to && FLOW.includes(el.dataset.to) ? el.dataset.to : nextStatus(o); if (!to) return;
+    undoable(`${orderNo(o)} marked ${to}`, () => { putOrder(setOrderStatus(o, to)); logAct(`${orderNo(o)} marked ${to}`, 'truck'); });
   },
   advance: el => {
     const o = find('orders', el.dataset.id); if (!o) return; const n = nextStatus(o); if (!n) return;
@@ -6497,6 +6572,16 @@ Object.assign(ACT, {
 });
 document.addEventListener('change', e => {
   const t = e.target; if (!t || !t.matches) return;
+  if (t.matches('form[data-form=order] select[data-lpick]')) {
+    const row = t.closest('.line'), lp = $('[name=lp]', row), ll = $('[name=ll]', row), parts = t.value.split('|');
+    lp.value = parts[2] || '';
+    lp.dispatchEvent(new Event('change', { bubbles: true }));
+    if (parts[0] === 'L' && parts[1] && lp.value) { ll.value = parts[1]; ll.dispatchEvent(new Event('change', { bubbles: true })); }
+  }
+  if (t.matches('form[data-form=order] select[data-lpick], form[data-form=order] select[name=lp], form[data-form=order] select[name=ll]')) {
+    const row = t.closest('.line'), inf = row && $('[data-lpinfo]', row);
+    if (inf) inf.innerHTML = lpInfoHtml(find('products', $('[name=lp]', row).value), ($('[name=ll]', row) || {}).value);
+  }
   if (t.matches('form[data-form=order] select[name=lp]')) {
     const row = t.closest('.line'), lv = row && $('[name=lv]', row), p = t.value && find('products', t.value);
     if (lv) { if (p && (p.variants || []).length) { lv.innerHTML = variantOpts(p, {}); lv.hidden = false; } else { lv.innerHTML = ''; lv.hidden = true; } }
@@ -8762,6 +8847,7 @@ function barHtml(run) {
       ${pm ? `<div class="ts-prog"><i data-tsel="pct" style="width:${Math.min(100, el(e, now) / pm * 100)}%"></i></div>` : ''}
       <div class="ts-meta"><span>${e.kind === 'break' && !wmbPlanned(e) ? 'Break' : wmbPlanned(e) ? 'Break · <b data-tsel="left"></b>' : e.free ? 'No time limit' : e.pStart ? tLab(e.pStart) + ' – ' + tLab(effEnd(e)) + ' · <b data-tsel="left"></b>' : 'Unscheduled'}</span><span>Day <b data-tsel="day"></b></span></div>
       <div class="tsb">${tk.length ? `<div style="margin-top:12px">${tasks}</div>` : ''}${isB || !t.barMore ? '' : `<div class="ts-addstep" style="margin-top:10px"><input class="input sm" data-tsin placeholder="Add a step" maxlength="100"><button class="btn btn-soft btn-sm ts-btn" data-ts="task-add" aria-label="Add step">${I('plus', 14)}</button></div>`}</div>
+      ${isB ? '' : `<div class="ts-note"><label class="xs sub" for="tsn-${e.id}">Notes for this step${e.notes ? '' : ' (optional)'}</label><textarea id="tsn-${e.id}" class="textarea" rows="2" data-tsnote="${e.id}" maxlength="2000" placeholder="Jot anything about this time block…">${esc(e.notes || '')}</textarea></div>`}
       ${barItems(run, e)}<div class="ts-act">${e.status === 'active' ? `<button class="btn btn-primary grow ts-btn" data-ts="finish">${I('check', 16)}${isB ? 'End break' : 'Finish &amp; next'}</button><button class="btn btn-line ts-btn" data-ts="pause">${I('pause', 15)}Pause</button>${isB ? '' : `<button class="btn btn-line ts-btn" data-ts="break">${I('cup', 15)}Break</button>`}` : `<button class="btn btn-primary grow ts-btn" data-ts="resume">${I('play', 14)}Resume</button><button class="btn btn-line ts-btn" data-ts="finish">${I('check', 15)}Finish</button>`}</div>`;
   } else {
     top = `<div class="row between"><div class="ts-stat"><i class="ts-dot live"></i>Day running</div><button class="icon-btn" style="width:30px;height:30px" data-ts="collapse" aria-label="Collapse">${I('chevD', 16)}</button></div><b style="display:block;font-size:15px;margin-top:4px">${nx ? 'No block running' : 'All blocks complete'}</b><div class="ts-meta"><span>${nx ? 'Choose what to work on next' : 'Add another block or end your day'}</span><span>Day <b data-tsel="day"></b></span></div>${next}${barItems(run, null)}<div class="ts-act">${nx ? `<button class="btn btn-primary grow ts-btn" data-ts="start-next">${I('play', 14)}Start ${esc(nx.title.length > 16 ? nx.title.slice(0, 15) + '…' : nx.title)}</button>` : ''}<button class="btn btn-line ts-btn ${nx ? '' : 'grow'}" data-ts="adhoc">Other task</button></div>`;
@@ -9281,6 +9367,14 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && $('#ts-modal.on')) closeModal();
   if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-tsin]')) { e.preventDefault(); H['task-add'](e.target); }
 });
+/* notes on the step you are working on: saved as you type; the bar is not repainted so you never lose your place */
+let _noteT = 0;
+document.addEventListener('input', e => {
+  const t = e.target, id = t && t.dataset && t.dataset.tsnote; if (!id) return;
+  const run = running(); const en = run && run.entries.find(x => x.id === id); if (!en) return;
+  en.notes = t.value; clearTimeout(_noteT); _noteT = setTimeout(() => { save(); try { paintSheet(); } catch (x) { } }, 500);
+});
+document.addEventListener('focusout', e => { const t = e.target; if (t && t.dataset && t.dataset.tsnote) { clearTimeout(_noteT); const run = running(), en = run && run.entries.find(x => x.id === t.dataset.tsnote); if (en) { en.notes = t.value; save(); } } });
 document.addEventListener('change', e => {
   const t = e.target, k = t.dataset && t.dataset.tsf, T_ = T();
   if (t.dataset && t.dataset.f === 'rep') { const v = t.value, m = $('#ts-modal'); $('#ts-dowbox', m).hidden = !/^w/.test(v); $('#ts-fromlbl', m).textContent = v === 'once' ? 'Date' : v === 'm' ? 'Repeats on the date of' : 'Pattern starts the week of'; $('#ts-rephint', m).textContent = v === 'w2' ? 'Week 1 is the week of the date above. Make a second block starting one week later for your “other” week.' : ''; return; }
