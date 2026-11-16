@@ -1319,9 +1319,14 @@ function feeFor(channelName, base) {
   return c ? r2(base * num(c.pct) / 100 + (base > 0 ? num(c.fixed) : 0)) : 0;
 }
 const live = () => state.orders.filter(o => !NOT_SALE.includes(o.status));
-/* cash only counts once an invoice is paid (and from the day it was paid) */
-const cashOrders = () => live().filter(o => !isOwed(o));
-const cashDate = o => o.paidDate || o.date;   // archived orders still count in the numbers
+/* Money only counts once an order is finished: Fulfilled, or a problem that has been settled (refunded, claim paid, dispute closed).
+   Orders still on their way show as pending and are NOT in your sales, profit, tax or account balances yet. */
+const isEarned = o => !NOT_SALE.includes(o.status) && (o.status === 'Fulfilled' || RESOLVED.includes(o.status));
+const earned = () => live().filter(isEarned);
+const earnedDay = o => { const f = o.stepDates && o.stepDates.Fulfilled; return f && f > o.date ? f : o.date; };   // the day it was fulfilled
+/* cash only counts once the order is fulfilled AND an invoice is paid (from the later of those two days) */
+const cashOrders = () => earned().filter(o => !isOwed(o));
+const cashDate = o => { const d = o.paidDate || o.date, f = o.stepDates && o.stepDates.Fulfilled; return f && f > d ? f : d; };   // archived orders still count in the numbers
 /* Sold in another currency: money typed on the order is in that currency, rate = how much 1 unit is worth in your own currency. Cost of goods stays in yours. */
 const fxOf = o => (o && o.cur && num(o.fx) > 0) ? num(o.fx) : 1;
 /* Expenses: a share can be deductible (meals 50%), and equipment can be spread over years instead of all at once */
@@ -1349,7 +1354,7 @@ const depositOrders = () => state.orders.filter(o => isOwed(o) && num(o.deposit)
 /* each part-payment on an unpaid invoice on the day it arrived (the first deposit on the order date) */
 const depositEvents = () => { const ev = []; depositOrders().forEach(o => { const ps = o.payments || [], fx = fxOf(o), init = r2(num(o.deposit) - sum(ps, x => num(x.amount))) * fx; if (init > 0.004) ev.push({ o, date: o.date, amt: init }); ps.forEach(x => { if (num(x.amount) > 0) ev.push({ o, date: x.date || o.date, amt: num(x.amount) * fx }); }); }); return ev; };
 /* orders that count toward profit in a period: by sale date, or by the day the money arrived (Settings) */
-const periodOrders = r => state.settings.basis === 'cash' ? cashOrders().filter(o => inR(cashDate(o), r)) : live().filter(o => inR(o.date, r));
+const periodOrders = r => state.settings.basis === 'cash' ? cashOrders().filter(o => inR(cashDate(o), r)) : earned().filter(o => inR(earnedDay(o), r));
 /* Mileage rate can change part-way through a year: optional second rate that applies from a date */
 const mileRateOn = d => { const s = state.settings; return (s.mileFrom && s.mileRate2 !== '' && s.mileRate2 != null && d >= s.mileFrom) ? num(s.mileRate2) : num(s.mileRate); };
 const mileDedFor = r => sum(state.mileage.filter(m => inR(m.date, r)), m => num(m.miles) * mileRateOn(m.date));
@@ -1478,9 +1483,9 @@ function setOrderStatus(o, st) {
 
 /* ----- customers (worked out from sales, plus anything you save about them) ----- */
 function customerStats(name) {
-  const k = lc(name), os = live().filter(o => lc(o.customer) === k);
+  const k = lc(name), os = live().filter(o => lc(o.customer) === k), ed = os.filter(isEarned);
   const last = os.map(o => o.date).sort().pop() || '';
-  return { orders: os.length, spent: sum(os, o => oc(o).net), profit: sum(os, o => oc(o).profit), last };
+  return { orders: os.length, spent: sum(ed, o => oc(o).net), profit: sum(ed, o => oc(o).profit), last };
 }
 function ensureCustomer(name) {
   const n = String(name || '').trim(); if (!n) return;
@@ -2230,7 +2235,7 @@ function orderCard(o) {
     ${selMark(o.id)}<div class="ava">${esc(initial(o.channel || title))}</div>
     <div class="grow"><h4 class="trunc t">${esc(title)}</h4><div class="meta trunc">${orderNo(o)} · ${fmtDate(o.date)}${o.channel ? ' · ' + esc(o.channel) : ''}</div><div class="meta trunc">${esc(lines)}</div>${shipping && o.shipBy ? `<div class="meta ${o.shipBy < t ? 'bad-t b' : ''}">Ship by ${fmtDate(o.shipBy)}</div>` : ''}
       ${(o.bulk || (num(o.deposit) > 0 && c.owed > 0 && !closedOrder(o))) ? `<div class="row" style="gap:6px;margin-top:3px">${o.bulk ? pill('Bulk', 'brand', 'layers') : ''}${num(o.deposit) > 0 && c.owed > 0 && !closedOrder(o) ? pill('Balance ' + money(c.owed), 'warn') : ''}</div>` : ''}</div>
-    <div class="side"><div class="amt num t">${money(c.net)}</div>${NOT_SALE.includes(o.status) ? '' : `<div class="xs num b" style="color:${toneVar(c.profit < 0 ? 'bad' : c.net > 0 ? marginTone(c.profit / c.net * 100) : 'ok')}">${c.profit < 0 ? '−' : '+'}${money(Math.abs(c.profit))} profit</div>`}${statusPill(o.status)}${isOwed(o) ? pill('Unpaid ' + money(owedAmt(o)), invDueDate(o) < today() ? 'bad' : 'warn') : ''}</div></button>
+    <div class="side"><div class="amt num t">${money(c.net)}</div>${NOT_SALE.includes(o.status) ? '' : `<div class="xs num b" style="color:${toneVar(c.profit < 0 ? 'bad' : c.net > 0 ? marginTone(c.profit / c.net * 100) : 'ok')}">${c.profit < 0 ? '−' : '+'}${money(Math.abs(c.profit))} ${isEarned(o) ? 'profit' : 'est. profit'}</div>${isEarned(o) ? '' : '<div class="xs sub">Pending until fulfilled</div>'}`}${statusPill(o.status)}${isOwed(o) ? pill('Unpaid ' + money(owedAmt(o)), invDueDate(o) < today() ? 'bad' : 'warn') : ''}</div></button>
     ${ui.selMode ? '' : orderNextRow(o)}</div>`;
 }
 /* The next step, right on the sales list: one tap moves the order along (no need to open it). */
@@ -2248,8 +2253,8 @@ function orderNextRow(o) {
 function salesList() {
   const l = salesFiltered(); ui.vis = l.map(o => o.id);
   if (!state.orders.length) return empty('receipt', 'No sales yet', 'Record a sale and stock, fees and profit are worked out for you.', `<div class="row" style="gap:8px;justify-content:center;margin-top:12px"><button class="btn btn-primary btn-sm" data-act="add" data-type="order">Add a sale</button><button class="btn btn-soft btn-sm" data-act="add-bulk">Bulk order</button></div>`);
-  const shown = l.slice(0, ui.limit), t = sum(l.filter(o => !NOT_SALE.includes(o.status)), o => oc(o).net);
-  return `${listHead(`${l.length} ${ui.arch ? 'archived' : 'order' + (l.length === 1 ? '' : 's')} · ${money(t)}`)}${archNote()}
+  const shown = l.slice(0, ui.limit), t = sum(l.filter(isEarned), o => oc(o).net), pend = sum(l.filter(o => !NOT_SALE.includes(o.status) && !isEarned(o)), o => oc(o).net);
+  return `${listHead(`${l.length} ${ui.arch ? 'archived' : 'order' + (l.length === 1 ? '' : 's')} · ${money(t)} fulfilled${pend > 0.004 ? ' · ' + money(pend) + ' pending' : ''}`)}${archNote()}
     ${l.length ? shown.map(orderCard).join('') : empty('search', 'No matches', ui.arch ? 'No archived sales.' : 'Try a different search or filter.')}
     ${l.length > shown.length ? `<button class="btn btn-line block btn-sm" data-act="more-rows">Show more (${l.length - shown.length})</button>` : ''}${selBar()}`;
 }
@@ -3720,7 +3725,7 @@ const readRecipe = f => {
 const readTiers = f => $$('.tier-row', f).map(r => ({ minQty: Math.round(num($('[name=tm]', r).value)), price: $('[name=tp]', r).value === '' ? '' : num($('[name=tp]', r).value) })).filter(t => t.minQty > 1 && t.price !== '').sort((a, b) => a.minQty - b.minQty);
 function productStats(id) {
   let units = 0, rev = 0, profit = 0;
-  live().forEach(o => o.items.forEach(l => { if (l.productId === id) { const u = Math.max(0, l.qty - (l.returned || 0)); units += u; rev += u * l.price; profit += u * (l.price - l.cost); } }));
+  earned().forEach(o => o.items.forEach(l => { if (l.productId === id) { const u = Math.max(0, l.qty - (l.returned || 0)); units += u; rev += u * l.price; profit += u * (l.price - l.cost); } }));
   return { units, rev, profit };
 }
 OPEN.product = id => {
@@ -5219,7 +5224,7 @@ const pdfDate = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? fmtDate(v) : 
 /* nice columns for the main lists; anything else gets columns picked from its own fields */
 function xpTable(k, recs) {
   const sum = (a, f) => a.reduce((t, r) => t + num(f(r)), 0), nm = n => n + (n === 1 ? ' item' : ' items');
-  if (k === 'orders') { const live = recs.filter(o => !NOT_SALE.includes(o.status)); return { note: nm(recs.length) + '  |  ' + money(sum(live, o => oc(o).net)) + ' net sales', cols: [{ h: 'Order', w: 1 }, { h: 'Date', w: 1 }, { h: 'Customer', w: 1.5 }, { h: 'Platform', w: 1.1 }, { h: 'Status', w: 1.3 }, { h: 'Items', w: 3 }, { h: 'Net', w: 1, a: 'r' }, { h: 'Profit', w: 1, a: 'r' }], rows: recs.map(o => { const c = oc(o); return [orderNo(o), pdfDate(o.date), o.customer || '', o.channel || '', o.status || '', (o.items || []).map(i => i.qty + 'x ' + lineName(i)).join(', '), money(c.net), NOT_SALE.includes(o.status) ? '' : money(c.profit)]; }), foot: ['Total', '', '', '', '', '', money(sum(live, o => oc(o).net)), money(sum(live, o => oc(o).profit))] }; }
+  if (k === 'orders') { const live = recs.filter(isEarned); return { note: nm(recs.length) + '  |  ' + money(sum(live, o => oc(o).net)) + ' fulfilled net sales', cols: [{ h: 'Order', w: 1 }, { h: 'Date', w: 1 }, { h: 'Customer', w: 1.5 }, { h: 'Platform', w: 1.1 }, { h: 'Status', w: 1.3 }, { h: 'Items', w: 3 }, { h: 'Net', w: 1, a: 'r' }, { h: 'Profit', w: 1, a: 'r' }], rows: recs.map(o => { const c = oc(o); return [orderNo(o), pdfDate(o.date), o.customer || '', o.channel || '', o.status || '', (o.items || []).map(i => i.qty + 'x ' + lineName(i)).join(', '), money(c.net), isEarned(o) ? money(c.profit) : '']; }), foot: ['Fulfilled total', '', '', '', '', '', money(sum(live, o => oc(o).net)), money(sum(live, o => oc(o).profit))] }; }
   if (k === 'products') return { note: nm(recs.length) + '  |  ' + sum(recs, p => p.qty) + ' units in stock', cols: [{ h: 'SKU', w: 1 }, { h: 'Name', w: 3 }, { h: 'Category', w: 1.3 }, { h: 'In stock', w: .8, a: 'r' }, { h: 'Price', w: 1, a: 'r' }, { h: 'Cost each', w: 1, a: 'r' }, { h: 'Est. value', w: 1, a: 'r' }], rows: recs.map(p => [p.sku || '', p.name || '', p.category || '', String(num(p.qty)), money(num(p.price)), money(unitCost(p)), hasEst(p) ? money(num(p.valEst)) : '']) };
   if (k === 'supplies') return { note: nm(recs.length), cols: [{ h: 'SKU', w: 1 }, { h: 'Name', w: 3 }, { h: 'Type', w: 1 }, { h: 'Unit', w: .8 }, { h: 'Available', w: 1, a: 'r' }, { h: 'Cost per unit', w: 1.1, a: 'r' }, { h: 'Category', w: 1.3 }], rows: recs.map(p => [p.sku || '', p.name || '', p.kind === 'component' ? 'Component' : 'Supply', p.unit || '', String(r2(avail(p))), money(num(p.cost)), p.category || '']) };
   if (k === 'listings') return { note: nm(recs.length), cols: [{ h: 'SKU', w: 1 }, { h: 'Title', w: 3.2 }, { h: 'Platforms', w: 1.5 }, { h: 'Status', w: 1 }, { h: 'Price', w: 1, a: 'r' }, { h: 'Listed', w: 1 }, { h: 'Renews', w: 1 }], rows: recs.map(l => [l.sku || '', l.title || '', listingChans(l).join(', '), l.status || '', money(listingPrice(l)), pdfDate(l.listedDate), pdfDate(l.relistDate)]) };
