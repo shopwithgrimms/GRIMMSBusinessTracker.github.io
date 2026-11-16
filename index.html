@@ -1464,7 +1464,7 @@ function removeOrder(id) {
   state.orders.splice(i, 1);
 }
 const autoOrderNo = n => 'ORD-' + String(n || 0).padStart(3, '0');
-const nextOrderSku = () => { let m = 0; (state.orders || []).forEach(o => { const x = /^ORD-(\d+)$/i.exec(orderNo(o)); if (x) m = Math.max(m, parseInt(x[1], 10)); }); return autoOrderNo(m + 1); };
+const nextOrderSku = skipId => { const used = new Set(); (state.orders || []).forEach(o => { if (o.id === skipId) return; const x = /^ORD-(\d+)$/i.exec(orderNo(o)); if (x) used.add(parseInt(x[1], 10)); }); let n = 1; while (used.has(n)) n++; return autoOrderNo(n); };
 const orderNo = o => String(o.sku || '').trim() || autoOrderNo(o.no);
 /* Changing an order's status: a full "Refunded to Customer" fills the refund in for you. */
 function setOrderStatus(o, st) {
@@ -3900,8 +3900,9 @@ function readOrder0(f, existing) {
   items.forEach(l => { l.returned = Math.min(l.returned, l.qty); });
   const supplies = $$('.sup-line', f).map(row => { const sid = $('[name=su]', row).value, sp = sid && state.supplies.find(x => x.id === sid); return sp ? { supplyId: sp.id, name: sp.name, qty: Math.max(0, num($('[name=sq]', row).value)), cost: num($('[name=sk]', row).value) } : null; }).filter(u => u && u.qty > 0);
   const feeRaw = String(fd.get('fees') || '').trim(), manual = feeRaw !== '', bulk = fd.get('bulk') === 'on';
-  const oskuRaw = tidy(fd.get('osku')), oskuAuto = existing ? autoOrderNo(existing.no) : nextOrderSku();
-  const o = { ...(existing || {}), sku: existing ? (oskuRaw && oskuRaw !== oskuAuto ? oskuRaw : '') : (oskuRaw || oskuAuto), acct: fd.get('acct') || '', date: fd.get('date'), customer: tidy(fd.get('customer')), channel: fd.get('channel') || '', items, supplies, bulk, bulkPct: bulk ? Math.max(0, Math.min(100, num(fd.get('bulkPct')))) : 0, po: tidy(fd.get('po')), terms: fd.get('terms') || '', deposit: Math.max(0, num(fd.get('deposit'))), discount: Math.max(0, num(fd.get('discount'))), shipCharged: num(fd.get('shipCharged')), tax: Math.max(0, num(fd.get('tax'))), cur: tidy(fd.get('cur')).toUpperCase().slice(0, 3), fx: tidy(fd.get('cur')) && num(fd.get('fx')) > 0 ? num(fd.get('fx')) : '', postage: num(fd.get('postage')), feesManual: manual, finalProfit: String(fd.get('finalProfit') ?? '').trim() === '' ? '' : num(fd.get('finalProfit')), status: fd.get('status'), payment: fd.get('payment') || '', carrier: fd.get('carrier') || '', shipBy: fd.get('shipBy') || '', tracking: tidy(fd.get('tracking')), ref: tidy(fd.get('ref')), notes: tidy(fd.get('notes')), refund: existing ? existing.refund : 0, reimb: existing ? existing.reimb : 0, stepDates: (() => { const sd = {}; FLOW.forEach((st, i) => { const v = fd.get('sd_' + i); if (v) sd[st] = v; }); return sd; })() };
+  const oskuRaw = tidy(fd.get('osku')), oskuOwn = existing ? autoOrderNo(existing.no) : '', oskuTaken = existing && state.orders.some(x => x.id !== existing.id && orderNo(x).toLowerCase() === oskuOwn.toLowerCase());
+  const oskuVal = oskuRaw || (existing ? (oskuTaken ? nextOrderSku(existing.id) : oskuOwn) : nextOrderSku());
+  const o = { ...(existing || {}), sku: existing && oskuVal === oskuOwn ? '' : oskuVal, acct: fd.get('acct') || '', date: fd.get('date'), customer: tidy(fd.get('customer')), channel: fd.get('channel') || '', items, supplies, bulk, bulkPct: bulk ? Math.max(0, Math.min(100, num(fd.get('bulkPct')))) : 0, po: tidy(fd.get('po')), terms: fd.get('terms') || '', deposit: Math.max(0, num(fd.get('deposit'))), discount: Math.max(0, num(fd.get('discount'))), shipCharged: num(fd.get('shipCharged')), tax: Math.max(0, num(fd.get('tax'))), cur: tidy(fd.get('cur')).toUpperCase().slice(0, 3), fx: tidy(fd.get('cur')) && num(fd.get('fx')) > 0 ? num(fd.get('fx')) : '', postage: num(fd.get('postage')), feesManual: manual, finalProfit: String(fd.get('finalProfit') ?? '').trim() === '' ? '' : num(fd.get('finalProfit')), status: fd.get('status'), payment: fd.get('payment') || '', carrier: fd.get('carrier') || '', shipBy: fd.get('shipBy') || '', tracking: tidy(fd.get('tracking')), ref: tidy(fd.get('ref')), notes: tidy(fd.get('notes')), refund: existing ? existing.refund : 0, reimb: existing ? existing.reimb : 0, stepDates: (() => { const sd = {}; FLOW.forEach((st, i) => { const v = fd.get('sd_' + i); if (v) sd[st] = v; }); return sd; })() };
   if (!o.feeSnap || o.feeSnap.ch !== o.channel) o.feeSnap = feeSnapOf(o.channel);
   o.fees = manual ? num(feeRaw) : autoFees(o);
   return o;
@@ -4964,17 +4965,23 @@ function settlePlanned() {
   if (moved || auto) { if (auto) logAct(`Marked ${auto} planned listing${auto > 1 ? 's' : ''} as listed`, 'check'); save(); }
   return { moved, auto };
 }
+/* remember the control you last touched and where it sat on screen, so after the page redraws it is put back in the same place */
+let lastCtl = null, lastCtlAt = 0;
+['pointerdown', 'focusin', 'input', 'change'].forEach(t => document.addEventListener(t, e => { const c = e.target && e.target.closest && e.target.closest('button,input,select,textarea,label,summary,[data-act]'); if (c) { lastCtl = c; lastCtlAt = Date.now(); } }, true));
+const ctlKey = el => el.tagName + '|' + [...el.attributes].filter(a => /^data-|^(name|type|aria-label)$/.test(a.name)).map(a => a.name + '=' + a.value).join('&');
+function anchorGet(sc) { if (!lastCtl || Date.now() - lastCtlAt > 2500 || !sc.contains(lastCtl)) return null; const key = ctlKey(lastCtl), same = [...sc.querySelectorAll(lastCtl.tagName)].filter(x => ctlKey(x) === key), i = same.indexOf(lastCtl); return i < 0 ? null : { key, i, tag: lastCtl.tagName, top: lastCtl.getBoundingClientRect().top }; }
+function anchorSet(sc, a) { if (!a) return; const same = [...sc.querySelectorAll(a.tag)].filter(x => ctlKey(x) === a.key), el = same[a.i] || same[0]; if (!el) return; const d = el.getBoundingClientRect().top - a.top; if (Math.abs(d) > 1) sc.scrollTop += d; }
 function render() {
   syncSelUI(); normStock();
   { const r = settlePlanned(); if (r.auto) setTimeout(() => toast(`Marked ${r.auto} planned listing${r.auto > 1 ? 's' : ''} as listed`), 400); }
-  const v = ui.sub || ui.tab, sc = $('#scroll'), keep = lastView === v ? sc.scrollTop : 0;
+  const v = ui.sub || ui.tab, sc = $('#scroll'), keep = lastView === v ? sc.scrollTop : 0, anc = lastView === v ? anchorGet(sc) : null;
   $('#hdr').innerHTML = renderHeader();
   $('#nav').innerHTML = renderNav();
   ROUND_NC = !!(state.settings.look && state.settings.look.wholeHome) && v === 'home';
   try { sc.innerHTML = V[v](); } finally { ROUND_NC = false; }
   if (lastView === v) $$('.fade', sc).forEach(x => x.classList.remove('fade'));
   if (xpSets(v).length) { const pg = $('.page', sc); if (pg) pg.insertAdjacentHTML('beforeend', `<button class="btn btn-line btn-sm block" style="margin-top:12px" data-act="export-page">${ic('download')} Export this page</button>`); }
-  sc.scrollTop = keep; if (lastView !== v && state.settings.look && state.settings.look.pageAnim !== 'none') pageIn(sc); lastView = v;
+  sc.scrollTop = keep; anchorSet(sc, anc); if (anc) requestAnimationFrame(() => anchorSet(sc, anc)); if (lastView !== v && state.settings.look && state.settings.look.pageAnim !== 'none') pageIn(sc); lastView = v;
   navSave();
 }
 /* remember which page you are on, so if the browser reloads this tab after you switch away, you land back where you were */
