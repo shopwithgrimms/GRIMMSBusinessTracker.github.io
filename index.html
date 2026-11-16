@@ -4915,13 +4915,13 @@ function exportCsv(kind) {
 function exportReport(pdf) {
   const p = state.prefs.period, s = summary(periodRange(p));
   const rows = [['Sales (before discounts)', r2(s.gross + s.disc)], ['Discounts given', r2(s.disc)], ['Refunds', r2(s.refunds)], ['Net sales', r2(s.net)], ['Fees', r2(s.fees)], ['Postage', r2(s.post)], ['Money made (before cost of goods)', r2(s.made)], ['Cost of goods', r2(s.cogs)], ['Gross profit (after cost of goods)', r2(s.gp)], ['Expenses', r2(s.expenses)], ['Other income', r2(s.income)], ['Adjusted to final amounts entered', r2(s.adj)], ['Net profit', r2(s.profit)], ['Net profit before cost of goods', r2(s.profitBefore)], ['', ''], ['Orders', s.orders], ['Items sold', s.units], ['Deductible expenses', r2(s.deductible)], ['Business distance (' + state.settings.mileUnit + ')', r2(s.miles)], ['Mileage deduction', r2(s.miles * num(state.settings.mileRate))]];
-  if (pdf) { download(`grimms-report-${today()}.pdf`, 'application/pdf', pdfMake(pdfBizName() + ' report', periodLabel(p) + ' · ' + today(), [{ name: 'Report: ' + periodLabel(p), rows: rows.map(r => [r[0], r[0] === '' ? '' : pdfRowFmt(r[0], r[1])]) }])); return toast('PDF downloaded'); }
+  if (pdf) { download(`grimms-report-${today()}.pdf`, 'application/pdf', pdfMake({ title: 'Business report', biz: pdfBizName(), sub: periodLabel(p) + '  |  ' + fmtDate(today()), cards: [['Net sales', money(s.net)], ['Gross profit', money(s.gp)], ['Net profit', money(s.profit)]], sections: [{ name: 'Profit and loss', kv: rows.map(r => [r[0], r[0] === '' ? '' : pdfRowFmt(r[0], r[1]), pdfEmph(r[0])]) }] })); return toast('PDF downloaded'); }
   download(`grimms-report-${today()}.csv`, 'text/csv;charset=utf-8', csvText(['Report: ' + periodLabel(p), 'Amount'], rows)); toast('Download started');
 }
 function exportTax(pdf) {
   const p = state.prefs.period, t = taxInfo(periodRange(p)), s = t.s;
   const rows = [['Net sales', r2(s.net)], ['Fees', r2(s.fees)], ['Postage', r2(s.post)], ['Cost of goods', r2(s.cogs)], ['Expenses', r2(s.expenses)], ['Other income', r2(s.income)], ['Net profit', r2(s.profit)], ['Deductible expenses', r2(s.deductible)], ['Mileage deduction', r2(t.mileDed)], ['Taxable profit (estimate)', r2(t.taxable)], ['Tax set-aside rate %', t.rate], ['Self-employment tax (estimate)', r2(t.se)], ['Set aside (estimate)', r2(t.aside)], ['Income tax paid', r2(t.paid)], ['Still to set aside', r2(t.left)], ['Sales tax collected by you', r2(s.salesTax)], ['Sales tax still owed', r2(t.salesOwed)], ['Sales tax paid', r2(t.salesPaid)]];
-  if (pdf) { download(`grimms-tax-summary-${today()}.pdf`, 'application/pdf', pdfMake(pdfBizName() + ' tax summary', periodLabel(p) + ' · ' + today() + ' · Estimate only, not tax advice', [{ name: 'Tax summary: ' + periodLabel(p), rows: rows.map(r => [r[0], pdfRowFmt(r[0], r[1])]) }])); return toast('PDF downloaded. This is an estimate, not tax advice'); }
+  if (pdf) { download(`grimms-tax-summary-${today()}.pdf`, 'application/pdf', pdfMake({ title: 'Tax summary', biz: pdfBizName(), sub: periodLabel(p) + '  |  ' + fmtDate(today()) + '  |  Estimate only, not tax advice', cards: [['Net profit', money(s.profit)], ['Set aside (estimate)', money(t.aside)], ['Still to set aside', money(t.left)]], sections: [{ name: 'Tax summary', kv: rows.map(r => [r[0], pdfRowFmt(r[0], r[1]), pdfEmph(r[0])]) }] })); return toast('PDF downloaded. This is an estimate, not tax advice'); }
   download(`grimms-tax-summary-${today()}.csv`, 'text/csv;charset=utf-8', csvText(['Tax summary: ' + periodLabel(p), 'Amount'], rows)); toast('Download started. This is an estimate, not tax advice');
 }
 
@@ -5096,7 +5096,7 @@ function xpOut(text, title) {
   const done = ok => { if (ok) toast('Copied. Paste it anywhere'); else openSheet(title, `<div class="sheet-body"><p class="hint" style="margin:0 0 10px">Your browser blocked automatic copying. Tap inside the box, select all, and copy.</p><textarea class="textarea" id="copy-box" readonly style="min-height:260px">${esc(text)}</textarea></div>`); };
   (navigator.clipboard ? navigator.clipboard.writeText(text).then(() => true, () => false) : Promise.resolve(false)).then(done);
 }
-/* ---------- tiny PDF writer: text only, no libraries, standard Helvetica fonts ---------- */
+/* ---------- PDF export: real tables, colored header, repeating column headings, page numbers. No libraries; standard Helvetica. ---------- */
 const PDF_SPECIAL = { '\u2018': 145, '\u2019': 146, '\u201c': 147, '\u201d': 148, '\u2022': 149, '\u2013': 150, '\u2014': 151, '\u2026': 133, '\u20ac': 128 };
 function pdfClean(v) {
   let o = '';
@@ -5104,6 +5104,7 @@ function pdfClean(v) {
     const c = ch.codePointAt(0);
     if (PDF_SPECIAL[ch] || (c >= 32 && c <= 126) || (c >= 161 && c <= 255)) o += ch;
     else if (c === 0x2212) o += '-';
+    else if (c === 0xd7) o += 'x';
     else if ((c >= 0xfe00 && c <= 0xfe0f) || (c >= 0x200b && c <= 0x200d) || c === 0xfeff) continue;
     else o += '?';
   }
@@ -5113,8 +5114,8 @@ const pdfEsc = t => Array.from(t).map(ch => { const c = PDF_SPECIAL[ch] || ch.ch
 let PDF_CTX = null;
 function pdfW(t, size, bold) { if (!PDF_CTX) PDF_CTX = document.createElement('canvas').getContext('2d'); PDF_CTX.font = (bold ? 'bold ' : '') + size + 'px Arial, Helvetica, sans-serif'; return PDF_CTX.measureText(t).width; }
 function pdfWrap(text, size, bold, firstW, restW) {
-  const lines = []; let cur = '', w = Math.max(firstW, 60);
-  const push = () => { lines.push(cur); cur = ''; w = restW; };
+  const lines = []; let cur = '', w = Math.max(firstW, 20);
+  const push = () => { lines.push(cur); cur = ''; w = Math.max(restW, 20); };
   text.split(' ').filter(x => x !== '').forEach(word => {
     const trial = cur ? cur + ' ' + word : word;
     if (pdfW(trial, size, bold) <= w) { cur = trial; return; }
@@ -5125,44 +5126,81 @@ function pdfWrap(text, size, bold, firstW, restW) {
   if (cur || !lines.length) lines.push(cur);
   return lines;
 }
-/* sections: [{ name, rows: [[label, value]] }  or  { name, items: [{ head, fields: [[label, value]] }] }] */
-function pdfMake(title, sub, sections) {
-  const W = 612, H = 792, M = 48, CW = W - 2 * M, pages = []; let ops, y;
-  const np = () => { ops = []; pages.push(ops); y = H - M; };
-  const need = h => { if (y - h < M + 10) np(); };
-  const txt = (runs, x, yy, size) => { let cx = x; runs.forEach(r => { ops.push(`BT /F${r.b ? 2 : 1} ${size} Tf ${r.g != null ? r.g : 0} g 1 0 0 1 ${cx.toFixed(2)} ${yy.toFixed(2)} Tm (${pdfEsc(r.t)}) Tj ET`); cx += pdfW(r.t, size, r.b); }); };
-  np();
-  pdfClean(title).length && (txt([{ t: pdfClean(title), b: true }], M, y - 18, 18), y -= 28);
-  if (sub) { txt([{ t: pdfClean(sub), g: 0.4 }], M, y - 10, 10); y -= 18; }
-  sections.forEach(sec => {
-    need(70); y -= 8;
-    txt([{ t: pdfClean(sec.name), b: true }], M, y - 14, 14); y -= 20;
-    ops.push(`0.75 G 0.6 w ${M} ${y + 2} m ${W - M} ${y + 2} l S`); y -= 8;
-    (sec.rows || []).forEach(r => {
-      if (r[0] === '' && r[1] === '') { y -= 8; return; }
-      need(18); const v = pdfClean(r[1]);
-      txt([{ t: pdfClean(r[0]) }], M, y - 11, 10.5); txt([{ t: v, b: true }], W - M - pdfW(v, 10.5, true), y - 11, 10.5);
-      ops.push(`0.9 G 0.4 w ${M} ${y - 4} m ${W - M} ${y - 4} l S`); y -= 18;
-    });
-    if (sec.items) {
-      if (!sec.items.length) { need(16); txt([{ t: '(nothing here)', g: 0.5 }], M, y - 11, 10); y -= 16; }
-      sec.items.forEach(it => {
-        const head = pdfWrap(pdfClean(it.head), 11, true, CW, CW); need(head.length * 14 + 26);
-        head.forEach(l => { txt([{ t: l, b: true }], M, y - 11, 11); y -= 14; }); y -= 1;
-        it.fields.forEach(f => {
-          const lbl = pdfClean(f[0]) + ': ', lw = pdfW(lbl, 9, true), val = pdfClean(f[1]).slice(0, 3000), ind = 14;
-          pdfWrap(val, 9, false, CW - ind - lw, CW - ind).forEach((l, i) => { need(12); txt(i ? [{ t: l }] : [{ t: lbl, b: true, g: 0.3 }, { t: l }], M + ind, y - 9, 9); y -= 12; });
-        });
-        y -= 8;
+function pdfAccent() {
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--p').trim(); let r, g, b, m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v);
+    if (m) { let h = m[1]; if (h.length === 3) h = h.split('').map(c => c + c).join(''); [r, g, b] = [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); }
+    else { m = /rgba?\((\d+)[ ,]+(\d+)[ ,]+(\d+)/.exec(v); if (m) [r, g, b] = [+m[1], +m[2], +m[3]]; }
+    if (r == null) return [0.27, 0.31, 0.5];
+    let c = [r, g, b].map(x => x / 255); const lum = 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]; if (lum > 0.45) c = c.map(x => x * (0.45 / lum)); return c;
+  } catch (e) { return [0.27, 0.31, 0.5]; }
+}
+/* o: { title, sub, landscape, accent, cards: [[label, value]], sections: [{ name, note, cols: [{ h, w, a }], rows: [[..]], foot: [..], kv: [[label, value, emphasis]] }] } */
+function pdfMake(o) {
+  const land = !!o.landscape, W = land ? 792 : 612, H = land ? 612 : 792, M = 36, CW = W - 2 * M, BOT = 46, AC = o.accent || pdfAccent();
+  const DARK = [0.13, 0.14, 0.17], GREY = [0.45, 0.47, 0.52], WHITE = [1, 1, 1], RED = [0.75, 0.12, 0.12];
+  const TINT = AC.map(x => 1 - (1 - x) * 0.1), ZEB = [0.965, 0.968, 0.974], RULE = [0.88, 0.89, 0.91];
+  const n3 = c => c.map(x => x.toFixed(3)).join(' '), biz = pdfClean(o.biz || ''), title = pdfClean(o.title);
+  const pages = []; let ops, y;
+  const fill = (c, x, yy, w, h) => ops.push(`${n3(c)} rg ${x.toFixed(2)} ${yy.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`);
+  const rule = (c, x1, y1, x2, wd) => ops.push(`${n3(c)} RG ${wd} w ${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y1.toFixed(2)} l S`);
+  const txt = (runs, x, yy, size) => { let cx = x; runs.forEach(r => { ops.push(`BT /F${r.b ? 2 : 1} ${size} Tf ${n3(r.c || DARK)} rg 1 0 0 1 ${cx.toFixed(2)} ${yy.toFixed(2)} Tm (${pdfEsc(r.t)}) Tj ET`); cx += pdfW(r.t, size, r.b); }); };
+  const rtxt = (t, xr, yy, size, b, c) => txt([{ t, b, c }], xr - pdfW(t, size, b), yy, size);
+  const neg = t => /^[-\u2212(]/.test(t);
+  const np = first => { ops = []; pages.push(ops); y = H - M; if (!first) { fill(AC, 0, H - 5, W, 5); y = H - M - 4; } };
+  const need = h => { if (y - h < BOT) { np(false); return true; } return false; };
+  np(true);
+  /* title band */
+  fill(AC, 0, H - 74, W, 74);
+  txt([{ t: title, b: true, c: WHITE }], M, H - 36, 21);
+  if (o.sub) txt([{ t: pdfClean(o.sub), c: [1, 1, 1] }], M, H - 56, 10);
+  if (biz) rtxt(biz, W - M, H - 36, 10, true, WHITE);
+  y = H - 74 - 22;
+  /* headline numbers */
+  if (o.cards && o.cards.length) {
+    const n = o.cards.length, gap = 10, cw = (CW - gap * (n - 1)) / n;
+    o.cards.forEach((c, i) => { const x = M + i * (cw + gap), v = pdfClean(c[1]); fill(TINT, x, y - 52, cw, 52); fill(AC, x, y - 52, 3, 52); txt([{ t: pdfClean(c[0]).toUpperCase(), b: true, c: GREY }], x + 12, y - 16, 7.5); txt([{ t: v, b: true, c: neg(v) ? RED : DARK }], x + 12, y - 40, 17); });
+    y -= 52 + 18;
+  }
+  o.sections.forEach(sec => {
+    need(sec.kv ? 90 : 96);
+    txt([{ t: pdfClean(sec.name), b: true }], M, y - 13, 13); y -= 19;
+    if (sec.note) { txt([{ t: pdfClean(sec.note), c: GREY }], M, y - 9, 8.5); y -= 14; }
+    rule(AC, M, y - 1, M + 38, 2); y -= 10;
+    if (sec.kv) {
+      sec.kv.forEach(r => {
+        if (r[0] === '' && r[1] === '') { y -= 10; return; }
+        need(24); const v = pdfClean(r[1]), em = !!r[2];
+        if (em) fill(TINT, M, y - 22, CW, 22);
+        txt([{ t: pdfClean(r[0]), b: em }], M + 8, y - 15, 10.5); rtxt(v, W - M - 8, y - 15, 10.5, true, neg(v) ? RED : DARK);
+        rule(RULE, M, y - 22, W - M, 0.5); y -= 22;
       });
+      y -= 6; return;
     }
+    const cols = sec.cols, tw = cols.reduce((a, c) => a + (c.w || 1), 0), PAD = 5, FS = 8.5, LH = 11;
+    const xs = []; let acc = 0; cols.forEach(c => { xs.push(M + acc); acc += CW * (c.w || 1) / tw; }); xs.push(M + CW);
+    const head = () => { fill(AC, M, y - 20, CW, 20); cols.forEach((c, i) => { const w = xs[i + 1] - xs[i]; c.a === 'r' ? rtxt(pdfClean(c.h), xs[i + 1] - PAD, y - 13.5, FS, true, WHITE) : txt([{ t: pdfClean(c.h), b: true, c: WHITE }], xs[i] + PAD, y - 13.5, FS); }); y -= 20; };
+    const drawRow = (r, ri, foot) => {
+      const cells = cols.map((c, i) => pdfWrap(pdfClean(r[i]).slice(0, 260), FS, !!foot, xs[i + 1] - xs[i] - 2 * PAD, xs[i + 1] - xs[i] - 2 * PAD));
+      const h = Math.max(...cells.map(l => l.length)) * LH + 8;
+      if (y - h < BOT) { np(false); head(); }
+      if (foot) { fill(TINT, M, y - h, CW, h); rule(AC, M, y, W - M, 1); } else if (ri % 2 === 0) fill(ZEB, M, y - h, CW, h);
+      cells.forEach((ls, i) => ls.forEach((l, k) => { const yy = y - 4 - 7.4 - k * LH; if (cols[i].a === 'r') rtxt(l, xs[i + 1] - PAD, yy, FS, !!foot, neg(l) ? RED : DARK); else txt([{ t: l, b: !!foot }], xs[i] + PAD, yy, FS); }));
+      if (!foot) rule(RULE, M, y - h, W - M, 0.4);
+      y -= h;
+    };
+    head();
+    if (!sec.rows.length) { need(24); txt([{ t: 'Nothing here.', c: GREY }], M + PAD, y - 15, 9.5); y -= 24; }
+    sec.rows.forEach((r, ri) => drawRow(r, ri, false));
+    if (sec.foot) drawRow(sec.foot, 0, true);
+    y -= 14;
   });
-  pages.forEach((p, i) => { ops = p; txt([{ t: pdfClean(title), g: 0.5 }], M, 26, 8); const t = 'Page ' + (i + 1) + ' of ' + pages.length; txt([{ t, g: 0.5 }], W - M - pdfW(t, 8, false), 26, 8); });
+  /* page footers */
+  pages.forEach((p, i) => { ops = p; rule(RULE, M, 34, W - M, 0.6); txt([{ t: (biz ? biz + '  |  ' : '') + title, c: GREY }], M, 22, 7.5); rtxt('Page ' + (i + 1) + ' of ' + pages.length, W - M, 22, 7.5, false, GREY); });
   let out = '%PDF-1.4\n'; const offs = [];
   const add = body => { offs.push(out.length); out += offs.length + ' 0 obj\n' + body + '\nendobj\n'; };
-  const kids = pages.map((_, i) => (6 + 2 * i) + ' 0 R').join(' ');
   add('<< /Type /Catalog /Pages 2 0 R >>');
-  add(`<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`);
+  add(`<< /Type /Pages /Kids [${pages.map((_, i) => (6 + 2 * i) + ' 0 R').join(' ')}] /Count ${pages.length} >>`);
   add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
   add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
   pages.forEach((p, i) => {
@@ -5171,16 +5209,35 @@ function pdfMake(title, sub, sections) {
     add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${5 + 2 * i} 0 R >>`);
   });
   const xr = out.length;
-  out += `xref\n0 ${offs.length + 1}\n0000000000 65535 f \n` + offs.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('') + `trailer\n<< /Size ${offs.length + 1} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF`;
+  out += `xref\n0 ${offs.length + 1}\n0000000000 65535 f \n` + offs.map(q => String(q).padStart(10, '0') + ' 00000 n \n').join('') + `trailer\n<< /Size ${offs.length + 1} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF`;
   return out;
 }
 const pdfBizName = () => state.settings.name || 'Grimms Business Tracker';
-function xpPdf(sets, scope) {
-  const ids = xpIdMap(), L = { both: 'Archived and unarchived', unarchived: 'Unarchived only', archived: 'Archived only' };
-  const secs = sets.map(k => { const rows = xpRecords(k, scope); return { name: `${XP_NAMES[k] || xpLabel(k)} (${rows.length})`, items: rows.map((r, i) => ({ head: (r.name || r.title || (r.no ? 'Order #' + r.no : '') || r.description || r.text || r.id || 'Item ' + (i + 1)) + (r.archived ? ' [archived]' : ''), fields: Object.keys(r).filter(f => f !== 'id' && f !== 'archived').map(f => [xpLabel(f), String(xpVal(r[f], ids, 0)).replace(/data:[a-z]+\/[^\s,;]+;base64,[A-Za-z0-9+\/=]+/gi, '[attached file]')]).filter(f => f[1] !== '') })) }; });
-  return pdfMake(pdfBizName() + ' export', (L[scope] || '') + ' · ' + today(), secs);
-}
 const pdfRowFmt = (label, v) => /^(Orders|Items sold)$/.test(label) ? String(v) : /^Business distance/.test(label) ? String(v) : /rate %/.test(label) ? v + '%' : money(num(v));
+const pdfEmph = l => /^(Net sales|Gross profit|Net profit|Taxable profit|Still to set aside|Set aside)/.test(l);
+const pdfDate = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? fmtDate(v) : (v || '');
+/* nice columns for the main lists; anything else gets columns picked from its own fields */
+function xpTable(k, recs) {
+  const sum = (a, f) => a.reduce((t, r) => t + num(f(r)), 0), nm = n => n + (n === 1 ? ' item' : ' items');
+  if (k === 'orders') { const live = recs.filter(o => !NOT_SALE.includes(o.status)); return { note: nm(recs.length) + '  |  ' + money(sum(live, o => oc(o).net)) + ' net sales', cols: [{ h: 'Order', w: 1 }, { h: 'Date', w: 1 }, { h: 'Customer', w: 1.5 }, { h: 'Platform', w: 1.1 }, { h: 'Status', w: 1.3 }, { h: 'Items', w: 3 }, { h: 'Net', w: 1, a: 'r' }, { h: 'Profit', w: 1, a: 'r' }], rows: recs.map(o => { const c = oc(o); return [orderNo(o), pdfDate(o.date), o.customer || '', o.channel || '', o.status || '', (o.items || []).map(i => i.qty + 'x ' + lineName(i)).join(', '), money(c.net), NOT_SALE.includes(o.status) ? '' : money(c.profit)]; }), foot: ['Total', '', '', '', '', '', money(sum(live, o => oc(o).net)), money(sum(live, o => oc(o).profit))] }; }
+  if (k === 'products') return { note: nm(recs.length) + '  |  ' + sum(recs, p => p.qty) + ' units in stock', cols: [{ h: 'SKU', w: 1 }, { h: 'Name', w: 3 }, { h: 'Category', w: 1.3 }, { h: 'In stock', w: .8, a: 'r' }, { h: 'Price', w: 1, a: 'r' }, { h: 'Cost each', w: 1, a: 'r' }, { h: 'Est. value', w: 1, a: 'r' }], rows: recs.map(p => [p.sku || '', p.name || '', p.category || '', String(num(p.qty)), money(num(p.price)), money(unitCost(p)), hasEst(p) ? money(num(p.valEst)) : '']) };
+  if (k === 'supplies') return { note: nm(recs.length), cols: [{ h: 'SKU', w: 1 }, { h: 'Name', w: 3 }, { h: 'Type', w: 1 }, { h: 'Unit', w: .8 }, { h: 'Available', w: 1, a: 'r' }, { h: 'Cost per unit', w: 1.1, a: 'r' }, { h: 'Category', w: 1.3 }], rows: recs.map(p => [p.sku || '', p.name || '', p.kind === 'component' ? 'Component' : 'Supply', p.unit || '', String(r2(avail(p))), money(num(p.cost)), p.category || '']) };
+  if (k === 'listings') return { note: nm(recs.length), cols: [{ h: 'SKU', w: 1 }, { h: 'Title', w: 3.2 }, { h: 'Platforms', w: 1.5 }, { h: 'Status', w: 1 }, { h: 'Price', w: 1, a: 'r' }, { h: 'Listed', w: 1 }, { h: 'Renews', w: 1 }], rows: recs.map(l => [l.sku || '', l.title || '', listingChans(l).join(', '), l.status || '', money(listingPrice(l)), pdfDate(l.listedDate), pdfDate(l.relistDate)]) };
+  if (k === 'expenses') { const t = sum(recs, e => e.amount); return { note: nm(recs.length) + '  |  ' + money(t) + ' total', cols: [{ h: 'Date', w: 1 }, { h: 'Description', w: 3 }, { h: 'Category', w: 1.4 }, { h: 'Vendor', w: 1.4 }, { h: 'Amount', w: 1, a: 'r' }], rows: recs.map(e => [pdfDate(e.date), e.desc || '', e.cat || '', e.vendor || '', money(num(e.amount))]), foot: ['Total', '', '', '', money(t)] }; }
+  if (k === 'income') { const t = sum(recs, e => e.amount); return { note: nm(recs.length) + '  |  ' + money(t) + ' total', cols: [{ h: 'Date', w: 1 }, { h: 'Source', w: 4 }, { h: 'Amount', w: 1, a: 'r' }], rows: recs.map(e => [pdfDate(e.date), e.desc || '', money(num(e.amount))]), foot: ['Total', '', money(t)] }; }
+  /* generic: pick the best filled-in simple fields */
+  const ids = xpIdMap(), keys = [...new Set(recs.flatMap(r => Object.keys(r)))].filter(f => f !== 'id' && f !== 'archived');
+  const info = keys.map((f, i) => { const vals = recs.map(r => r[f]).filter(v => v !== '' && v != null), simple = vals.filter(v => ['string', 'number', 'boolean'].includes(typeof v)); const len = simple.length ? simple.reduce((a, v) => a + String(v).length, 0) / simple.length : 0; return { f, i, fill: recs.length ? simple.length / recs.length : 0, len, ok: simple.length > 0 && simple.length === vals.length && !simple.every(v => /^data:/.test(String(v))), numeric: simple.length > 0 && simple.every(v => typeof v === 'number' || /^-?\d+(\.\d+)?$/.test(String(v))) }; }).filter(x => x.ok && x.fill >= 0.25);
+  const shortF = info.filter(x => x.len <= 60).sort((a, b) => b.fill - a.fill || a.i - b.i).slice(0, 6).sort((a, b) => a.i - b.i), longF = info.filter(x => x.len > 60).sort((a, b) => b.len - a.len)[0];
+  const use = shortF.concat(longF ? [longF] : []), money_ = f => /(price|cost|amount|total|fee|balance|spent|paid|value|salary|rate)$/i.test(f);
+  const cell = (r, x) => { const v = r[x.f]; if (v === '' || v == null) return ''; if (x.numeric && money_(x.f)) return money(num(v)); return pdfDate(String(xpVal(v, ids, 0))); };
+  return { note: nm(recs.length), cols: use.map(x => ({ h: xpLabel(x.f), w: x === longF ? 3 : x.numeric ? 0.9 : Math.min(2.4, Math.max(1, x.len / 11)), a: x.numeric ? 'r' : 'l' })), rows: recs.map(r => use.map(x => cell(r, x))) };
+}
+function xpPdf(sets, scope) {
+  const L = { both: 'Archived and unarchived', unarchived: 'Unarchived only', archived: 'Archived only' };
+  const secs = sets.map(k => { const t = xpTable(k, xpRecords(k, scope)); return { name: XP_NAMES[k] || xpLabel(k), note: t.note, cols: t.cols, rows: t.rows, foot: t.foot }; });
+  return pdfMake({ title: (sets.length === 1 ? XP_NAMES[sets[0]] || xpLabel(sets[0]) : 'Export'), biz: pdfBizName(), sub: (L[scope] || '') + '  |  ' + fmtDate(today()), landscape: true, sections: secs });
+}
 function xpOpen() {
   const v = ui.sub || ui.tab, sets = xpSets(v); if (!sets.length) return;
   const cur = ((ui.seg && ui.seg[v]) || '');
