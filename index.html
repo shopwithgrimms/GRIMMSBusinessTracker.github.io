@@ -8284,6 +8284,44 @@ button.ts-item:hover{border-color:color-mix(in srgb,var(--p) 50%,var(--line));bo
 .ts-morebtn,.ts-morebtn:hover{}
 .ts-morebtn{display:block;margin:6px auto 0;background:none;border:0;color:var(--sub);font:inherit;font-size:12px;font-weight:600;padding:4px 14px;cursor:pointer}
 #ts-bar .ts-links{margin-top:2px;gap:14px;padding-top:8px}
+
+/* ===== WORK MODE: compact floating panel, full titles, tasks get the room ===== */
+#ts-bar{max-height:82%;padding:10px 14px 6px 16px}
+#ts-bar .ts-ttl{display:block;font-size:15px;line-height:1.25;margin-top:3px;white-space:normal;overflow:visible;word-break:break-word}
+#ts-bar .ts-ttl.sm{font-size:14px;margin-top:1px}
+#ts-bar .ts-big{font-size:26px;margin-top:2px}
+#ts-bar .ts-prog{margin-top:6px}
+#ts-bar .ts-meta{margin-top:3px}
+#ts-bar .tsb{flex:1 1 auto;min-height:60px}
+#ts-bar .tsb>div{margin-top:8px!important}
+#ts-bar .ts-task{padding:7px 10px;margin-bottom:4px;align-items:flex-start;gap:10px}
+#ts-bar .ts-task .wm-cb{margin-top:1px}
+#ts-bar .ts-task .tt{white-space:normal;overflow:visible;word-break:break-word}
+#ts-bar .ts-tka{margin:-1px 0 5px 4px}
+#ts-bar .ts-itembtn{margin-top:8px;padding:7px 10px;border-radius:12px;flex:none}
+#ts-bar .ts-act{margin-top:8px;flex:none}
+#ts-bar .ts-act .btn{padding-top:9px;padding-bottom:9px}
+#ts-bar .ts-morebtn{margin:2px auto 0;padding:2px 14px;flex:none}
+#ts-bar .ts-links{flex:none}
+#ts-bar .ts-note{margin-top:8px;flex:none}
+/* schedule lists: show whole titles */
+.ts-main .trunc,.ts-item .trunc,.ts-itembtn .ts-ib-t .trunc{white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word}
+.ts-item{align-items:flex-start}
+
+/* ===== OFF DAYS ===== */
+.ts-offbox{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:18px 14px;border:1px dashed var(--line);border-radius:14px;color:var(--sub);background:color-mix(in srgb,var(--sub) 6%,transparent)}
+.ts-offbox b{color:var(--text);font-size:15px}
+.ts-offbox span{font-size:12.5px}
+.ts-offbox.sm{flex-direction:row;gap:10px;padding:9px 12px;text-align:left}
+.ts-offbox.sm span{flex:1;font-size:12.5px}
+.ts-chead button.off b{text-decoration:line-through;opacity:.55}
+
+/* ===== work panel never takes over the page, however many steps ===== */
+#ts-bar{max-height:52%}
+#ts-bar .tsb{flex:0 1 auto;max-height:min(26vh,190px);min-height:0;overscroll-behavior:contain}
+#ts-bar .ts-dnt{display:block;margin:2px 0 0 2px;font-size:11.5px;font-weight:700;color:var(--sub)}
+
+.ts-notebtn{display:inline-flex;align-items:center;gap:5px;align-self:flex-start;margin-top:6px;padding:2px 0;background:none;border:0;color:var(--sub);font:inherit;font-size:12px;font-weight:700;cursor:pointer;flex:none}
 /* ===== WORK WAITING ROOM: a cosy rainy-night office with a countdown, shown when a work block is about to start ===== */
 #wwr{--wa:color-mix(in srgb,var(--p) 18%,#170f24);--wb:color-mix(in srgb,var(--p) 32%,#241532);--wood1:color-mix(in srgb,var(--p) 14%,#7a5442);--wood2:color-mix(in srgb,var(--p) 10%,#3d2a2a);--wglow:color-mix(in srgb,var(--p) 55%,#fff);--hood1:color-mix(in srgb,var(--p) 52%,#2c2144);--hood2:color-mix(in srgb,var(--p) 40%,#1a1230);--hood3:color-mix(in srgb,var(--p) 60%,#35294f);--wp:color-mix(in srgb,var(--p) 80%,#ff9fd0);--wtxt:#f6ead9;position:absolute;inset:0;z-index:80;overflow:hidden;color:var(--wtxt);font-family:inherit;background:#120b1c;animation:wwrin .9s ease}
 @keyframes wwrin{from{opacity:0}to{opacity:1}}
@@ -8355,7 +8393,7 @@ function T() {
   if (t.sound === undefined) t.sound = true; if (t.notify === undefined) t.notify = true; if (t.remind === undefined) t.remind = 5;
   if (!['ask', 'auto', 'off'].includes(t.adjust)) t.adjust = 'ask'; if (!Array.isArray(t.cats)) t.cats = ['Photography', 'Listing', 'Packing', 'Shipping', 'Sourcing']; if (!t.dayItems || typeof t.dayItems !== 'object') t.dayItems = {}; if (!t.blockItems || typeof t.blockItems !== 'object') t.blockItems = {}; if (!t.linkMig) { t.linkMig = true; t.blocks.forEach(b => { if (b.link) b.link = ''; }); } if (t.day === undefined) t.day = null; if (t.collapsed === undefined) t.collapsed = false;
   if (!t.fold || typeof t.fold !== 'object') t.fold = {}; if (t.calView !== 'list' && t.calView !== 'day' && t.calView !== 'week') t.calView = 'day';
-  if (!t.notified || typeof t.notified !== 'object') t.notified = { date: '', k: [] };
+  if (!t.notified || typeof t.notified !== 'object') t.notified = { date: '', k: [] }; if (!t.offDays || typeof t.offDays !== 'object') t.offDays = {};
   return t;
 }
 const save = () => { try { G.save(); } catch (e) { } };
@@ -8372,7 +8410,8 @@ function occurs(b, date) {
   if (!(b.days || []).includes(dparse(date).getDay())) return false;
   return weeksBetween(b.anchor, date) % n === 0;
 }
-const schedFor = date => T().blocks.filter(b => occurs(b, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
+const isOffDay = date => !!T().offDays[date];
+const schedFor = date => isOffDay(date) ? [] : T().blocks.filter(b => occurs(b, date)).sort((a, b) => toMin(a.start) - toMin(b.start));
 const ord = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) ? 0 : Math.min(n % 10, 4) % 4] || 'th');
 function repSum(b) {
   if (b.rep === 'once') return 'Once · ' + dLab(b.anchor);
@@ -8413,7 +8452,7 @@ const breakMs = (run, now) => run.entries.filter(e => e.kind === 'break').reduce
 const SHIPPABLE = ['Order Received', 'In Preparation', 'Packaged'];
 const hhmm = m => String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
 function realWork(date) {
-  const S = G.state, out = [];
+  const S = G.state, out = []; if (isOffDay(date)) return out;
   (S.tasks || []).forEach(t => { if (!t.done && t.due && t.due <= date) out.push({ key: 'task:' + t.id, title: t.title, kind: 'work', tag: t.due < date ? 'Task · overdue' : 'Task', prio: t.priority || '' }); });
   (S.events || []).forEach(ev => { if (ev.date !== date) return; const st = ev.time ? toMin(ev.time) : null, du = +ev.dur || +ev.mt || 60;
     out.push({ key: 'event:' + ev.id, title: ev.title, kind: /meeting/i.test(ev.kind || '') ? 'meeting' : 'work', start: ev.time ? ev.time : '', end: st != null ? hhmm(Math.min(st + du, 1439)) : '', tag: 'Calendar' + (ev.kind ? ' · ' + ev.kind : ''), notes: ev.notes || '' }); });
@@ -9052,18 +9091,18 @@ function barHtml(run) {
   const t = T(), now = Date.now(), es = run.entries, si = shownIdx(run), e = si >= 0 ? es[si] : null, ni = nextPending(run, false), nx = ni >= 0 ? es[ni] : null;
   const next = `<div class="ts-next">${nx ? 'Next · <b>' + esc(nx.title) + '</b>' + (nx.pStart ? ' at ' + tLab(nx.pStart) : '') : 'Nothing else scheduled today'}</div>`;
   const kLab = x => x.status === 'paused' ? 'Paused' : x.kind === 'break' ? 'On break' : x.kind === 'meeting' ? 'In meeting' : 'In progress';
-  if (t.collapsed) return `<div class="row" style="gap:10px"><div class="grow" style="min-width:0"><div class="ts-stat"><i class="ts-dot ${e && e.status === 'active' ? 'live' : ''}"></i>${e ? kLab(e) : 'Day running'}</div><b class="trunc" style="display:block;font-size:14px;margin-top:2px">${e ? esc(e.title) : 'No block running'}</b></div>${e ? `<b class="ts-mini" data-tsel="cur">${curTxt(e, now)}</b>` : ''}${dayKeys(run.date).length ? `<button class="btn btn-soft btn-sm ts-btn" data-ts="ref-open" data-d="${run.date}">Items ${dayKeys(run.date).length}</button>` : ''}${e && e.status === 'active' ? `<button class="btn btn-primary btn-sm ts-btn" data-ts="finish">${I('check', 14)}Finish</button>` : e ? `<button class="btn btn-primary btn-sm ts-btn" data-ts="resume">${I('play', 12)}Resume</button>` : nx ? `<button class="btn btn-primary btn-sm ts-btn" data-ts="start-next">${I('play', 12)}Start</button>` : ''}<button class="icon-btn" data-ts="collapse" aria-label="Expand">${I('chevU', 16)}</button></div>`;
+  if (t.collapsed) return `<div class="row" style="gap:10px"><div class="grow" style="min-width:0"><div class="ts-stat"><i class="ts-dot ${e && e.status === 'active' ? 'live' : ''}"></i>${e ? kLab(e) : 'Day running'}</div><b class="ts-ttl sm">${e ? esc(e.title) : 'No block running'}</b></div>${e ? `<b class="ts-mini" data-tsel="cur">${curTxt(e, now)}</b>` : ''}${dayKeys(run.date).length ? `<button class="btn btn-soft btn-sm ts-btn" data-ts="ref-open" data-d="${run.date}">Items ${dayKeys(run.date).length}</button>` : ''}${e && e.status === 'active' ? `<button class="btn btn-primary btn-sm ts-btn" data-ts="finish">${I('check', 14)}Finish</button>` : e ? `<button class="btn btn-primary btn-sm ts-btn" data-ts="resume">${I('play', 12)}Resume</button>` : nx ? `<button class="btn btn-primary btn-sm ts-btn" data-ts="start-next">${I('play', 12)}Start</button>` : ''}<button class="icon-btn" data-ts="collapse" aria-label="Expand">${I('chevU', 16)}</button></div>`;
   let top;
   if (e) {
     const isB = e.kind === 'break', tk = e.tasks || [], dn = tk.filter(x => x.done).length, pm = e.free ? 0 : wmbPlanned(e) ? wmbDur(e) : e.pStart && e.pEnd ? (toMin(e.pEnd) - toMin(e.pStart)) * 60000 + (e.extraMs || 0) : 0;
-    const tasks = tk.map((x, i) => `<label class="ts-task ${x.done ? 'done' : ''}"><span class="wm-cb"><input type="checkbox" data-tsf="task" data-i="${i}" ${x.done ? 'checked' : ''}><i>${I('check', 13)}</i></span><span class="tt">${esc(x.t)}</span></label>${(() => { const bk = blkKeyOf(e), ks = tkItems(run.date, bk, i); return `<div class="ts-tka">${ks.map(k => `<span class="ts-tkc">${esc(itemInfo(k).sku ? itemInfo(k).sku + ' · ' : '')}${esc(itemInfo(k).name)}<button type="button" data-ts="tk-rm" data-d="${run.date}" data-k="${esc(bk)}" data-i="${i}" data-x="${esc(k)}" aria-label="Remove">×</button></span>`).join('')}<button type="button" class="link" data-ts="pk-open" data-d="${run.date}" data-k="${esc(bk)}" data-i="${i}">${I('plus', 12)}${ks.length ? 'Add more' : 'Attach items'}</button></div>`; })()}`).join('');
+    const tasks = tk.map((x, i) => (x.done && !t.showDone) ? '' : `<label class="ts-task ${x.done ? 'done' : ''}"><span class="wm-cb"><input type="checkbox" data-tsf="task" data-i="${i}" ${x.done ? 'checked' : ''}><i>${I('check', 13)}</i></span><span class="tt">${esc(x.t)}</span></label>${(() => { const bk = blkKeyOf(e), ks = tkItems(run.date, bk, i); return `<div class="ts-tka">${ks.map(k => `<span class="ts-tkc">${esc(itemInfo(k).sku ? itemInfo(k).sku + ' · ' : '')}${esc(itemInfo(k).name)}<button type="button" data-ts="tk-rm" data-d="${run.date}" data-k="${esc(bk)}" data-i="${i}" data-x="${esc(k)}" aria-label="Remove">×</button></span>`).join('')}<button type="button" class="link" data-ts="pk-open" data-d="${run.date}" data-k="${esc(bk)}" data-i="${i}">${I('plus', 12)}${ks.length ? 'Add more' : 'Attach items'}</button></div>`; })()}`).join('');
     top = `<div class="row between" style="gap:8px"><div class="ts-stat"><i class="ts-dot ${e.status === 'active' ? 'live' : ''}"></i>${kLab(e)}</div><button class="icon-btn" style="width:30px;height:30px" data-ts="collapse" aria-label="Collapse">${I('chevD', 16)}</button></div>
-      <b class="trunc" style="display:block;font-size:15px;margin-top:4px">${esc(e.title)}</b>
+      <b class="ts-ttl">${esc(e.title)}</b>
       <div class="ts-big" data-tsel="cur">${curTxt(e, now)}</div>
       ${pm ? `<div class="ts-prog"><i data-tsel="pct" style="width:${Math.min(100, el(e, now) / pm * 100)}%"></i></div>` : ''}
       <div class="ts-meta"><span>${e.kind === 'break' && !wmbPlanned(e) ? 'Break' : wmbPlanned(e) ? 'Break · <b data-tsel="left"></b>' : e.free ? 'No time limit' : e.pStart ? tLab(e.pStart) + ' – ' + tLab(effEnd(e)) + ' · <b data-tsel="left"></b>' : 'Unscheduled'}</span><span>Day <b data-tsel="day"></b></span></div>
-      <div class="tsb">${tk.length ? `<div style="margin-top:12px">${tasks}</div>` : ''}${isB || !t.barMore ? '' : `<div class="ts-addstep" style="margin-top:10px"><input class="input sm" data-tsin placeholder="Add a step" maxlength="100"><button class="btn btn-soft btn-sm ts-btn" data-ts="task-add" aria-label="Add step">${I('plus', 14)}</button></div>`}</div>
-      ${isB ? '' : `<div class="ts-note"><label class="xs sub" for="tsn-${e.id}">Notes for this step${e.notes ? '' : ' (optional)'}</label><textarea id="tsn-${e.id}" class="textarea" rows="2" data-tsnote="${e.id}" maxlength="2000" placeholder="Jot anything about this time block…">${esc(e.notes || '')}</textarea></div>`}
+      <div class="tsb">${tk.length ? `<div style="margin-top:12px">${tasks}${dn ? `<button type="button" class="link ts-dnt" data-ts="done-toggle">${t.showDone ? 'Hide' : 'Show'} ${dn} done</button>` : ''}</div>` : ''}${isB || !t.barMore ? '' : `<div class="ts-addstep" style="margin-top:10px"><input class="input sm" data-tsin placeholder="Add a step" maxlength="100"><button class="btn btn-soft btn-sm ts-btn" data-ts="task-add" aria-label="Add step">${I('plus', 14)}</button></div>`}</div>
+      ${isB ? '' : `<button type="button" class="ts-notebtn" data-ts="note-open">${I('edit', 13)}${e.notes ? 'Notes · added' : 'Add a note'}</button>`}
       ${barItems(run, e)}<div class="ts-act">${e.status === 'active' ? `<button class="btn btn-primary grow ts-btn" data-ts="finish">${I('check', 16)}${isB ? 'End break' : 'Finish &amp; next'}</button><button class="btn btn-line ts-btn" data-ts="pause">${I('pause', 15)}Pause</button>${isB ? '' : `<button class="btn btn-line ts-btn" data-ts="break">${I('cup', 15)}Break</button>`}` : `<button class="btn btn-primary grow ts-btn" data-ts="resume">${I('play', 14)}Resume</button><button class="btn btn-line ts-btn" data-ts="finish">${I('check', 15)}Finish</button>`}</div>`;
   } else {
     top = `<div class="row between"><div class="ts-stat"><i class="ts-dot live"></i>Day running</div><button class="icon-btn" style="width:30px;height:30px" data-ts="collapse" aria-label="Collapse">${I('chevD', 16)}</button></div><b style="display:block;font-size:15px;margin-top:4px">${nx ? 'No block running' : 'All blocks complete'}</b><div class="ts-meta"><span>${nx ? 'Choose what to work on next' : 'Add another block or end your day'}</span><span>Day <b data-tsel="day"></b></span></div>${next}${barItems(run, null)}<div class="ts-act">${nx ? `<button class="btn btn-primary grow ts-btn" data-ts="start-next">${I('play', 14)}Start ${esc(nx.title.length > 16 ? nx.title.slice(0, 15) + '…' : nx.title)}</button>` : ''}<button class="btn btn-line ts-btn ${nx ? '' : 'grow'}" data-ts="adhoc">Other task</button></div>`;
@@ -9075,7 +9114,7 @@ function paintBar(force) {
   const t = T(), run = running(), vis = !!run && !!$('#screen-app.on'); let bar = $('#ts-bar');
   if (!vis) { if (bar) bar.remove(); barSig = ''; setPad(0); return; }
   if (!bar) { bar = document.createElement('div'); bar.id = 'ts-bar'; $('#frame').appendChild(bar); barSig = ''; }
-  const sig = JSON.stringify([t.collapsed, t.barMore, t.sound, dayKeys(run.date), (t.blockItems || {})[run.date] || {}, (t.taskItems || {})[run.date] || {}, run.entries.map(e => [e.id, e.status, e.title, (e.tasks || []).map(x => (x.done ? 1 : 0) + x.t).join('|')])]);
+  const sig = JSON.stringify([t.collapsed, t.barMore, t.showDone, t.sound, dayKeys(run.date), (t.blockItems || {})[run.date] || {}, (t.taskItems || {})[run.date] || {}, run.entries.map(e => [e.id, e.status, e.title, e.notes ? 1 : 0, (e.tasks || []).map(x => (x.done ? 1 : 0) + x.t).join('|')])]);
   if (sig !== barSig || force) { barSig = sig; bar.innerHTML = barHtml(run); }
   const si = shownIdx(run), e = si >= 0 ? run.entries[si] : null; bar.classList.toggle('brk', !!e && (e.kind === 'break' || e.status === 'paused'));
 }
@@ -9327,6 +9366,13 @@ function statsHtml(run, now, live) {
   return `<div class="ts-stats"><div><b ${live ? 'data-tsel="day"' : ''}>${fhm(workedMs(run, now))}</b><span>Worked</span></div><div><b>${run.entries.filter(e => e.status === 'done').length}/${run.entries.length}</b><span>Blocks done</span></div><div><b>${fhm(breakMs(run, now))}</b><span>Breaks</span></div></div>`;
 }
 function todayCard() {
+  const t = T(), date = today(), run = t.runs[date], live = running();
+  if (!live && !run && isOffDay(date)) return `<div class="card stack-sm"><div class="ts-head"><div><span class="eyebrow">Today</span><h3>${dLab(date)}</h3></div>${pill('Off day')}</div><div class="ts-offbox">${I('moon', 22)}<b>Day off</b><span>Your plan is cleared for today. No reminders, no shift.</span></div><button class="btn btn-primary block ts-btn" data-ts="off-toggle" data-d="${date}">Make it a work day</button></div>`;
+  let h = todayCardBase();
+  if (!live && !run && h.endsWith('</button></div>')) h = h.slice(0, -6) + `<button class="btn btn-line btn-sm block" data-ts="off-toggle" data-d="${date}">${I('moon', 14)}Make today an off day</button></div>`;
+  return h;
+}
+function todayCardBase() {
   const t = T(), date = today(), run = t.runs[date], now = Date.now(), live = running();
   if (live && live.date !== date) return `<div class="card"><p class="sm-t">A day from <b>${dLab(live.date)}</b> is still running.</p><div class="row" style="gap:8px;margin-top:12px"><button class="btn btn-primary btn-sm grow" data-ts="startday">End it &amp; start today</button><button class="btn btn-line btn-sm" data-ts="endday">End it</button></div></div>`;
   if (live) {
@@ -9384,6 +9430,9 @@ function calGrid(cols, headHtml, today_) {
   const nl = today_ ? `<div class="ts-nowline" style="top:${nowMin() / 60 * HH}px"></div>` : '';
   return `<div class="ts-cal">${headHtml}<div class="ts-cs" id="ts-cs"><div class="ts-cg" style="height:${24 * HH}px">${hrs}<div class="ts-area">${vls}${slots}${blocks}</div>${nl}</div></div></div>`;
 }
+const canOff = d => { const r = T().runs[d]; return !r && !(running() && running().date === d); };
+const offBtn = d => isOffDay(d) ? `<div class="ts-offbox sm">${I('moon', 16)}<span><b>Off day</b> · nothing planned</span><button class="btn btn-soft btn-sm" data-ts="off-toggle" data-d="${d}">Work day</button></div>` : canOff(d) ? `<button class="btn btn-line btn-sm block" data-ts="off-toggle" data-d="${d}">${I('moon', 14)}Make this an off day</button>` : '';
+const offTog = d => isOffDay(d) ? `<button class="ts-add" style="color:var(--sub)" data-ts="off-toggle" data-d="${d}">${I('moon', 13)}Off · undo</button>` : canOff(d) ? `<button class="ts-add" style="color:var(--sub)" data-ts="off-toggle" data-d="${d}">${I('moon', 13)}Off day</button>` : '';
 function dayCal(date) {
   const plan = planItems(date), act = actualItems(date), both = act.length > 0;
   const lanes = both ? [{ items: plan, x: 0, w: 55 }, { items: act, x: 57, w: 43 }] : [{ items: plan, x: 0, w: 100 }];
@@ -9391,7 +9440,7 @@ function dayCal(date) {
   return calGrid([{ date, lanes }], head, date === today());
 }
 function weekCal(days, td) {
-  const head = `<div class="ts-chead">${days.map(d => { const dt = dparse(d); return `<button class="${d === td ? 'tod' : ''}" data-ts="calpick" data-d="${d}">${dt.toLocaleDateString(undefined, { weekday: 'narrow' })}<br><b>${dt.getDate()}</b></button>`; }).join('')}</div>`;
+  const head = `<div class="ts-chead">${days.map(d => { const dt = dparse(d); return `<button class="${d === td ? 'tod' : ''}${isOffDay(d) ? ' off' : ''}" data-ts="calpick" data-d="${d}">${dt.toLocaleDateString(undefined, { weekday: 'narrow' })}<br><b>${dt.getDate()}</b></button>`; }).join('')}</div>`;
   return calGrid(days.map(d => ({ date: d, lanes: [{ items: planItems(d), x: 0, w: 100 }] })), head, days.includes(td));
 }
 function weekCard() {
@@ -9401,12 +9450,12 @@ function weekCard() {
   const seg = `<div class="ts-vs">${[['day', 'Day'], ['week', 'Week'], ['list', 'List']].map(x => `<button class="${v === x[0] ? 'on' : ''}" data-ts="calview" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>`;
   const head = `<div class="ts-head"><div><span class="eyebrow">Schedule</span><h3>Work schedule</h3></div><button class="btn btn-primary btn-sm ts-btn" data-ts="blk-new" data-date="${v === 'day' ? calDate : ''}">${I('plus', 14)}Time block</button></div>${seg}`;
   if (v === 'day') {
-    return `<div class="card stack-sm">${head}<div class="ts-wk"><button class="icon-btn" data-ts="cald" data-d="-1" aria-label="Previous day">${I('chevL', 16)}</button><b>${calDate === td ? 'Today · ' : ''}${dLab(calDate)}</b><button class="icon-btn" data-ts="cald" data-d="1" aria-label="Next day">${I('chevR', 16)}</button></div>${calDate !== td ? `<button class="btn btn-line btn-sm block" data-ts="caltoday">Jump to today</button>` : ''}${dayCal(calDate)}<p class="hint">Tap an empty hour to add a block. The red line is now. Tracked time appears beside the plan once you start your day.</p></div>`;
+    return `<div class="card stack-sm">${head}<div class="ts-wk"><button class="icon-btn" data-ts="cald" data-d="-1" aria-label="Previous day">${I('chevL', 16)}</button><b>${calDate === td ? 'Today · ' : ''}${dLab(calDate)}</b><button class="icon-btn" data-ts="cald" data-d="1" aria-label="Next day">${I('chevR', 16)}</button></div>${calDate !== td ? `<button class="btn btn-line btn-sm block" data-ts="caltoday">Jump to today</button>` : ''}${offBtn(calDate)}${dayCal(calDate)}<p class="hint">Tap an empty hour to add a block. The red line is now. Tracked time appears beside the plan once you start your day.</p></div>`;
   }
   const wkNav = `<div class="ts-wk"><button class="icon-btn" data-ts="wk" data-d="-1" aria-label="Previous week">${I('chevL', 16)}</button><b>${weekOff === 0 ? 'This week · ' : ''}${dLab(s)} – ${dLab(days[6])}</b><button class="icon-btn" data-ts="wk" data-d="1" aria-label="Next week">${I('chevR', 16)}</button></div>`;
   if (v === 'week') return `<div class="card stack-sm">${head}${wkNav}${weekCal(days, td)}<p class="hint">Tap a day’s date to open it. Tap an empty hour to add a block.</p></div>`;
   return `<div class="card stack-sm">${head}${wkNav}
-    <div>${days.map(d => { const bs = schedFor(d); return `<div class="ts-dayh" style="${d === days[0] ? 'margin-top:4px' : ''}"><b class="${d === td ? 'tod' : ''}">${dLab(d)}${d === td ? ' · Today' : ''}</b><button class="ts-add" data-ts="blk-new" data-date="${d}">${I('plus', 13)}Add</button></div>${bs.length ? `<div class="ts-list">${bs.map(b => `<button class="ts-item k-${b.kind}" data-ts="blk" data-id="${b.id}"><div class="ts-time"><b>${tLab(b.start)}</b><span>${tLab(b.end)}</span></div><div class="ts-main"><b class="trunc">${esc(b.title)}</b><span class="trunc">${KINDS.find(k => k[0] === b.kind)[1]} · ${esc(repSum(b))}${(b.tasks || []).length ? ' · ' + b.tasks.length + ' steps' : ''}</span></div>${I('chevR', 16)}</button>`).join('')}</div>` : '<p class="ts-empty">Nothing scheduled</p>'}`; }).join('')}</div>
+    <div>${days.map(d => { const bs = schedFor(d); return `<div class="ts-dayh" style="${d === days[0] ? 'margin-top:4px' : ''}"><b class="${d === td ? 'tod' : ''}">${dLab(d)}${d === td ? ' · Today' : ''}</b><span style="display:flex;gap:12px;align-items:center">${offTog(d)}<button class="ts-add" data-ts="blk-new" data-date="${d}">${I('plus', 13)}Add</button></span></div>${bs.length ? `<div class="ts-list">${bs.map(b => `<button class="ts-item k-${b.kind}" data-ts="blk" data-id="${b.id}"><div class="ts-time"><b>${tLab(b.start)}</b><span>${tLab(b.end)}</span></div><div class="ts-main"><b class="trunc">${esc(b.title)}</b><span class="trunc">${KINDS.find(k => k[0] === b.kind)[1]} · ${esc(repSum(b))}${(b.tasks || []).length ? ' · ' + b.tasks.length + ' steps' : ''}</span></div>${I('chevR', 16)}</button>`).join('')}</div>` : (isOffDay(d) ? '<p class="ts-empty">Off day</p>' : '<p class="ts-empty">Nothing scheduled</p>')}`; }).join('')}</div>
     <p class="hint">Different things on different weeks? Make a block “Every 2 weeks” starting this week, then another that starts next week. Use the arrows above to check both.</p></div>`;
 }
 function histCard() {
@@ -9786,6 +9835,9 @@ function wmTick(run, now) {
   if (tk % 15 === 0) { const h = $('#wm-live'); if (h && !h.contains(document.activeElement)) h.innerHTML = wmStats(); }
 }
 Object.assign(H, {
+  'note-open': () => { const run = running(), si = run ? shownIdx(run) : -1, e = si >= 0 ? run.entries[si] : null; if (!e) return; modal('Notes for this step', `<textarea id="tsn-${e.id}" class="textarea" rows="6" data-tsnote="${e.id}" maxlength="2000" placeholder="Jot anything about this time block…">${esc(e.notes || '')}</textarea>`, `<button class="btn btn-primary block" data-ts="mclose">Done</button>`, esc(e.title)); setTimeout(() => { const x = $('#tsn-' + e.id); if (x) x.focus(); }, 50); },
+  'done-toggle': () => { const t = T(); t.showDone = !t.showDone; save(); paintBar(true); },
+  'off-toggle': el => { const d = el.dataset.d, t = T(); if (!d) return; if (t.offDays[d]) { delete t.offDays[d]; toast('Back to a work day'); } else { if (!canOff(d)) return toast('This day already has a shift'); t.offDays[d] = true; toast('Marked as an off day'); } save(); commit(); },
   'wm-brief': wmBrief, 'wm-go': wmGo, 'wm-end': el => wmEnd(el.dataset.d),
   endday: () => { const run = running(); if (run) wmWrap(run.date); },
   'wm-q': el => { closeModal(); try { const k = el.dataset.k, O = G.OPEN; if (k === 'order') O.order(''); else if (k === 'expense') O.expense(''); else if (k === 'task') O.task(''); else if (k === 'note') O.note(''); } catch (e) { toast('Could not open that'); } }
