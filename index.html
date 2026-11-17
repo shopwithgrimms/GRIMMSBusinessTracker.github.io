@@ -12955,5 +12955,58 @@ inject(); setTimeout(tick, 1500);
 })();
 </script>
 
+
+<!-- INSTALL-THE-APP ADD-ON: More > Install the app (steps for your device + one-tap button where supported) -->
+<script>
+(() => {
+'use strict';
+const G = window.GBT; if (!G || !G.V || !G.ic) return;
+const $ = (s, r = document) => r.querySelector(s);
+const ic = G.ic;
+let deferred = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; refresh(); });
+window.addEventListener('appinstalled', () => { deferred = null; refresh(); });
+const standalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const ua = navigator.userAgent || '';
+const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const android = /Android/.test(ua);
+const edge = /Edg\//.test(ua), firefox = /Firefox|FxiOS/.test(ua), safari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(ua);
+const secure = location.protocol === 'https:' || location.hostname === 'localhost';
+const dev = ios ? 'iPhone / iPad' : android ? 'Android phone' : 'Computer';
+const STEPS = {
+  ios: ['Open this page in <b>Safari</b> (it will not work from Chrome or inside another app).', 'Tap the <b>Share</b> button (square with an arrow pointing up) at the bottom or top of Safari.', 'Scroll down and tap <b>Add to Home Screen</b>.', 'Tap <b>Add</b>. The app icon now sits on your home screen.', 'Open it from the icon. Turn on reminders there so notifications can work.'],
+  android: ['Open this page in <b>Chrome</b>.', 'Tap the <b>⋮</b> menu (top right).', 'Tap <b>Install app</b> (or <b>Add to Home screen</b>), then <b>Install</b>.', 'Open it from your home screen or app drawer.'],
+  desktop: ['Open this page in <b>Chrome</b> or <b>Edge</b>.', 'Look at the right end of the address bar for an <b>install icon</b> (a small screen with a down arrow), or open the <b>⋮</b> menu and choose <b>Install Grimms Business Tracker</b>.', 'Click <b>Install</b>. It opens in its own window and shows up in your Start menu or Applications.', 'Safari on a Mac: choose <b>File › Add to Dock</b>. Firefox does not support installing web apps.']
+};
+const list = a => `<ol class="rm-note" style="margin:8px 0 0;padding-left:20px;line-height:1.7;font-size:13px;color:var(--text)">${a.map(x => `<li>${x}</li>`).join('')}</ol>`;
+function html() {
+  const mine = ios ? 'ios' : android ? 'android' : 'desktop';
+  const others = ['ios', 'android', 'desktop'].filter(k => k !== mine), nm = { ios: 'iPhone / iPad', android: 'Android phone', desktop: 'Computer' };
+  return `${standalone() ? `<div class="card sm"><b style="color:var(--ok)">You are already using the installed app.</b></div>` : ''}
+  <div class="card"><h4 class="eyebrow" style="margin-bottom:6px">Install on this device · ${dev}</h4>
+    <p class="hint" style="margin:0 0 6px">Gives you an app icon, full screen with no browser bar, and use without internet. Your data stays on this device.</p>
+    ${deferred && !standalone() ? `<button class="btn btn-primary block" data-inst="go" style="margin:8px 0">${ic('download')} Install now</button>` : ''}
+    ${!secure ? `<p class="hint" style="color:var(--bad)">Installing only works on a secure (https) address, such as your GitHub Pages link.</p>` : ''}
+    ${firefox && !ios && !android ? `<p class="hint" style="color:var(--warn)">Firefox on computers cannot install web apps. Use Chrome or Edge.</p>` : ''}
+    ${ios && !safari ? `<p class="hint" style="color:var(--warn)">On iPhone you need to open this page in Safari to install.</p>` : ''}
+    ${list(STEPS[mine])}</div>
+  <div class="card"><h4 class="eyebrow">Other devices</h4>${others.map(k => `<details style="margin-top:8px"><summary class="b" style="cursor:pointer;font-size:13px">${nm[k]}</summary>${list(STEPS[k])}</details>`).join('')}</div>
+  <div class="card"><h4 class="eyebrow" style="margin-bottom:6px">Before you switch</h4><p class="hint" style="margin:0">The installed app keeps its own separate copy of your data. Open More › Settings › Your data &amp; backups, download a backup (or copy your data as text), then restore it inside the installed app.</p></div>`;
+}
+function refresh() { const h = $('#inst-host'); if (h) h.innerHTML = html(); }
+G.TITLES.inst = 'Install the app';
+G.V.inst = () => `<div class="page stack-sm fade" id="inst-host">${html()}</div>`;
+document.addEventListener('click', async e => { const b = e.target.closest && e.target.closest('[data-inst="go"]'); if (!b || !deferred) return; deferred.prompt(); try { await deferred.userChoice; } catch (x) { } deferred = null; refresh(); });
+function inject() {
+  const anchor = $('#scroll .list-row[data-sub="rem"]') || $('#scroll .list-row[data-sub="notes"]'); if (!anchor || $('#scroll .list-row[data-sub="inst"]')) return;
+  const b = document.createElement('button'); b.className = 'list-row'; b.dataset.act = 'sub'; b.dataset.sub = 'inst';
+  b.innerHTML = `<span class="ico">${ic('download')}</span><span class="grow"><b style="display:block;font-size:14px">Install the app</b><span class="xs sub">${standalone() ? 'Installed' : 'Add it to your home screen or desktop'}</span></span>${ic('chevron-right', 'chev')}`;
+  anchor.after(b);
+}
+new MutationObserver(() => setTimeout(inject, 0)).observe($('#scroll'), { childList: true });
+setTimeout(inject, 0);
+})();
+</script>
+
 </body>
 </html>
