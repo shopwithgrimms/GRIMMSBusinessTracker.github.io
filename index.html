@@ -12004,6 +12004,29 @@ inject();
 .fm-paper .fp-notes{margin-top:14px;border:1px solid #bbb;border-radius:6px;padding:8px 10px;min-height:70px;white-space:pre-wrap}
 .fm-paper .fp-notes b{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#555;margin-bottom:2px}
 .fm-paper .fp-foot{margin-top:14px;color:#888;font-size:10px;text-align:center}
+.fm-paper .fp-grid{display:grid;grid-template-columns:repeat(var(--fc,1),minmax(0,1fr));gap:0 20px;align-items:start}
+.fm-paper .fp-items{display:grid;grid-template-columns:repeat(var(--ic,1),minmax(0,1fr));column-gap:16px}
+.fm-paper.fp-flat{border:0;border-radius:0;padding:0}
+.fm-paper.fp-d-compact{font-size:11.5px;line-height:1.3}
+.fm-paper.fp-d-compact h1{font-size:19px}.fm-paper.fp-d-compact .fp-top{padding-bottom:6px;margin-bottom:8px}
+.fm-paper.fp-d-compact .fp-it{padding:3px 0}.fm-paper.fp-d-compact .fp-sec{margin-bottom:10px}.fm-paper.fp-d-compact .fp-notes{min-height:46px;margin-top:8px}
+.fm-paper.fp-d-tiny{font-size:10px;line-height:1.2}
+.fm-paper.fp-d-tiny h1{font-size:15px}.fm-paper.fp-d-tiny .fp-top{padding-bottom:4px;margin-bottom:6px}.fm-paper.fp-d-tiny .fp-intro{margin-bottom:6px}
+.fm-paper.fp-d-tiny .fp-it{padding:2px 0}.fm-paper.fp-d-tiny .fp-sec{margin-bottom:6px}.fm-paper.fp-d-tiny .fp-sec h2{font-size:11px}
+.fm-paper.fp-d-tiny .fp-b i{width:12px;height:12px;font-size:9px}.fm-paper.fp-d-tiny .fp-notes{min-height:30px;margin-top:6px;padding:4px 6px}.fm-paper.fp-d-tiny .fp-foot{margin-top:6px}
+.fm-lay .fm-grp{margin:12px 0 0}.fm-lay .fm-grp>span{display:block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--sub);margin-bottom:6px}
+.fm-lay .fm-sw{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0 0;font-weight:700;font-size:13px}
+.fm-lay .fm-sw small{display:block;color:var(--sub);font-weight:500;font-size:11px}
+.fm-pvbadge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;border-radius:999px;padding:4px 10px;margin-bottom:8px}
+.fm-pvbadge.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.fm-pvbadge.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+.fm-pvbadge.bad{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.fm-pvbox{background:color-mix(in srgb,var(--sub) 14%,transparent);border-radius:12px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:10px;overflow:hidden}
+.fm-sheet{background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.22);position:relative;flex:none;overflow:hidden}
+.fm-sheet .fm-pg{position:absolute;overflow:hidden}
+.fm-sheet .fm-sc{transform-origin:0 0}
+.fm-pvpg{font-size:10.5px;color:var(--sub);font-weight:700}
+
 @media print{
   body.fm-printing>*:not(#fm-print){display:none!important}
   body.fm-printing{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important;display:block!important;padding:0!important}
@@ -12042,17 +12065,23 @@ function store() {
   return f;
 }
 function fixDoc(d) {
-  d.id = d.id || uid(); d.title = String(d.title ?? ''); d.subtitle = String(d.subtitle ?? ''); d.date = String(d.date || today()); d.intro = String(d.intro ?? ''); d.notes = String(d.notes ?? '');
+  lay(d); d.id = d.id || uid(); d.title = String(d.title ?? ''); d.subtitle = String(d.subtitle ?? ''); d.date = String(d.date || today()); d.intro = String(d.intro ?? ''); d.notes = String(d.notes ?? '');
   if (!Array.isArray(d.sections)) d.sections = [];
   d.sections = d.sections.filter(s => s && typeof s === 'object');
   d.sections.forEach(s => {
-    s.id = s.id || uid(); s.title = String(s.title ?? ''); s.desc = String(s.desc ?? ''); s.date = String(s.date ?? ''); s.date2 = String(s.date2 ?? ''); if (!['tf', 'done', 'none'].includes(s.mode)) s.mode = 'done';
+    s.id = s.id || uid(); s.title = String(s.title ?? ''); s.desc = String(s.desc ?? ''); s.date = String(s.date ?? ''); s.date2 = String(s.date2 ?? ''); if (!['tf', 'done', 'none'].includes(s.mode)) s.mode = 'done'; s.span = s.span === 'full' ? 'full' : 'auto'; s.icols = [1, 2, 3].includes(+s.icols) ? +s.icols : 1;
     if (!Array.isArray(s.items)) s.items = []; s.items = s.items.filter(i => i && typeof i === 'object');
     s.items.forEach(i => { i.id = i.id || uid(); i.kind = i.kind || 'text'; if (i.v !== true && i.v !== false) i.v = null; i.note = String(i.note ?? ''); i.text = String(i.text ?? ''); i.desc = String(i.desc ?? ''); i.date = String(i.date ?? ''); i.tag = String(i.tag ?? ''); });
   });
   return d;
 }
-const VIEW = { id: null, pv: false };
+const PAPER = { letter: [816, 1056], a4: [794, 1123] }, MARGIN = 38.4;
+function lay(d) {
+  if (!d.layout || typeof d.layout !== 'object') d.layout = {}; const l = d.layout;
+  l.fit = !!l.fit; l.paper = l.paper === 'a4' ? 'a4' : 'letter'; l.orient = l.orient === 'landscape' ? 'landscape' : 'portrait'; l.cols = [1, 2, 3].includes(+l.cols) ? +l.cols : 1;
+  if (!['normal', 'compact', 'tiny'].includes(l.dens)) l.dens = 'normal'; l.notes = l.notes !== false; return l;
+}
+const VIEW = { id: null, pv: true };
 const OPENF = new Set();
 const cur = () => { const d = store().docs.find(x => x.id === VIEW.id); if (!d) { VIEW.id = null; return null; } return fixDoc(d); };
 const touch = d => { d.updated = Date.now(); persist(); };
@@ -12104,8 +12133,8 @@ const STARTERS = [
   { name: 'Weekly stock check', title: 'Weekly stock check', sections: [{ title: 'Counts match?', mode: 'tf', items: [] }, { title: 'To reorder', mode: 'done', items: [] }] }
 ];
 function fromTpl(t) {
-  const d = newDoc({ title: t.title || t.name || '', subtitle: t.subtitle || '', intro: t.intro || '', sections: [] });
-  d.sections = (t.sections || []).map(s => ({ id: uid(), title: s.title || '', desc: s.desc || '', mode: s.mode, items: (s.items || []).map(i => typeof i === 'string' ? { id: uid(), kind: 'text', text: i, v: null, note: '' } : Object.assign(clone(i), { id: uid(), v: null, note: '', date: '' })) }));
+  const d = newDoc({ title: t.title || t.name || '', subtitle: t.subtitle || '', intro: t.intro || '', layout: t.layout, sections: [] });
+  d.sections = (t.sections || []).map(s => ({ id: uid(), title: s.title || '', desc: s.desc || '', mode: s.mode, span: s.span, icols: s.icols, items: (s.items || []).map(i => typeof i === 'string' ? { id: uid(), kind: 'text', text: i, v: null, note: '' } : Object.assign(clone(i), { id: uid(), v: null, note: '', date: '' })) }));
   if (!d.sections.length) d.sections.push({ id: uid(), title: '', mode: 'done', items: [] });
   return fixDoc(d);
 }
@@ -12164,10 +12193,24 @@ function secHTML(s, si, n) {
     <div class="fm-acts" style="margin-top:8px">${tg('desc', 'description')}${tg('date', 'date')}</div>
     <div class="fm-stat" data-stat>${esc(stat(s))}</div>
     <div class="fm-opts">
+      <div class="grid2" style="margin-bottom:8px"><label class="fld" style="margin:0"><span>Width on the page</span><select class="select" data-fm-s="span" ${a}><option value="auto" ${s.span !== 'full' ? 'selected' : ''}>Fit in a column</option><option value="full" ${s.span === 'full' ? 'selected' : ''}>Full row</option></select></label><label class="fld" style="margin:0"><span>Items in columns</span><select class="select" data-fm-s="icols" ${a}>${[1, 2, 3].map(n => `<option value="${n}" ${s.icols === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div>
       <label class="fld" style="margin:0"><span>Checkbox type</span><select class="select" data-fm-s="mode" ${a}>${MODES.map(m => `<option value="${m[0]}" ${s.mode === m[0] ? 'selected' : ''}>${m[1]}</option>`).join('')}</select></label>
       <div>${s.items.map((it, i) => itemHTML(s, it, i, s.items.length)).join('') || `<div class="fm-none" style="border-top:1px solid var(--line)">Nothing here yet. Type an item or attach something from your app.</div>`}</div>
       <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn btn-line btn-sm" data-fm="add-item" ${a}>${ic('plus')} Type an item</button><button class="btn btn-soft btn-sm" data-fm="attach" ${a}>${ic('link')} Attach from your app…</button></div>
     </div></div>`;
+}
+function layoutCard(d) {
+  const l = lay(d), g = (k, label, opts) => `<div class="fm-grp"><span>${label}</span><div class="fm-chips">${opts.map(o => `<button class="chip ${String(l[k]) === String(o[0]) ? 'on' : ''}" data-fm="lay" data-k="${k}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div></div>`;
+  return `<div class="card fm-sec fm-lay"><div class="fm-sh"><div class="fm-st">Page layout &amp; preview</div></div>
+    <div id="fm-pv" style="margin-top:10px"></div>
+    <label class="fm-sw"><span>Fit everything on 1 page<small>Shrinks the form so it never spills onto a second page</small></span><input type="checkbox" class="chk" data-fm-l="fit" ${l.fit ? 'checked' : ''}></label>
+    <button class="btn btn-soft btn-sm block" style="margin-top:10px" data-fm="autofit">${ic('star')} Auto-arrange to fit 1 page</button>
+    ${g('cols', 'Sections side by side', [[1, '1 across'], [2, '2 across'], [3, '3 across']])}
+    ${g('dens', 'Text size', [['normal', 'Normal'], ['compact', 'Compact'], ['tiny', 'Tiny']])}
+    ${g('orient', 'Page direction', [['portrait', 'Portrait'], ['landscape', 'Landscape']])}
+    ${g('paper', 'Paper', [['letter', 'Letter'], ['a4', 'A4']])}
+    <label class="fm-sw"><span>Show the notes box</span><input type="checkbox" class="chk" data-fm-l="notes" ${l.notes ? 'checked' : ''}></label>
+    <p class="hint" style="margin:10px 0 0">Each section below can also be set to a full row, or show its items in columns.</p></div>`;
 }
 function editorHTML(d) {
   const n = d.sections.length;
@@ -12176,13 +12219,13 @@ function editorHTML(d) {
     <input class="input" style="border:0;padding-left:0;box-shadow:none;color:var(--sub);margin-bottom:10px" data-fm-f="subtitle" placeholder="Add a subtitle" value="${esc(d.subtitle)}" aria-label="Subtitle">
     <label class="fld"><span>Date</span><input class="input" type="date" data-fm-f="date" value="${esc(d.date)}"></label>
     <label class="fld" style="margin:0"><span>Description</span><textarea class="textarea" data-fm-f="intro" placeholder="What is this form for? Prints under the title">${esc(d.intro)}</textarea></label></div>
+  ${layoutCard(d)}
   <div id="fm-secs" class="stack-sm">${d.sections.map((s, i) => secHTML(s, i, n)).join('')}</div>
   <button class="btn btn-line block" data-fm="add-sec">${ic('plus')} Add section</button>
   <div class="card fm-sec"><label class="fld" style="margin:0"><span>Notes</span><textarea class="textarea" data-fm-f="notes" placeholder="Anything else to remember. Prints at the bottom.">${esc(d.notes)}</textarea></label></div>
   <div class="card fm-sec"><div class="fm-sh"><div class="fm-st">Share or save</div></div>
     <div class="fm-exp"><button class="btn btn-line btn-sm" data-fm="copy">${ic('copy')} Copy text</button><button class="btn btn-line btn-sm" data-fm="txt">${ic('download')} .txt</button><button class="btn btn-line btn-sm" data-fm="csv">${ic('download')} .csv</button><button class="btn btn-line btn-sm" data-fm="json">${ic('download')} .json</button></div>
-    <button class="btn btn-soft btn-sm block" style="margin-top:8px" data-fm="pv-toggle">${ic('eye')} <span id="fm-pvl">${VIEW.pv ? 'Hide preview' : 'Show preview'}</span></button>
-    <div id="fm-pv" style="margin-top:10px"></div></div>
+</div>
   <div class="fm-top" style="justify-content:space-between"><button class="link" data-fm="dup">${ic('copy')} Duplicate this form</button><button class="link" data-fm="del-doc" style="color:var(--bad)">${ic('trash')} Delete this form</button></div>`;
 }
 function paint() {
@@ -12198,16 +12241,35 @@ function repaintSec(d, sid) {
 function refreshStat(d, sid) { const s = d.sections.find(x => x.id === sid), el = $(`.fm-sec[data-sec="${sid}"] [data-stat]`); if (s && el) el.textContent = stat(s); }
 
 /* ---------- the paper, text and files ---------- */
-function paperHTML(d) {
-  fresh(); const biz = G.state.settings.name || '';
+function paperHTML(d, flat) {
+  fresh(); const L = lay(d), biz = G.state.settings.name || '';
   const boxes = (s, it) => s.mode === 'tf' ? `<span class="fp-bx"><span class="fp-b"><i>${it.v === true ? '✓' : ''}</i>True</span><span class="fp-b"><i>${it.v === false ? '✕' : ''}</i>False</span></span>` : s.mode === 'done' ? `<span class="fp-bx"><span class="fp-b"><i>${it.v === true ? '✓' : ''}</i></span></span>` : '';
-  const secs = d.sections.map(s => `<div class="fp-sec"><h2><span>${esc(s.title || 'Items')}</span><small>${esc(s.mode === 'none' ? '' : stat(s))}</small></h2>${s.desc ? `<div class="fp-sd">${esc(s.desc)}</div>` : ''}${s.date || s.date2 ? `<div class="fp-sd">${esc(rangeText(s.date, s.date2))}</div>` : ''}${s.items.map(it => { const x = disp(it);
-    return `<div class="fp-it">${boxes(s, it)}<div class="fp-tx">${x.sku ? `<span class="fp-sku">${esc(x.sku)}</span>` : ''}${esc(x.name)}${it.tag ? `<span class="fp-tag">${esc(it.tag)}</span>` : ''}${x.tag ? `<span class="fp-sub">${esc(x.tag)}${x.sub ? ' · ' + esc(x.sub) : ''}</span>` : ''}${it.desc ? `<span class="fp-sub">${esc(it.desc)}</span>` : ''}${it.date ? `<span class="fp-sub">Date: ${esc(fmtDate(it.date))}</span>` : ''}${it.note ? `<span class="fp-note">${esc(it.note)}</span>` : ''}</div></div>`; }).join('') || '<div class="fp-empty">No items</div>'}</div>`).join('');
-  return `<div class="fm-paper"><div class="fp-top"><div><h1>${esc(d.title || 'Untitled form')}</h1>${d.subtitle ? `<div class="fp-subt">${esc(d.subtitle)}</div>` : ''}${biz ? `<div class="fp-sm">${esc(biz)}</div>` : ''}</div><div class="fp-sm" style="text-align:right">${esc(fmtDate(d.date, true))}</div></div>${d.intro ? `<p class="fp-intro">${esc(d.intro)}</p>` : ''}${secs}<div class="fp-notes"><b>Notes</b>${esc(d.notes)}</div><div class="fp-foot">Made with Grimms Business Tracker</div></div>`;
+  const secs = d.sections.map(s => `<div class="fp-sec" ${s.span === 'full' ? 'style="grid-column:1/-1"' : ''}><h2><span>${esc(s.title || 'Items')}</span><small>${esc(s.mode === 'none' ? '' : stat(s))}</small></h2>${s.desc ? `<div class="fp-sd">${esc(s.desc)}</div>` : ''}${s.date || s.date2 ? `<div class="fp-sd">${esc(rangeText(s.date, s.date2))}</div>` : ''}<div class="fp-items" style="--ic:${s.icols || 1}">${s.items.map(it => { const x = disp(it);
+    return `<div class="fp-it">${boxes(s, it)}<div class="fp-tx">${x.sku ? `<span class="fp-sku">${esc(x.sku)}</span>` : ''}${esc(x.name)}${it.tag ? `<span class="fp-tag">${esc(it.tag)}</span>` : ''}${x.tag ? `<span class="fp-sub">${esc(x.tag)}${x.sub ? ' · ' + esc(x.sub) : ''}</span>` : ''}${it.desc ? `<span class="fp-sub">${esc(it.desc)}</span>` : ''}${it.date ? `<span class="fp-sub">Date: ${esc(fmtDate(it.date))}</span>` : ''}${it.note ? `<span class="fp-note">${esc(it.note)}</span>` : ''}</div></div>`; }).join('') || '<div class="fp-empty">No items</div>'}</div></div>`).join('');
+  return `<div class="fm-paper fp-d-${L.dens}${flat ? ' fp-flat' : ''}" style="--fc:${L.cols}"><div class="fp-top"><div><h1>${esc(d.title || 'Untitled form')}</h1>${d.subtitle ? `<div class="fp-subt">${esc(d.subtitle)}</div>` : ''}${biz ? `<div class="fp-sm">${esc(biz)}</div>` : ''}</div><div class="fp-sm" style="text-align:right">${esc(fmtDate(d.date, true))}</div></div>${d.intro ? `<p class="fp-intro">${esc(d.intro)}</p>` : ''}<div class="fp-grid">${secs}</div>${L.notes ? `<div class="fp-notes"><b>Notes</b>${esc(d.notes)}</div>` : ''}<div class="fp-foot">Made with Grimms Business Tracker</div></div>`;
+}
+function pageDims(l) { const p = PAPER[l.paper], w = l.orient === 'landscape' ? p[1] : p[0], h = l.orient === 'landscape' ? p[0] : p[1]; return [w, h]; }
+function fitInfo(d) {
+  const l = lay(d), [PW, PH] = pageDims(l), Wc = PW - 2 * MARGIN, Hc = PH - 2 * MARGIN;
+  const h = document.createElement('div'); h.style.cssText = `position:fixed;left:-99999px;top:0;width:${Wc}px;visibility:hidden`; h.innerHTML = paperHTML(d, true); document.body.appendChild(h);
+  const ch = Math.max(1, h.firstElementChild.offsetHeight); h.remove();
+  const raw = Math.min(1, Hc / ch), floor = .35, tooBig = l.fit && raw < floor, scale = l.fit ? Math.max(raw, floor) : 1;
+  return { PW, PH, Wc, Hc, ch, scale, tooBig, pages: l.fit && !tooBig ? 1 : Math.max(1, Math.ceil(ch * scale / Hc - .02)) };
 }
 function pv() {
-  const box = $('#fm-pv'), lbl = $('#fm-pvl'); if (lbl) lbl.textContent = VIEW.pv ? 'Hide preview' : 'Show preview'; if (!box) return;
-  const d = cur(); box.innerHTML = VIEW.pv && d ? `<div class="fm-pvwrap">${paperHTML(d)}</div>` : '';
+  const box = $('#fm-pv'); if (!box) return; const d = cur(); if (!d) { box.innerHTML = ''; return; }
+  const l = lay(d), I = fitInfo(d), W = Math.max(200, box.clientWidth - 20 || 300), k = Math.min(1, W / I.PW), shown = Math.min(I.pages, 4);
+  const badge = l.fit ? (I.tooBig ? ['bad', 'Too much for 1 page, even at the smallest size'] : I.scale < .999 ? ['ok', `Fits on 1 page · shrunk to ${Math.round(I.scale * 100)}%`] : ['ok', 'Fits on 1 page at full size']) : (I.pages === 1 ? ['ok', 'Fits on 1 page'] : ['warn', `Prints on about ${I.pages} pages`]);
+  const sc = I.scale, inner = `<div class="fm-sc" style="width:${I.Wc / sc}px;transform:scale(${sc})">${paperHTML(d, true)}</div>`;
+  const sheets = [...Array(shown)].map((_, n) => `<div style="width:${I.PW * k}px;height:${I.PH * k}px;flex:none"><div class="fm-sheet" style="width:${I.PW}px;height:${I.PH}px;transform:scale(${k});transform-origin:0 0"><div class="fm-pg" style="left:${MARGIN}px;top:${MARGIN}px;width:${I.Wc}px;height:${I.Hc}px"><div style="margin-top:${-n * I.Hc}px">${inner}</div></div></div></div>`).join('');
+  box.innerHTML = `<span class="fm-pvbadge ${badge[0]}">${badge[0] === 'ok' ? '✓' : '!'} ${esc(badge[1])}</span><div class="fm-pvbox">${sheets}${I.pages > shown ? `<span class="fm-pvpg">+ ${I.pages - shown} more page${I.pages - shown === 1 ? '' : 's'}</span>` : ''}${!l.fit && I.pages > 1 ? `<span class="fm-pvpg">Page breaks are approximate</span>` : ''}</div>`;
+}
+function autoArrange(d) {
+  const l = lay(d), keep = Object.assign({}, l), other = l.orient === 'portrait' ? 'landscape' : 'portrait', tries = [];
+  ['normal', 'compact', 'tiny'].forEach(de => [l.orient, other].forEach(o => [1, 2, 3].forEach(c => tries.push({ dens: de, orient: o, cols: c }))));
+  let best = null;
+  for (const t of tries) { Object.assign(l, keep, t, { fit: true }); const I = fitInfo(d); if (!best || I.scale > best.s + .001) best = { t, s: I.scale }; if (I.scale >= .999) { best = { t, s: I.scale }; break; } }
+  Object.assign(l, keep, best.t, { fit: true }); touch(d); return best;
 }
 const ans = (s, it) => s.mode === 'tf' ? (it.v === true ? 'True' : it.v === false ? 'False' : '') : s.mode === 'done' ? (it.v === true ? 'Done' : '') : '';
 function flat(d) { fresh(); const out = []; d.sections.forEach(s => s.items.forEach(it => { const x = disp(it); out.push({ section: s.title || '', sdesc: s.desc, sdate: rangeText(s.date, s.date2), type: x.tag || 'Typed', sku: x.sku, name: x.name, details: x.sub, desc: it.desc, label: it.tag, date: it.date, answer: ans(s, it), note: it.note }); })); return out; }
@@ -12228,9 +12290,10 @@ async function copyText(t) {
   try { const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;left:-9999px;top:0'; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok; } catch (e) { return false; }
 }
 let oldTitle = null;
-function cleanupPrint() { const p = $('#fm-print'); if (p) p.remove(); document.body.classList.remove('fm-printing'); if (oldTitle !== null) { document.title = oldTitle; oldTitle = null; } }
+function cleanupPrint() { const ps = $('#fm-pagestyle'); if (ps) ps.remove(); const p = $('#fm-print'); if (p) p.remove(); document.body.classList.remove('fm-printing'); if (oldTitle !== null) { document.title = oldTitle; oldTitle = null; } }
 function printDoc(d) {
-  cleanupPrint(); const el = document.createElement('div'); el.id = 'fm-print'; el.innerHTML = paperHTML(d); document.body.appendChild(el);
+  cleanupPrint(); const l = lay(d), I = fitInfo(d), st = document.createElement('style'); st.id = 'fm-pagestyle'; st.textContent = `@page{size:${l.paper === 'a4' ? 'A4' : 'letter'} ${l.orient};margin:0.4in}`; document.head.appendChild(st);
+  const el = document.createElement('div'); el.id = 'fm-print'; el.innerHTML = l.fit && I.scale < .999 ? `<div style="width:${I.Wc}px;height:${Math.floor(I.ch * I.scale)}px;overflow:hidden"><div style="width:${I.Wc / I.scale}px;transform:scale(${I.scale});transform-origin:0 0">${paperHTML(d, true)}</div></div>` : paperHTML(d, true); document.body.appendChild(el);
   document.body.classList.add('fm-printing'); oldTitle = document.title; document.title = d.title || 'Form';
   window.addEventListener('afterprint', cleanupPrint, { once: true });
   setTimeout(() => { try { window.print(); } catch (e) { cleanupPrint(); } }, 80);
@@ -12279,7 +12342,7 @@ document.addEventListener('click', e => {
     case 'close': { VIEW.id = null; paint(); break; }
     case 'del-doc': { if (!d || !confirm('Delete "' + (d.title || 'Untitled form') + '"? This cannot be undone.')) break; f.docs = f.docs.filter(x => x.id !== d.id); VIEW.id = null; persist(); paint(); break; }
     case 'dup': { if (!d) break; const n = clone(d); n.id = uid(); n.title = (d.title || 'Untitled form') + ' (copy)'; n.updated = Date.now(); n.sections.forEach(s => { s.id = uid(); s.items.forEach(i => { i.id = uid(); }); }); f.docs.unshift(n); VIEW.id = n.id; persist(); paint(); toast('Duplicated'); break; }
-    case 'tpl-save': { if (!d) break; askName('Save as template', 'Template name', d.title || '', 'Save template', v => { v = String(v || '').trim(); if (!v) return toast('Give the template a name'); const c = clone(d); const tp = { id: uid(), name: v, title: d.title, subtitle: d.subtitle, intro: d.intro, sections: c.sections.map(s => ({ title: s.title, desc: s.desc, mode: s.mode, items: s.items.map(i => Object.assign(i, { v: null, note: '', date: '' })) })) }; f.templates.unshift(tp); persist(); closeModal(); toast('Template saved'); }); break; }
+    case 'tpl-save': { if (!d) break; askName('Save as template', 'Template name', d.title || '', 'Save template', v => { v = String(v || '').trim(); if (!v) return toast('Give the template a name'); const c = clone(d); const tp = { id: uid(), name: v, title: d.title, subtitle: d.subtitle, intro: d.intro, layout: c.layout, sections: c.sections.map(s => ({ title: s.title, desc: s.desc, mode: s.mode, span: s.span, icols: s.icols, items: s.items.map(i => Object.assign(i, { v: null, note: '', date: '' })) })) }; f.templates.unshift(tp); persist(); closeModal(); toast('Template saved'); }); break; }
     case 'add-sec': { if (!d) break; d.sections.push({ id: uid(), title: '', mode: 'done', items: [] }); touch(d); paint(); const x = $$('[data-fm-s="title"]'); if (x.length) { x[x.length - 1].focus(); x[x.length - 1].scrollIntoView({ block: 'center' }); } break; }
     case 'sec-up': case 'sec-down': { if (!d) break; const i = d.sections.findIndex(s => s.id === sid); if (move(d.sections, i, i + (k === 'sec-up' ? -1 : 1))) { touch(d); paint(); } break; }
     case 'sec-del': { if (!sec) break; if (sec.items.length && !confirm('Delete this section and its ' + sec.items.length + ' item' + (sec.items.length === 1 ? '' : 's') + '?')) break; d.sections = d.sections.filter(s => s.id !== sid); touch(d); paint(); break; }
@@ -12291,7 +12354,9 @@ document.addEventListener('click', e => {
       else { OPENF.add(key); repaintSec(d, sid); const x = $(`[data-fld="${key}"] input, [data-fld="${key}"] textarea`); if (x) x.focus(); } break; }
     case 'it-up': case 'it-down': { if (!sec) break; const i = sec.items.findIndex(x => x.id === iid); if (move(sec.items, i, i + (k === 'it-up' ? -1 : 1))) { touch(d); repaintSec(d, sid); } break; }
     case 'it-del': { if (!sec) break; sec.items = sec.items.filter(x => x.id !== iid); touch(d); repaintSec(d, sid); break; }
-    case 'pv-toggle': { VIEW.pv = !VIEW.pv; pv(); break; }
+    case 'pv-toggle': { pv(); break; }
+    case 'lay': { if (!d) break; const l = lay(d), v = t.dataset.v; l[t.dataset.k] = t.dataset.k === 'cols' ? +v : v; touch(d); paint(); break; }
+    case 'autofit': { if (!d) break; const b = autoArrange(d); paint(); toast(b.s >= .999 ? `Arranged: ${b.t.cols} across, ${b.t.dens} text, ${b.t.orient}` : `Closest fit: shrunk to ${Math.round(b.s * 100)}%. Try removing some items`); break; }
     case 'copy': { if (d) copyText(docText(d)).then(ok => toast(ok ? 'Copied. Paste it anywhere' : 'Could not copy. Try the .txt download')); break; }
     case 'txt': { if (d) { save(slug(d) + '.txt', 'text/plain;charset=utf-8', docText(d)); toast('Downloaded .txt'); } break; }
     case 'csv': { if (d) { save(slug(d) + '.csv', 'text/csv;charset=utf-8', docCsv(d)); toast('Downloaded .csv'); } break; }
@@ -12319,6 +12384,8 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const t = e.target; if (!t || !t.dataset) return;
   if (t.dataset.fmPk) { if (t.checked) { const r = rows(t.dataset.fmPk[0], false).find(x => x.ref === t.dataset.fmPk); if (r) PK.sel.set(r.ref, r); } else PK.sel.delete(t.dataset.fmPk); const go = $('#fm-go'); if (go) { go.disabled = !PK.sel.size; go.textContent = PK.sel.size ? `Add ${PK.sel.size} selected` : 'Add'; } return; }
+  if (t.dataset.fmL && t.closest('#fm-host')) { const d = cur(); if (d) { lay(d)[t.dataset.fmL] = t.checked; touch(d); pv(); } return; }
+  if (['span', 'icols'].includes(t.dataset.fmS) && t.closest('#fm-host')) { const d = cur(), sec = d && d.sections.find(s => s.id === t.dataset.sid); if (sec) { sec[t.dataset.fmS] = t.dataset.fmS === 'icols' ? +t.value : t.value; touch(d); pv(); } return; }
   if (t.dataset.fmI === 'date' && t.closest('#fm-host')) { const d = cur(); if (d) repaintSec(d, t.dataset.sid); return; }
   if (t.dataset.fmS === 'mode' && t.closest('#fm-host')) { const d = cur(); const sec = d && d.sections.find(s => s.id === t.dataset.sid); if (sec) { sec.mode = t.value; if (t.value === 'done') sec.items.forEach(i => { if (i.v === false) i.v = null; }); touch(d); repaintSec(d, sec.id); } }
 });
