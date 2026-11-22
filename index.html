@@ -15228,7 +15228,7 @@ const fmtT = t => new Date(t).toLocaleString(undefined, { month: 'short', day: '
 const stateOf = it => { const q = it.k === 'p' ? num(it.o.qty) : num(it.o.qty), low = it.o.low === '' || it.o.low == null ? num(S().settings.lowStock) : num(it.o.low); return q <= 0 ? ['Out of stock', '#c0392b'] : (!it.o.oneOff && q <= low) ? ['Low stock', '#d98a00'] : ['In stock', '#1e8e5a']; };
 
 /* ---------- item page (what a scan opens) ---------- */
-const UI = { pv: true, mode: 'look', reason: 'Used', sel: {}, size: '4x6', layout: 'single', rot: false, paper: 'letter', auto: true, cols: 2, rows: 4, show: { name: true, sku: true, bar: true, num: true, price: false }, style: { font: 'Arial', ts: 'm', bold: true, align: 'center', border: 'none', bh: 't', extra: '' }, styleOpen: false, q: '', cam: null, sess: [] };
+const UI = { inStock: false, kind: 'all', pv: true, mode: 'look', reason: 'Used', sel: {}, size: '4x6', layout: 'single', rot: false, paper: 'letter', auto: true, cols: 2, rows: 4, show: { name: true, sku: true, bar: true, num: true, price: false }, style: { font: 'Arial', ts: 'm', bold: true, align: 'center', border: 'none', bh: 't', extra: '' }, styleOpen: false, q: '', cam: null, sess: [] };
 function sales(id) {
   const out = []; (S().orders || []).forEach(o => { if (/cancel|refunded/i.test(o.status || '')) return; (o.items || []).forEach(l => { if (l.productId === id) out.push({ d: o.date || '', n: o.sku || ('#' + (o.no || '')), q: num(l.qty) - num(l.returned), p: num(l.price), s: o.status, c: o.customer || o.customerName || '' }); }); });
   return out.sort((a, b) => String(b.d).localeCompare(String(a.d)));
@@ -15398,9 +15398,11 @@ function styleCtl() {
   ${lab('Barcode height')}${row(c('bh', 's', 'Short') + c('bh', 'm', 'Medium') + c('bh', 't', 'Tall'))}
   ${lab('Extra line on every label (optional)')}<input class="input" data-bc="stin" data-k="extra" maxlength="40" placeholder="e.g. Handmade by Grimms" value="${esc(st.extra)}">`;
 }
+/* list filter for Print Labels: search text + Products/Materials + in stock only */
+const shownItems = () => { const q = (UI.q || '').toLowerCase(); return items().filter(i => (!q || (nameOf(i) + ' ' + (i.o.sku || '') + ' ' + (i.o.barcode || '')).toLowerCase().includes(q)) && (UI.kind === 'all' || (UI.kind === 'p' ? i.k === 'p' : i.k === 's')) && (!UI.inStock || qtyOf(i) > 0)); };
 function paintPL() {
   const h = $('#pl-host'); if (!h) return; PV = new Map(); const z = rz(SIZES[UI.size] || SIZES['4x6']), sel = selected(), total = sel.reduce((a, x) => a + x[1], 0), grid = UI.layout === 'grid';
-  const all = items().filter(i => !UI.q || (nameOf(i) + ' ' + (i.o.sku || '') + ' ' + (i.o.barcode || '')).toLowerCase().includes(UI.q.toLowerCase())), first = sel.length ? sel[0][0] : (all[0] || items()[0]);
+  const all = shownItems(), first = sel.length ? sel[0][0] : (all[0] || items()[0]);
   const chip = (on, a, v, t) => `<button class="chip" data-bc="${a}" data-v="${v}" style="${on ? 'background:var(--p);color:#fff' : ''}">${t}</button>`;
   let pv = '<p class="hint">Add a product in Inventory to see a preview.</p>', css = '', dim = [z[1], z[2]], info = z[0], pl = null;
   if (first && grid) { pl = gridPlan(total); const per = pl.c * pl.r, src = sel.length ? sel.flatMap(x => Array(x[1]).fill(x[0])).slice(0, per) : Array(per).fill(first); pv = `<div class="pg">${src.map(i => lbOne(i, true)).join('')}</div>`; css = lbCss([0, pl.cw, pl.ch], '#pl-pv ') + gridCss(pl, '#pl-pv ') + '#pl-pv .pg{border:1px solid #999;transform-origin:top left}'; dim = [pl.pw, pl.ph]; info = `${pl.c} across x ${pl.r} down = ${pl.c * pl.r} per page - ${pl.pages} page${pl.pages > 1 ? 's' : ''} for ${total || 'your'} label${total === 1 ? '' : 's'} - each ${pl.cw.toFixed(2)} x ${pl.ch.toFixed(2)} in`; }
@@ -15417,7 +15419,7 @@ function paintPL() {
   <div style="margin-top:10px">${chip(UI.rot, 'rot', '', 'Rotate 90° (wider rectangle)')}</div><div class="xs sub b" style="margin:10px 0 6px">Show on label</div><div class="row" style="gap:6px;flex-wrap:wrap">${SHOW.map(x => chip(UI.show[x[0]], 'show', x[0], x[1])).join('')}</div>
   <div style="margin-top:10px"><button class="chip" data-bc="styleopen" style="${UI.styleOpen ? 'background:var(--p);color:#fff' : ''}">Style ${UI.styleOpen ? '(hide)' : '(font, size, border...)'}</button></div>${UI.styleOpen ? styleCtl() : ''}</div>
 
-  <div class="card"><input class="input" id="pl-q" placeholder="Search items" value="${esc(UI.q)}"><div class="row" style="gap:6px;margin:8px 0"><button class="btn btn-line btn-sm" data-bc="all">Select all shown</button><button class="btn btn-line btn-sm" data-bc="none">Clear</button></div>
+  <div class="card"><input class="input" id="pl-q" placeholder="Search items" value="${esc(UI.q)}"><div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px">${[['all', 'All'], ['p', 'Products'], ['s', 'Materials']].map(x => chip(UI.kind === x[0], 'kind', x[0], x[1])).join('')}${chip(UI.inStock, 'instock', '', 'In stock only')}</div><div class="xs sub" style="margin-top:6px">Showing ${all.length} of ${items().length} items${UI.inStock ? ' (only ones with stock)' : ''}${total ? ' - ' + sel.length + ' picked' : ''}</div><div class="row" style="gap:6px;margin:8px 0"><button class="btn btn-line btn-sm" data-bc="all">Select all shown</button><button class="btn btn-line btn-sm" data-bc="none">Clear</button></div>
   ${all.slice(0, 150).map(i => { const k = key(i), c = codeOf(i); return `<div class="bc-li"><input type="checkbox" data-bc="pick" data-k="${k}" ${UI.sel[k] ? 'checked' : ''}><div class="g"><div class="trunc b" style="font-size:13px">${esc(nameOf(i))}</div><div class="xs sub">${esc(i.o.sku || 'No SKU')} - ${c ? esc(c) : 'barcode made when printed'}</div></div>${UI.sel[k] ? `<input class="input" type="number" min="1" max="999" value="${UI.sel[k]}" data-bc="copies" data-k="${k}" aria-label="Copies">` : ''}</div>`; }).join('') || '<p class="hint">No items yet.</p>'}${all.length > 150 ? '<p class="hint">Showing 150. Search to narrow.</p>' : ''}</div>
   <div style="position:sticky;bottom:0;z-index:5;background:var(--bg,#fff);padding:8px 0"><button class="btn b block" data-bc="print">${ic('printer')} ${total ? 'Print ' + total + ' label' + (total > 1 ? 's' : '') : 'Pick items to print'}</button></div>`;
   const box = $('#pl-box'), pvEl = $('#pl-pv'), lab = pvEl && pvEl.firstElementChild; if (lab && lab.classList && (lab.classList.contains('lb') || lab.classList.contains('pg')) && box) { const av = box.parentElement.clientWidth - 16, k = Math.min(2.5, av / (dim[0] * 96), (grid ? 150 : 120) / (dim[1] * 96)); lab.style.transform = `scale(${k})`; box.style.width = (dim[0] * 96 * k + 2) + 'px'; box.style.height = (dim[1] * 96 * k + 2) + 'px'; }
@@ -15434,6 +15436,8 @@ document.addEventListener('click', e => {
   else if (a === 'styleopen') { UI.styleOpen = !UI.styleOpen; paint(); }
   else if (a === 'style') { const k = t.dataset.k; UI.style[k] = k === 'bold' ? !UI.style.bold : t.dataset.v; paint(); }
   else if (a === 'pvtoggle') { UI.pv = !UI.pv; paint(); }
+  else if (a === 'kind') { UI.kind = t.dataset.v; paint(); }
+  else if (a === 'instock') { UI.inStock = !UI.inStock; paint(); }
   else if (a === 'rot') { UI.rot = !UI.rot; bestPreset(); paint(); }
   else if (a === 'size') { UI.size = t.dataset.v; paint(); }
   else if (a === 'layout') { UI.layout = t.dataset.v; paint(); }
@@ -15444,7 +15448,7 @@ document.addEventListener('click', e => {
   else if (a === 'cam') startCam(); else if (a === 'stop') stopCam();
   else if (a === 'go') { const m = $('#bc-man'); if (m) { lastCode = ''; handle(m.value); m.value = ''; } }
   else if (a === 'assign') { toast(assignAll() + ' barcodes created'); G.render(); }
-  else if (a === 'all') { items().filter(i => !UI.q || (nameOf(i) + ' ' + (i.o.sku || '')).toLowerCase().includes(UI.q.toLowerCase())).forEach(i => { UI.sel[key(i)] = UI.sel[key(i)] || 1; }); paint(); }
+  else if (a === 'all') { ($('#pl-host') ? shownItems() : items().filter(i => !UI.q || (nameOf(i) + ' ' + (i.o.sku || '')).toLowerCase().includes(UI.q.toLowerCase()))).forEach(i => { UI.sel[key(i)] = UI.sel[key(i)] || 1; }); paint(); }
   else if (a === 'none') { UI.sel = {}; paint(); }
   else if (a === 'print') printList(selected());
   else if (a === 'print1' && it) printList([[it, 1]]);
