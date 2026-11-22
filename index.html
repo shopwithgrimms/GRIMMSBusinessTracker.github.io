@@ -2819,7 +2819,7 @@ function chartHover(el, ev, leave) {
 /* =====================================================================
    11. HEADER + NAV
    ===================================================================== */
-const TITLES = { barcodes: 'Barcodes', sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More', plan: 'Plan', goals: 'Goals', suppliers: 'Suppliers', customers: 'Customers', notes: 'Notes', mileage: 'Mileage', activity: 'Activity', settings: 'Settings', taxes: 'Taxes', assistant: 'Business Assistant', inbox: 'Inbox', bills: 'Bills & Invoices', forecast: 'Cash Flow Forecast', purchases: 'Orders & Deliveries', faq: 'Help & FAQ', labels: 'Label Designer', printlabels: 'Print Labels' };
+const TITLES = { barcodes: 'Item numbers', sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More', plan: 'Plan', goals: 'Goals', suppliers: 'Suppliers', customers: 'Customers', notes: 'Notes', mileage: 'Mileage', activity: 'Activity', settings: 'Settings', taxes: 'Taxes', assistant: 'Business Assistant', inbox: 'Inbox', bills: 'Bills & Invoices', forecast: 'Cash Flow Forecast', purchases: 'Orders & Deliveries', faq: 'Help & FAQ', labels: 'Label Designer', printlabels: 'Print Labels' };
 function addType() {
   const v = ui.sub || ui.tab, s = ui.seg;
   if (v === 'sales') return ['order', 'Sale'];
@@ -4371,8 +4371,8 @@ V.more = () => {
       ${row('receipt', 'Bills & invoices', billsLine(), 'bills')}
       ${row('line-chart', 'Cash flow forecast', 'Will your money cover what is coming?', 'forecast')}
       ${row('truck', 'Orders & deliveries', 'What you bought from suppliers: track bought, shipped, in transit, delivered', 'purchases')}
-      ${row('printer', 'Print labels', 'Barcode labels for 4x6 thermal or label sheets: pick items, what shows, style and layout', 'printlabels')}
-      ${row('camera', 'Barcodes & scanner', 'Barcode for every item, scan to see its page, receive and remove stock', 'barcodes')}
+      ${row('printer', 'Print labels', 'Item number labels for 4x6 thermal or label sheets: pick items, a template, what shows and layout', 'printlabels')}
+      ${row('camera', 'Item numbers & lookup', 'A number for every item, type it to see its page, receive and remove stock', 'barcodes')}
       ${row('users', 'Customers', `${nc} saved · repeat buyers and lifetime value`, 'customers')}
       ${row('contact', 'Suppliers', 'Who you buy from', 'suppliers')}
       ${row('car', 'Mileage', 'Business trips and the deduction they are worth', 'mileage')}
@@ -5032,7 +5032,7 @@ OPEN.product = id => {
     <div class=\"preview\" id=\"pv\"></div>
     <details class=\"more-opts\" ${p ? 'open' : ''}><summary><span>More options</span><span class=\"mo-sub\">SKU, supplies, bulk prices, notes</span></summary>
     <div class=\"grid2\">${fText('SKU', 'sku', d.sku, 'maxlength=\"30\"')}${fText('Location', 'location', d.location, 'maxlength=\"40\" placeholder=\"Shelf A, bin 3…\"')}</div>
-    <div class=\"grid2\">${fText('Barcode', 'barcode', d.barcode, 'maxlength=\"40\"')}${fNum('Low-stock alert', 'low', d.low, 'Default ' + state.settings.lowStock, 'min=\"0\" step=\"1\"')}</div>
+    <div class=\"grid2\">${fText('Item number', 'barcode', d.barcode, 'maxlength=\"40\"')}${fNum('Low-stock alert', 'low', d.low, 'Default ' + state.settings.lowStock, 'min=\"0\" step=\"1\"')}</div>
     ${fSupplier(d.supplierId)}
     ${fNum('Estimated value per unit', 'valEst', d.valAuto ? '' : d.valEst, 'Optional', 'min=\"0\"')}
     <p class=\"hint\" style=\"margin:-6px 0 10px\">If you put nothing in, it uses ${fromPrice ? 'your selling price' : 'what it cost you'} (change this in Settings).</p>
@@ -15125,66 +15125,17 @@ setTimeout(inject, 0);
 </style>
 
 <script>
-/* BARCODES ADD-ON for Grimms Business Tracker
-   More > Barcodes & scanner: every item gets a real EAN-13 barcode + number, print labels,
-   scan with the camera or a USB/Bluetooth scanner, and open a full item page.
-   Scan log is saved inside your normal app data (state.scanLog), so backups include it. */
+/* ITEM NUMBERS ADD-ON for Grimms Business Tracker
+   More > Item numbers & lookup: every item gets a 13-digit item number, print number labels,
+   look an item up by typing its number (or with a USB/Bluetooth scanner that types it), and open a full item page.
+   Stock log is saved inside your normal app data (state.scanLog), so backups include it.
+   Label template choices are remembered per label size (state.labelPrefs). */
 (() => {
 'use strict';
-/* ---------- EAN-13 encode / decode (pure functions, no libraries) ---------- */
-const L = ['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
-const R = L.map(s => s.replace(/[01]/g, c => c === '1' ? '0' : '1'));
-const Gc = R.map(s => s.split('').reverse().join(''));
-const PAR = ['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
 const check = d12 => { let s = 0; for (let i = 0; i < 12; i++) s += +d12[i] * (i % 2 ? 3 : 1); return (10 - s % 10) % 10; };
 const validEan = c => /^\d{13}$/.test(c) && check(c.slice(0, 12)) === +c[12];
 const toEan = c => { c = String(c || '').trim(); if (/^\d{12}$/.test(c)) c = '0' + c; return validEan(c) ? c : ''; };
-function modules(c) {
-  let m = '101'; const p = PAR[+c[0]];
-  for (let i = 0; i < 6; i++) m += (p[i] === 'L' ? L : Gc)[+c[i + 1]];
-  m += '01010'; for (let i = 7; i < 13; i++) m += R[+c[i]];
-  return m + '101';
-}
-function svg(c, h, noText, stretch) {
-  h = h || 60; const m = modules(c), q = 11; let bars = '';
-  for (let i = 0; i < m.length;) { if (m[i] === '1') { let j = i; while (m[j] === '1') j++; const g = (i < 3 || (i >= 45 && i < 50) || i >= 92); bars += `<rect x="${q + i}" y="0" width="${j - i}" height="${g ? h + 5 : h}"/>`; i = j; } else i++; }
-  const t = (x, s) => `<text x="${x}" y="${h + 13}" text-anchor="middle">${s}</text>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${95 + q + 9} ${h + (noText ? 6 : 16)}" style="background:#fff;display:block;width:100%;height:100%" preserveAspectRatio="${stretch ? 'none' : 'xMidYMid meet'}"><rect width="100%" height="100%" fill="#fff"/><g fill="#000">${bars}</g>${noText ? '' : `<g font-family="Arial,sans-serif" font-size="10" fill="#000">${t(q - 4, c[0])}${t(q + 24, c.slice(1, 7))}${t(q + 71, c.slice(7))}</g>`}</svg>`;
-}
-/* decoder: takes runs of bar/space widths (starting with a bar) */
-const W = s => { const o = []; let i = 0; while (i < s.length) { let j = i; while (s[j] === s[i]) j++; o.push(j - i); i = j; } return o; };
-const PL = L.map(W), PG = Gc.map(W);
-function digit(w, tabs) { const t = w.reduce((a, b) => a + b, 0), n = w.map(x => x * 7 / t); let best = 9, bi = -1, bt = -1, second = 9;
-  tabs.forEach((tb, k) => tb.forEach((p, d) => { let e = 0; for (let i = 0; i < 4; i++) e += Math.abs(n[i] - p[i]); if (e < best) { if (bi !== d) second = best; best = e; bi = d; bt = k; } else if (e < second && d !== bi) second = e; }));
-  /* strict: the pattern has to be a close match AND clearly better than the next closest digit, otherwise it is a blur, not a digit */
-  return best < 1.1 && second - best > .45 ? [bi, bt] : null; }
-function decodeRuns(r) {
-  for (let s = 0; s + 59 <= r.length; s += 2) {
-    const u = (r[s] + r[s + 1] + r[s + 2]) / 3; if (Math.max(r[s], r[s + 1], r[s + 2]) > u * 1.8 || Math.min(r[s], r[s + 1], r[s + 2]) < u * .5) continue;
-    let p = s + 3, d = [], par = '', ok = true;
-    for (let i = 0; i < 6 && ok; i++, p += 4) { const x = digit(r.slice(p, p + 4), [PL, PG]); if (!x) ok = false; else { d.push(x[0]); par += x[1] ? 'G' : 'L'; } }
-    if (!ok) continue; p += 5;
-    for (let i = 0; i < 6 && ok; i++, p += 4) { const x = digit(r.slice(p, p + 4), [PL]); if (!x) ok = false; else d.push(x[0]); }
-    const f = PAR.indexOf(par); if (!ok || f < 0) continue;
-    const c = f + d.join(''); if (validEan(c)) return c;
-  } return null;
-}
-function runsOf(row) {
-  let mn = 255, mx = 0; for (const v of row) { if (v < mn) mn = v; if (v > mx) mx = v; } if (mx - mn < 40) return null;
-  const th = (mn + mx) / 2, r = []; let cur = row[0] < th, n = 0, started = false;
-  for (const v of row) { const b = v < th; if (b === cur) n++; else { if (started || cur) { started = true; r.push(n); } n = 1; cur = b; } }
-  r.push(n); return r;
-}
-function decodeRow(row) { const r = runsOf(row); if (!r) return null; if (r.length < 59) return null; const a = decodeRuns(r); if (a) return a; const v = r.slice().reverse(); return decodeRuns((r.length - 1) % 2 ? v.slice(1) : v); }
-/* Real scanners read a thin line right at the aim point, so this does too: only rows at the red line are used (a sheet of labels has other barcodes just above and below).
-   At least two of those rows must read the SAME number, and if they disagree nothing is returned (decodeGray.multi is set so the camera can say so). */
-function decodeGray(g, w, h) {
-  const votes = {}; let any = 0;
-  for (const f of [.5, .48, .52, .46, .54, .44, .56]) { const y = Math.floor(h * f), c = decodeRow(g.subarray(y * w, y * w + w)); if (c) { votes[c] = (votes[c] || 0) + (f === .5 ? 1.5 : 1); any++; } }
-  const ks = Object.keys(votes).sort((a, b) => votes[b] - votes[a]); decodeGray.multi = ks.length > 1 && votes[ks[0]] < 2 * votes[ks[1]];
-  return ks.length && votes[ks[0]] >= 2 && (ks.length === 1 || votes[ks[0]] >= 2 * votes[ks[1]]) ? ks[0] : null;
-}
-if (typeof module !== 'undefined') { module.exports = { svg, modules, decodeGray, decodeRow, check, validEan, toEan }; return; }
+if (typeof module !== 'undefined') { module.exports = { check, validEan, toEan }; return; }
 
 /* ---------- app glue ---------- */
 const G = window.GBT; if (!G || !G.V || !G.ic) return;
@@ -15237,7 +15188,7 @@ const fmtT = t => new Date(t).toLocaleString(undefined, { month: 'short', day: '
 const stateOf = it => { const q = it.k === 'p' ? num(it.o.qty) : num(it.o.qty), low = it.o.low === '' || it.o.low == null ? num(S().settings.lowStock) : num(it.o.low); return q <= 0 ? ['Out of stock', '#c0392b'] : (!it.o.oneOff && q <= low) ? ['Low stock', '#d98a00'] : ['In stock', '#1e8e5a']; };
 
 /* ---------- item page (what a scan opens) ---------- */
-const UI = { inStock: false, kind: 'all', pv: true, mode: 'look', reason: 'Used', sel: {}, size: '4x6', layout: 'single', rot: false, paper: 'letter', auto: true, cols: 2, rows: 4, show: { name: true, sku: true, bar: true, num: true, price: false }, style: { font: 'Arial', ts: 'm', bold: true, align: 'center', border: 'none', bh: 't', extra: '' }, styleOpen: false, q: '', cam: null, sess: [] };
+const UI = { inStock: false, kind: 'all', pv: true, mode: 'look', reason: 'Used', sel: {}, size: '4x6', layout: 'single', rot: false, paper: 'letter', auto: true, cols: 2, rows: 4, show: { name: true, sku: true, num: true, price: false }, style: { font: 'Arial', ts: 'm', bold: true, align: 'center', border: 'none', ns: 'm', extra: '' }, tpl: '', styleOpen: false, q: '', sess: [], ready: false };
 function sales(id) {
   const out = []; (S().orders || []).forEach(o => { if (/cancel|refunded/i.test(o.status || '')) return; (o.items || []).forEach(l => { if (l.productId === id) out.push({ d: o.date || '', n: o.sku || ('#' + (o.no || '')), q: num(l.qty) - num(l.returned), p: num(l.price), s: o.status, c: o.customer || o.customerName || '' }); }); });
   return out.sort((a, b) => String(b.d).localeCompare(String(a.d)));
@@ -15251,13 +15202,13 @@ function itemPage(it, flash) {
   const vars = (o.variants || []).filter(v => v.size || v.color);
   const d = document.createElement('div'); d.id = 'bc-ov'; d.innerHTML = `<div class="bc-sheet"><div class="bc-top"><div><div class="xs sub">${kindOf(it)}</div><h3 style="margin:0">${esc(nameOf(it))}</h3></div><button class="icon-btn" data-bc="close" aria-label="Close">${ic('x')}</button></div>
   <div class="bc-body">${flash ? `<div class="bc-flash">${esc(flash)}</div>` : ''}
-  <div class="card sm" style="text-align:center"><div style="height:110px;max-width:260px;margin:0 auto">${svg(code)}</div><span class="bc-pill" style="background:${st[1]}">${st[0]}</span> <button class="btn btn-soft btn-sm" data-bc="print1" data-k="${key(it)}">${ic('printer')} Print label</button> <button class="btn btn-soft btn-sm" data-bc="pdf1" data-k="${key(it)}">${ic('download')} PDF</button></div>
+  <div class="card sm" style="text-align:center"><div class="bc-num">${esc(code[0] + ' ' + code.slice(1, 7) + ' ' + code.slice(7))}</div><span class="bc-pill" style="background:${st[1]}">${st[0]}</span> <button class="btn btn-soft btn-sm" data-bc="print1" data-k="${key(it)}">${ic('printer')} Print label</button> <button class="btn btn-soft btn-sm" data-bc="pdf1" data-k="${key(it)}">${ic('download')} PDF</button></div>
   <div class="bc-grid"><div><span>On hand</span><b>${num(o.qty)}${o.unit ? ' ' + esc(o.unit) : ''}</b></div><div><span>${isP ? 'Price' : 'Cost each'}</span><b>${money(isP ? o.price : o.cost)}</b></div>${isP ? `<div><span>Cost to make</span><b>${money(cost)}</b></div><div><span>Margin</span><b>${margin == null ? '-' : margin + '%'}</b></div>` : `<div><span>Stock value</span><b>${money(num(o.qty) * num(o.cost))}</b></div>`}</div>
   <div class="card sm"><h4 style="margin:0 0 6px">Adjust stock</h4>${vars.length ? `<select class="select" id="bc-var" style="margin-bottom:6px">${vars.map(v => `<option value="${v.id}">${esc([v.size, v.color].filter(Boolean).join(' / '))} (${num(v.qty)} in stock)</option>`).join('')}</select>` : ''}
    <div class="grid2"><input class="input" id="bc-qty" type="number" inputmode="decimal" min="0" value="1" aria-label="Quantity"><select class="select" id="bc-why" aria-label="Reason">${['Used', 'Damaged', 'Lost', 'Stolen', 'Gave away', 'Expired', 'Other'].map(x => `<option>${x}</option>`).join('')}</select></div>
    <input class="input" id="bc-note" placeholder="Note (optional)" maxlength="120" style="margin:6px 0"><div class="row" style="gap:6px"><button class="btn btn-sm b" data-bc="in" data-k="${key(it)}">Receive +</button><button class="btn btn-soft btn-sm b" data-bc="out" data-k="${key(it)}">Remove -</button><button class="btn btn-line btn-sm b" data-bc="set" data-k="${key(it)}">Set count</button></div>
    <p class="hint" style="margin:6px 0 0">Reason applies to Remove. Record customer sales in Sales so profit stays right.</p></div>
-  <div class="card sm"><h4 style="margin:0 0 4px">Details</h4>${row('Barcode', code)}${row('SKU', o.sku)}${row('Category', o.category)}${row('Location', o.location)}${row('Supplier', sup && sup.name)}${row('Low-stock alert', o.low === '' || o.low == null ? 'Default ' + S().settings.lowStock : o.low)}${vars.length ? row('Sizes / colors', vars.map(v => [v.size, v.color].filter(Boolean).join('/') + ' x' + num(v.qty)).join(', ')) : ''}${row('Notes', o.notes)}</div>
+  <div class="card sm"><h4 style="margin:0 0 4px">Details</h4>${row('Item number', code)}${row('SKU', o.sku)}${row('Category', o.category)}${row('Location', o.location)}${row('Supplier', sup && sup.name)}${row('Low-stock alert', o.low === '' || o.low == null ? 'Default ' + S().settings.lowStock : o.low)}${vars.length ? row('Sizes / colors', vars.map(v => [v.size, v.color].filter(Boolean).join('/') + ' x' + num(v.qty)).join(', ')) : ''}${row('Notes', o.notes)}</div>
   ${isP ? `<div class="card sm"><h4 style="margin:0 0 4px">Sales</h4>${sl.length ? row('Units sold', units) + row('Revenue', money(rev)) + sl.slice(0, 4).map(x => `<div class="bc-r"><span>${esc(x.d)} ${esc(x.n)}</span><b>${x.q} x ${money(x.p)}</b></div>`).join('') : '<p class="hint" style="margin:0">No sales yet.</p>'}</div>` : ''}
   ${lst.length ? `<div class="card sm"><h4 style="margin:0 0 4px">Listings</h4>${lst.map(l => `<div class="bc-r"><span>${esc(l.title)}</span><b>${esc(l.status || '')}</b></div>`).join('')}</div>` : ''}
   <div class="card sm"><h4 style="margin:0 0 4px">Stock history</h4>${mv.length ? mv.map(x => `<div class="bc-r"><span>${fmtT(x.t)} ${esc(x.reason || actName(x.act))}${x.note ? ' - ' + esc(x.note) : ''}</span><b>${x.qty > 0 ? '+' : ''}${x.qty} (${x.after})</b></div>`).join('') : '<p class="hint" style="margin:0">No scans or adjustments yet.</p>'}</div>
@@ -15265,144 +15216,106 @@ function itemPage(it, flash) {
   document.body.appendChild(d);
 }
 const actName = a => a === 'in' ? 'Received' : a === 'out' ? 'Removed' : 'Count set';
-const closeOv = resume => { const o = $('#bc-ov'); if (o) o.remove(); if (resume) resumeCam(); };
+const closeOv = () => { const o = $('#bc-ov'); if (o) o.remove(); };
 function unknown(code) {
   closeOv(); const d = document.createElement('div'); d.id = 'bc-ov';
-  d.innerHTML = `<div class="bc-sheet"><div class="bc-top"><div><h3 style="margin:0">Not found</h3><div class="xs sub">${esc(code)}</div></div><button class="icon-btn" data-bc="close" aria-label="Close">${ic('x')}</button></div><div class="bc-body"><p class="hint">No item has this barcode. If it is a product you already have, link it to the item below, so next scan finds it.</p><input class="input" id="bc-lq" placeholder="Search your items"><div id="bc-ll"></div></div></div>`;
+  d.innerHTML = `<div class="bc-sheet"><div class="bc-top"><div><h3 style="margin:0">Not found</h3><div class="xs sub">${esc(code)}</div></div><button class="icon-btn" data-bc="close" aria-label="Close">${ic('x')}</button></div><div class="bc-body"><p class="hint">No item has this number. If it is an item you already have, link it to the item below, so next time it is found.</p><input class="input" id="bc-lq" placeholder="Search your items"><div id="bc-ll"></div></div></div>`;
   document.body.appendChild(d); d.dataset.code = code; linkList('');
 }
-function linkList(q) { const h = $('#bc-ll'); if (!h) return; q = q.toLowerCase(); h.innerHTML = items().filter(i => !q || (nameOf(i) + ' ' + (i.o.sku || '')).toLowerCase().includes(q)).slice(0, 30).map(i => `<button class="card sm item click" data-bc="link" data-k="${key(i)}" style="width:100%;text-align:left"><div class="grow"><h4 class="trunc">${esc(nameOf(i))}</h4><div class="xs sub">${esc(i.o.sku || '')} ${i.o.barcode ? '- has barcode ' + esc(i.o.barcode) : ''}</div></div></button>`).join(''); }
+function linkList(q) { const h = $('#bc-ll'); if (!h) return; q = q.toLowerCase(); h.innerHTML = items().filter(i => !q || (nameOf(i) + ' ' + (i.o.sku || '')).toLowerCase().includes(q)).slice(0, 30).map(i => `<button class="card sm item click" data-bc="link" data-k="${key(i)}" style="width:100%;text-align:left"><div class="grow"><h4 class="trunc">${esc(nameOf(i))}</h4><div class="xs sub">${esc(i.o.sku || '')} ${i.o.barcode ? '- has number ' + esc(i.o.barcode) : ''}</div></div></button>`).join(''); }
 
-/* ---------- scan handling ---------- */
+/* ---------- lookup handling ---------- */
 let lastCode = '', lastAt = 0;
-const NEED_READS = 3; /* the camera must read the SAME code this many times in a row before it counts */
-function handle(code, src) {
+function handle(code) {
   code = String(code || '').trim(); const now = Date.now(); if (!code || (code === lastCode && now - lastAt < 1800)) return; lastCode = code; lastAt = now;
-  const cam = src === 'cam';
   const it = find(code);
-  if (!it) { beep(); if (cam) pauseCam(); if (UI.mode === 'look' || cam) return unknown(code); return toast('Not found: ' + code); }
+  if (!it) { beep(); if (UI.mode === 'look') return unknown(code); return toast('Not found: ' + code); }
   beep();
-  if (cam) pauseCam(); /* freeze the camera until you have looked at the result */
-  if (UI.mode === 'look') return itemPage(it, cam ? 'Scanned ' + code : '');
+  if (UI.mode === 'look') return itemPage(it, '');
   if ((it.o.variants || []).some(v => v.size || v.color)) return itemPage(it, 'This item has sizes/colors. Pick one and adjust here.');
-  if (cam) return confirmScan(it, code); /* camera: show the item and ask before any stock changes */
-  const e = adjust(it, UI.mode === 'in' ? 'in' : 'out', 1, UI.mode === 'in' ? 'Received (scan)' : UI.reason, 'scan'); if (!e) return;
+  const e = adjust(it, UI.mode === 'in' ? 'in' : 'out', 1, UI.mode === 'in' ? 'Received (number)' : UI.reason, 'lookup'); if (!e) return;
   UI.sess.unshift({ id: e.id, n: nameOf(it), m: UI.mode, a: e.after }); UI.sess.length = Math.min(UI.sess.length, 15); G.render();
 }
-function confirmScan(it, code) {
-  closeOv(); const inn = UI.mode === 'in', d = document.createElement('div'); d.id = 'bc-ov'; const o = it.o;
-  d.innerHTML = `<div class="bc-sheet"><div class="bc-top"><div><div class="xs sub">${inn ? 'Receive stock' : 'Remove stock'} &middot; scanned ${esc(code)}</div><h3 style="margin:0">${esc(nameOf(it))}</h3></div><button class="icon-btn" data-bc="close" aria-label="Cancel">${ic('x')}</button></div>
-  <div class="bc-body"><div class="bc-grid"><div><span>On hand now</span><b>${num(o.qty)}${o.unit ? ' ' + esc(o.unit) : ''}</b></div><div><span>SKU</span><b>${esc(o.sku || '-')}</b></div></div>
-  <div class="row" style="gap:8px;align-items:center;justify-content:center"><button class="btn btn-line" data-bc="cq" data-d="-1" aria-label="One less">-</button><input class="input" id="bc-cqty" type="number" inputmode="decimal" min="1" value="1" aria-label="Quantity" style="width:90px;text-align:center"><button class="btn btn-line" data-bc="cq" data-d="1" aria-label="One more">+</button></div>
-  ${inn ? '' : `<p class="hint" style="margin:0;text-align:center">Reason: ${esc(UI.reason)}</p>`}
-  <button class="btn b block" data-bc="cok" data-k="${key(it)}">${inn ? 'Receive' : 'Remove'}</button><button class="btn btn-line block" data-bc="close">Wrong item / cancel</button></div></div>`;
-  document.body.appendChild(d);
-}
-const camHint = t => { const h = $('#bc-hint'); if (h) h.textContent = t; };
-/* zoom slider (when the phone supports it) so you can stay back where the camera is in focus */
-function zoomUi() {
-  const c = UI.cam, box = $('#bc-cam'); if (!c || !box || $('#bc-zoom')) return;
-  let cp = {}; try { const tr = c.stream.getVideoTracks()[0]; cp = (tr.getCapabilities && tr.getCapabilities()) || {}; } catch (e) { } if (!cp.zoom) return;
-  const z = document.createElement('input'); z.type = 'range'; z.id = 'bc-zoom'; z.min = cp.zoom.min; z.max = cp.zoom.max; z.step = cp.zoom.step || .1; z.value = c.zoom || cp.zoom.min; z.setAttribute('aria-label', 'Zoom');
-  z.style.cssText = 'position:absolute;left:12%;right:12%;bottom:8px;width:76%;opacity:.9;z-index:2'; z.oninput = () => { c.zoom = +z.value; try { c.stream.getVideoTracks()[0].applyConstraints({ advanced: [{ zoom: c.zoom }] }); } catch (e) { } }; box.appendChild(z);
-  if (c.zoom) { try { c.stream.getVideoTracks()[0].applyConstraints({ advanced: [{ zoom: c.zoom }] }); } catch (e) { } }
-}
-/* Pick the barcode the person is actually aiming at. The detector returns every barcode in the whole camera frame (in no useful order),
-   but the screen only shows the middle part and the red line is the centre. Taking the first result is what made a label scan as its neighbour. */
-function pickDetected(r, v) {
-  const out = { code: null, multi: false }; const vw = v.videoWidth, vh = v.videoHeight, cw = v.clientWidth || vw, ch = v.clientHeight || vh;
-  const sc = Math.max(cw / vw, ch / vh), visW = cw / sc, visH = ch / sc, x0 = (vw - visW) / 2, y0 = (vh - visH) / 2, cy = vh / 2, cx = vw / 2;
-  const list = (r || []).filter(d => d && d.rawValue).map(d => { const b = d.boundingBox || {}; return { code: d.rawValue, top: b.y, bot: b.y + b.height, mid: b.x + b.width / 2, vm: b.y + b.height / 2, hasBox: isFinite(b.y) && isFinite(b.height) && b.height > 0, x: b.x, w: b.width }; });
-  if (!list.length) return out;
-  const vis = list.filter(d => !d.hasBox || (d.bot > y0 && d.top < y0 + visH && d.x + d.w > x0 && d.x < x0 + visW));
-  if (!vis.length) return out;
-  /* like a real scanner: the barcode nearest the red line wins, so you can hold the phone far enough back to stay in focus.
-     It only gives up when two barcodes are about equally close to the line. */
-  const dist = d => d.hasBox ? Math.abs(d.vm - cy) + .35 * Math.abs(d.mid - cx) : 1e9, sorted = vis.slice().sort((a, b) => dist(a) - dist(b));
-  const best = sorted[0], other = sorted.find(d => d.code !== best.code);
-  if (!best.hasBox) { if (!other) out.code = best.code; else out.multi = true; return out; }
-  const bh = Math.max(best.bot - best.top, 1);
-  if (!other) { if (Math.abs(best.vm - cy) <= bh * 1.1) out.code = best.code; return out; }
-  if (dist(other) - dist(best) >= bh * .6 && Math.abs(best.vm - cy) <= bh * 1.4) { out.code = best.code; return out; }
-  out.multi = true; return out;
-}
-function pauseCam() { if (UI.cam) { UI.cam.paused = true; UI.cam.n = 0; UI.cam.code = ''; camHint('Paused. Check the item, then close it to scan again'); } }
-function resumeCam() { if (UI.cam) { UI.cam.paused = false; UI.cam.n = 0; UI.cam.code = ''; UI.cam.at = 0; lastCode = ''; camHint('Line the barcode up with the red line'); } }
-/* the page re-draws after stock changes, which replaces the <video>. Hook the live stream back up. */
-async function bindCam() {
-  const c = UI.cam; if (!c || !c.on) return; const v = $('#bc-vid'); if (!v || v.srcObject === c.stream) return;
-  v.srcObject = c.stream; const b = $('#bc-cam'); if (b) b.hidden = false; try { await v.play(); } catch (e) { } zoomUi();
-  camHint(c.paused ? 'Paused. Check the item, then close it to scan again' : 'Line the barcode up with the red line');
-}
-async function startCam() {
-  stopCam(); const v = $('#bc-vid'); if (!v) return; const box = $('#bc-cam'); box.hidden = false;
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
-    v.srcObject = stream; await v.play(); let det = null; try { const tr = stream.getVideoTracks()[0], cp = (tr.getCapabilities && tr.getCapabilities()) || {}; if (cp.focusMode && cp.focusMode.includes('continuous')) await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) { }
-    try { if (window.BarcodeDetector) det = new BarcodeDetector({ formats: ['ean_13', 'upc_a', 'ean_8', 'upc_e'] }); } catch (e) { }
-    const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true }); const me = UI.cam = { stream, on: true, paused: false, code: '', n: 0, at: 0 };
-    camHint('Line the barcode up with the red line'); zoomUi();
-    const tick = async () => {
-      if (UI.cam !== me || !me.on) return;
-      try {
-        await bindCam(); const v = $('#bc-vid');
-        if (v && v.videoWidth && !me.paused) {
-          /* a frozen picture is the worst case: it would keep re-reading the LAST barcode you scanned. Make sure the video is really moving. */
-          const tm = v.currentTime, mv = tm !== me.lt; me.lt = tm;
-          if (v.paused || v.readyState < 2 || !mv) { me.stale = (me.stale || 0) + 1; if (v.paused) { try { v.play(); } catch (e) { } } if (me.stale > 20) { camHint('Camera froze. Restarting...'); setTimeout(startCam, 50); return; } setTimeout(tick, 140); return; }
-          me.stale = 0;
-          let c = null;
-          let multi = false;
-          /* read ONLY the part of the picture you can see on screen (the box crops the camera frame), so nothing outside it can be picked up */
-          const vw = v.videoWidth, vh = v.videoHeight, bw = v.clientWidth || vw, bh = v.clientHeight || vh, sc = Math.max(bw / vw, bh / vh), sw = Math.min(vw, bw / sc), sh = Math.min(vh, bh / sc), sx = (vw - sw) / 2, sy = (vh - sh) / 2;
-          const w = Math.min(1280, Math.round(sw)), h = Math.max(1, Math.round(w * sh / sw)); cv.width = w; cv.height = h; cx.drawImage(v, sx, sy, sw, sh, 0, 0, w, h);
-          if (det) { const r = await det.detect(cv), pk = pickDetected(r, { videoWidth: w, videoHeight: h, clientWidth: w, clientHeight: h }); c = pk.code; multi = pk.multi; }
-          if (!c) { const px = cx.getImageData(0, 0, w, h).data, g = new Uint8Array(w * h); for (let i = 0; i < g.length; i++) g[i] = (px[i * 4] * 77 + px[i * 4 + 1] * 150 + px[i * 4 + 2] * 29) >> 8; c = decodeGray(g, w, h); multi = multi || !!decodeGray.multi; }
-          if (UI.cam !== me || me.paused) { setTimeout(tick, 140); return; }
-          const now = Date.now();
-          if (c) {
-            if (c === me.code && now - me.at < 800) me.n++; else { me.code = c; me.n = 1; } me.at = now;
-            if (me.n >= NEED_READS) { me.code = ''; me.n = 0; camHint('Got it ' + c); handle(c, 'cam'); }
-            else camHint('Reading ' + c + '  ' + '\u25cf'.repeat(me.n) + '\u25cb'.repeat(NEED_READS - me.n));
-          } else if (multi) { me.n = 0; me.code = ''; camHint('Several barcodes in view. Move closer so only one is on the red line'); }
-          else if (me.n && now - me.at > 800) { me.n = 0; me.code = ''; camHint('Line the barcode up with the red line'); }
-        }
-      } catch (e) { }
-      setTimeout(tick, 140);
-    }; tick();
-  } catch (e) { box.hidden = true; toast('Camera is blocked. Allow camera access, or type the number / use a barcode scanner.'); }
-}
-function stopCam() { if (UI.cam) { UI.cam.on = false; try { UI.cam.stream.getTracks().forEach(t => t.stop()); } catch (e) { } UI.cam = null; } const b = $('#bc-cam'); if (b) b.hidden = true; }
 
 /* ---------- label printing ---------- */
 const SIZES = { '2.25x1.25': ['Roll 2.25 x 1.25 in', 2.25, 1.25, 1, 1], '2x1': ['Roll 2 x 1 in', 2, 1, 1, 1], '3x2': ['Roll 3 x 2 in', 3, 2, 1, 1], '4x6': ['Roll 4 x 6 in', 4, 6, 1, 1], '5160': ['Sheet 30-up (Avery 5160, Letter)', 2.625, 1, 3, 10] };
 const rz = z => UI.rot ? [z[0], z[2], z[1], z[3], z[4]] : z;
 const PAPER = { '4x6': ['4 x 6 in thermal', 4, 6, .1, .06], letter: ['Letter', 8.5, 11, .4, .1], a4: ['A4', 8.27, 11.69, .4, .1], '5160': ['Avery 5160 (30-up)', 8.5, 11, 0, 0] };
-/* ---- scan quality: narrowest bar width (mm) and barcode height (mm) for a label cell of cw x ch inches ---- */
-const LB_MIN_W = 1.5, LB_MIN_BAR = .3, LB_MIN_HT = 11;
-function scanInfo(w, h) {
-  const bar = (w - .12) / 115 * 25.4; if (h >= 3) return { bar, ht: 999 };
-  const st = UI.style, sh = UI.show, tp = Math.max(6.5, Math.min(h * 7, w * 4.2)) * ({ s: .75, m: 1, l: 1.3 }[st.ts] || 1), sp = Math.max(6, Math.min(7, w * 3)), np = Math.max(6.5, Math.min(99, h * 6, w * 6));
-  let used = .12, n = 0; if (sh.name) { used += tp * 1.2 / 72; n++; } if (sh.sku) { used += sp * 1.2 / 72; n++; } if (sh.num) { used += np * 1.2 / 72; n++; } if (sh.price) { used += sp * 1.2 / 72; n++; } if (st.extra) { used += sp * 1.2 / 72; n++; } if (sh.bar) n++;
-  used += Math.max(0, n - 1) * .03; const cap = ({ s: .45, m: .7, t: 1 }[st.bh] || 1) * (h - .12);
-  return { bar, ht: Math.max(0, Math.min(h - used, cap)) * 25.4 };
+/* ---- text sizing: one place decides every font size so the screen, print and PDF all match ---- */
+const NM = { s: .7, m: .9, l: 1 };
+function fd(w, h, st) {
+  st = st || UI.style; const big = h >= 3, pad = big ? .25 : .06, gap = big ? .12 : .03, bwi = ({ none: 0, thin: 1, thick: 3, round: 2 }[st.border] || 0) / 96, avail = Math.max(.3, w - 2 * (pad + bwi));
+  const tp = (big ? Math.min(30, w * 9) : Math.max(6.5, Math.min(h * 7, w * 4.2))) * ({ s: .75, m: 1, l: 1.3 }[st.ts] || 1), sp = big ? Math.min(18, w * 5) : Math.max(6, Math.min(7, w * 3));
+  const stack = big && st.ns === 'l', fit = avail * 72 / ((stack ? 8 : 15) * .68), np = Math.min(fit, Math.max(6.5, Math.min(fit, big ? 64 : 40, h * 18) * (NM[st.ns] || .9)));
+  return { big, pad, gap, tp, sp, np, stack };
 }
-function scanNote(si) {
-  if (si.bar < .264) return ['bad', 'Bars are too thin to scan reliably (' + si.bar.toFixed(2) + ' mm). Use fewer across.'];
-  if (si.ht < 8) return ['bad', 'Barcode is too short (about ' + Math.round(si.ht) + ' mm). Use fewer rows, or turn off a line like SKU.'];
-  if (si.bar < .3) return ['warn', 'Bars are borderline (' + si.bar.toFixed(2) + ' mm). Phone cameras will work, handheld scanners may not.'];
-  if (si.ht < LB_MIN_HT) return ['warn', 'Barcode is short (about ' + Math.round(si.ht) + ' mm). Fine for a phone camera, but handheld scanners may miss it.'];
-  return ['ok', 'Scans well: bars ' + si.bar.toFixed(2) + ' mm' + (si.ht < 900 ? ', barcode about ' + Math.round(si.ht) + ' mm tall' : '') + '.'];
+const nlines = (c, d) => d.stack ? [c[0] + ' ' + c.slice(1, 7), c.slice(7)] : [c[0] + ' ' + c.slice(1, 7) + ' ' + c.slice(7)];
+function readNote(w, h) {
+  const d = fd(w, h);
+  if (d.np < 7.5) return ['bad', 'The number would print very small (about ' + Math.round(d.np) + ' pt). Use fewer across or down.'];
+  if (d.np < 9) return ['warn', 'The number is on the small side (about ' + Math.round(d.np) + ' pt). Fewer across or down makes it bigger.'];
+  return ['ok', 'Easy to read: the number prints about ' + Math.round(d.np) + ' pt.'];
+}
+/* ---- ready-made templates: what shows + the look. [id, name, what shows, style, recommended] ---- */
+const TPL = {
+  s: [['s-namenum', 'Name + number', 'name,num', { ts: 'm', bold: true, align: 'center', border: 'none', ns: 'm' }, 1],
+      ['s-numonly', 'Number only', 'num', { ts: 'm', bold: true, align: 'center', border: 'none', ns: 'l' }],
+      ['s-skunum', 'SKU + number', 'sku,num', { ts: 'm', bold: true, align: 'center', border: 'none', ns: 'm' }],
+      ['s-all', 'Name, SKU + number', 'name,sku,num', { ts: 's', bold: true, align: 'center', border: 'none', ns: 's' }],
+      ['s-price', 'Price tag', 'name,price,num', { ts: 's', bold: true, align: 'center', border: 'none', ns: 's' }]],
+  m: [['m-nameskunum', 'Name, SKU + number', 'name,sku,num', { ts: 'm', bold: true, align: 'center', border: 'none', ns: 'm' }, 1],
+      ['m-namenum', 'Name + big number', 'name,num', { ts: 'm', bold: true, align: 'center', border: 'none', ns: 'l' }],
+      ['m-numonly', 'Number only', 'num', { ts: 'm', bold: true, align: 'center', border: 'none', ns: 'l' }],
+      ['m-price', 'Shelf price tag', 'name,price,num', { ts: 'm', bold: true, align: 'center', border: 'none', ns: 'm' }],
+      ['m-box', 'Boxed tag', 'name,sku,num', { ts: 'm', bold: true, align: 'center', border: 'thin', ns: 'm' }],
+      ['m-round', 'Rounded tag with price', 'name,sku,num,price', { ts: 's', bold: true, align: 'center', border: 'round', ns: 'm' }]],
+  l: [['l-big', 'Big name + number', 'name,sku,num', { ts: 'm', bold: true, align: 'center', border: 'none', ns: 'm' }, 1],
+      ['l-huge', 'Huge number', 'num', { ts: 'm', bold: true, align: 'center', border: 'none', ns: 'l' }],
+      ['l-bin', 'Bin / shelf label', 'name,sku,num', { ts: 'l', bold: true, align: 'center', border: 'thick', ns: 'm' }],
+      ['l-price', 'Price + number', 'name,price,num', { ts: 'm', bold: true, align: 'center', border: 'round', ns: 'm' }],
+      ['l-full', 'Everything, left aligned', 'name,sku,num,price', { ts: 's', bold: true, align: 'left', border: 'thin', ns: 'm' }]]
+};
+const CATN = { s: 'small', m: 'medium', l: 'large' }, SHOWN = { name: 'Name', sku: 'SKU', num: 'Number', price: 'Price' };
+const catOf = (w, h) => h >= 3 ? 'l' : (h < 1.6 || w < 2.3) ? 's' : 'm';
+function applyTpl(id, cat) {
+  const t = (TPL[cat] || []).find(x => x[0] === id); if (!t) return false;
+  UI.show = { name: false, sku: false, num: false, price: false }; t[2].split(',').forEach(k => { UI.show[k] = true; });
+  Object.assign(UI.style, t[3]); UI.tpl = id; return true;
+}
+/* ---- remember the last template (and tweaks) used for each label size / paper ---- */
+const prefs = () => { const x = S(); if (!x.labelPrefs || typeof x.labelPrefs !== 'object') x.labelPrefs = {}; if (!x.labelPrefs.by || typeof x.labelPrefs.by !== 'object') x.labelPrefs.by = {}; if (!x.labelPrefs.last || typeof x.labelPrefs.last !== 'object') x.labelPrefs.last = {}; return x.labelPrefs; };
+const cfgKey = () => UI.layout === 'grid' ? 'g:' + UI.paper : 's:' + UI.size;
+function saveCfg() { try { const P = prefs(); P.last = { layout: UI.layout, size: UI.size, paper: UI.paper }; P.by[cfgKey()] = { tpl: UI.tpl, show: Object.assign({}, UI.show), style: Object.assign({}, UI.style), rot: UI.rot, auto: UI.auto, cols: UI.cols, rows: UI.rows }; save(); } catch (e) { } }
+function defDims() {
+  if (UI.layout !== 'grid') { const z = rz(SIZES[UI.size] || SIZES['4x6']); return [z[1], z[2]]; }
+  if (UI.paper === '5160') return [2.625, 1];
+  const P = PAPER[UI.paper] || PAPER.letter, pw = UI.rot ? P[2] : P[1], ph = UI.rot ? P[1] : P[2], r = presetsFor().find(x => x[3]) || [2, 4];
+  return [(pw - 2 * P[3] - (r[0] - 1) * P[4]) / r[0], (ph - 2 * P[3] - (r[1] - 1) * P[4]) / r[1]];
+}
+/* returns true when something was saved for this size; otherwise starts it on its recommended template */
+function loadCfg() {
+  let c = null; try { c = prefs().by[cfgKey()]; } catch (e) { }
+  try { const P = prefs(); P.last = { layout: UI.layout, size: UI.size, paper: UI.paper }; save(); } catch (e) { }
+  if (c && c.show && c.style) {
+    UI.show = Object.assign({ name: false, sku: false, num: false, price: false }, c.show); delete UI.show.bar; if (!Object.values(UI.show).some(Boolean)) UI.show.num = true;
+    UI.style = Object.assign({}, UI.style, c.style); delete UI.style.bh; UI.tpl = c.tpl || ''; UI.rot = !!c.rot; UI.auto = c.auto !== false; if (c.cols) UI.cols = c.cols; if (c.rows) UI.rows = c.rows; return true;
+  }
+  UI.rot = false; UI.auto = true; const d = defDims(), cat = catOf(d[0], d[1]), rec = TPL[cat].find(x => x[4]); if (rec) applyTpl(rec[0], cat); return false;
+}
+function ensureInit() {
+  if (UI.ready) return; UI.ready = true;
+  try { const l = prefs().last || {}; if (l.layout === 'grid' || l.layout === 'single') UI.layout = l.layout; if (SIZES[l.size]) UI.size = l.size; if (PAPER[l.paper]) UI.paper = l.paper; } catch (e) { }
+  loadCfg();
 }
 /* ready-made layouts per page: [across, down, name, recommended] */
 const PRESETS = {
-  letter: [[2, 4, 'Large', 0], [2, 6, 'Standard', 0], [3, 8, 'Best for most', 1], [4, 9, 'Small items', 0]],
-  a4: [[2, 4, 'Large', 0], [2, 6, 'Standard', 0], [3, 8, 'Best for most', 1], [4, 9, 'Small items', 0]],
-  '4x6': [[1, 3, 'Large', 0], [1, 4, 'Standard', 0], [2, 4, 'Two across', 0], [2, 5, 'Best for most', 1]]
+  letter: [[2, 3, 'Extra large', 0], [2, 4, 'Large', 0], [2, 6, 'Standard', 0], [3, 8, 'Best for most', 1], [3, 10, 'Address size', 0], [4, 9, 'Small items', 0]],
+  a4: [[2, 3, 'Extra large', 0], [2, 4, 'Large', 0], [2, 6, 'Standard', 0], [3, 8, 'Best for most', 1], [3, 10, 'Address size', 0], [4, 9, 'Small items', 0]],
+  '4x6': [[1, 2, 'Half size', 0], [1, 3, 'Large', 0], [1, 4, 'Standard', 0], [2, 4, 'Two across', 0], [2, 5, 'Best for most', 1], [1, 6, 'Slim strips', 0]]
 };
 const PRESETS_LAND = {
-  letter: [[3, 4, 'Standard', 0], [4, 5, 'Best for most', 1], [4, 6, 'Small items', 0]],
-  a4: [[3, 4, 'Standard', 0], [4, 5, 'Best for most', 1], [4, 6, 'Small items', 0]],
+  letter: [[2, 4, 'Wide', 0], [3, 4, 'Standard', 0], [4, 5, 'Best for most', 1], [4, 6, 'Small items', 0]],
+  a4: [[2, 4, 'Wide', 0], [3, 4, 'Standard', 0], [4, 5, 'Best for most', 1], [4, 6, 'Small items', 0]],
   '4x6': [[2, 2, 'Large', 0], [2, 3, 'Best for most', 1], [3, 3, 'Small items', 0]]
 };
 const bestPreset = () => { const p = presetsFor().find(x => x[3]); if (p && !UI.auto) { UI.cols = p[0]; UI.rows = p[1]; } };
@@ -15414,25 +15327,25 @@ function gridPlan(n) {
   let c = UI.cols, r = UI.rows;
   if (UI.auto) { let best = null;
     for (const strict of [true, false]) { for (let cc = 1; cc <= 6; cc++) for (let rr = 1; rr <= 12; rr++) { const d = dims(cc, rr);
-      if (strict) { const si = scanInfo(d[0], d[1]); if (d[0] < LB_MIN_W || si.bar < LB_MIN_BAR || si.ht < LB_MIN_HT || d[0] > 4.2 || d[1] > 3.6) continue; } else if (d[0] < 1.2 || d[1] < .6) continue;
+      if (strict) { if (d[0] < 1.5 || d[1] < .75 || d[0] > 4.2 || d[1] > 3.6) continue; } else if (d[0] < 1.2 || d[1] < .6) continue;
       const cells = cc * rr, pages = Math.ceil(n / cells), cost = pages * 1000 + (pages * cells - n) * 10 + Math.abs(Math.log(d[0] / d[1] / 1.8)) * 8 + Math.max(0, d[0] * d[1] - 8); if (!best || cost < best.cost) best = { cost, c: cc, r: rr }; } if (best) break; }
     c = best ? best.c : 1; r = best ? best.r : 1; }
   const d = dims(c, r); return { pw, ph, pt: m, pl: m, cg: g, rg: g, c, r, cw: Math.max(.3, d[0]), ch: Math.max(.3, d[1]), pages: Math.ceil(n / (c * r)) };
 }
 const gridCss = (pl, p) => `${p}.pg{box-sizing:border-box;width:${pl.pw}in;height:${pl.ph}in;padding:${pl.pt}in ${pl.pl}in;display:grid;grid-template-columns:repeat(${pl.c},${pl.cw}in);grid-template-rows:repeat(${pl.r},${pl.ch}in);column-gap:${pl.cg}in;row-gap:${pl.rg}in;overflow:hidden;page-break-after:always;background:#fff}`;
 function lbCss(z, p) {
-  p = p || ''; const st = UI.style, FAM = { Arial: 'Arial,sans-serif', Georgia: 'Georgia,serif', Courier: "'Courier New',monospace", Verdana: 'Verdana,sans-serif', Times: "'Times New Roman',serif", Impact: 'Impact,Arial Black,sans-serif' }[st.font] || 'Arial,sans-serif', BORD = { none: '0', thin: '1px solid #000', thick: '3px solid #000', round: '2px solid #000;border-radius:.12in' }[st.border] || '0'; const w = z[1], h = z[2], big = h >= 3, tp = big ? Math.min(30, w * 9) : Math.max(6.5, Math.min(h * 7, w * 4.2)), sp = big ? Math.min(18, w * 5) : Math.max(6, Math.min(7, w * 3)), np = Math.max(6.5, Math.min(big ? 20 : 99, h * 6, w * 6));
-  return `${p ? '' : 'body{margin:0}'}${p}.lb{box-sizing:border-box;font-family:${FAM};border:${BORD};color:#000;background:#fff;width:${w}in;height:${h}in;padding:${big ? .25 : .06}in;display:flex;flex-direction:column;justify-content:center;gap:${big ? .12 : .03}in;overflow:hidden;text-align:${st.align};page-break-inside:avoid}${p}.t{font-size:${tp * ({ s: .75, m: 1, l: 1.3 }[st.ts] || 1)}pt;font-weight:${st.bold ? 700 : 400};line-height:1.1;overflow:hidden;${big ? 'display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical' : 'white-space:nowrap;text-overflow:ellipsis'}}${p}.s{font-size:${sp}pt;font-weight:600}${p}.b{flex:1;min-height:0;max-height:${{ s: '45%', m: '70%', t: '100%' }[st.bh] || '100%'}}${p}.x{font-size:${sp}pt}${p}.n{font-size:${np}pt;font-weight:700;letter-spacing:.08em;font-family:'Courier New',monospace}`;
+  p = p || ''; const st = UI.style, FAM = { Arial: 'Arial,sans-serif', Georgia: 'Georgia,serif', Courier: "'Courier New',monospace", Verdana: 'Verdana,sans-serif', Times: "'Times New Roman',serif", Impact: 'Impact,Arial Black,sans-serif' }[st.font] || 'Arial,sans-serif', BORD = { none: '0', thin: '1px solid #000', thick: '3px solid #000', round: '2px solid #000;border-radius:.12in' }[st.border] || '0'; const w = z[1], h = z[2], d = fd(w, h);
+  return `${p ? '' : 'body{margin:0}'}${p}.lb{box-sizing:border-box;font-family:${FAM};border:${BORD};color:#000;background:#fff;width:${w}in;height:${h}in;padding:${d.pad}in;display:flex;flex-direction:column;justify-content:center;gap:${d.gap}in;overflow:hidden;text-align:${st.align};page-break-inside:avoid}${p}.t{font-size:${d.tp}pt;font-weight:${st.bold ? 700 : 400};line-height:1.1;overflow:hidden;${d.big ? 'display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical' : 'white-space:nowrap;text-overflow:ellipsis'}}${p}.s{font-size:${d.sp}pt;font-weight:600}${p}.x{font-size:${d.sp}pt}${p}.n{font-size:${d.np}pt;font-weight:700;letter-spacing:.08em;font-family:'Courier New',monospace;line-height:1.1;white-space:nowrap}`;
 }
 let PV = null;
 function pvCode(it) { if (!PV) return nextCode(); const k = key(it); if (!PV.has(k)) { const b = '20' + String(parseInt(nextCode().slice(2, 12), 10) + PV.size).padStart(10, '0'); PV.set(k, b + check(b)); } return PV.get(k); }
-function lbOne(it, preview) {
-  const c = preview ? (codeOf(it) || pvCode(it)) : assign(it), o = it.o, sh = UI.show;
-  return `<div class="lb">${sh.name ? `<div class="t">${esc(nameOf(it))}</div>` : ''}${sh.sku && o.sku ? `<div class="s">${esc(o.sku)}</div>` : ''}${sh.bar ? `<div class="b">${svg(c, 50, true, true)}</div>` : ''}${sh.num ? `<div class="n">${c[0]} ${c.slice(1, 7)} ${c.slice(7)}</div>` : ''}${sh.price && it.k === 'p' && num(o.price) > 0 ? `<div class="s">${esc(money(o.price))}</div>` : ''}${UI.style.extra ? `<div class="x">${esc(UI.style.extra)}</div>` : ''}</div>`;
+function lbOne(it, preview, wh) {
+  const c = preview ? (codeOf(it) || pvCode(it)) : assign(it), o = it.o, sh = UI.show, d = fd(wh[0], wh[1]);
+  return `<div class="lb">${sh.name ? `<div class="t">${esc(nameOf(it))}</div>` : ''}${sh.sku && o.sku ? `<div class="s">${esc(o.sku)}</div>` : ''}${sh.num ? `<div class="n">${nlines(c, d).join('<br>')}</div>` : ''}${sh.price && it.k === 'p' && num(o.price) > 0 ? `<div class="s">${esc(money(o.price))}</div>` : ''}${UI.style.extra ? `<div class="x">${esc(UI.style.extra)}</div>` : ''}</div>`;
 }
 function labelsHtml(list, sz) {
-  const z = rz(SIZES[sz] || SIZES['4x6']), sheet = z[3] * z[4] > 1, flat = []; list.forEach(([it, n]) => { for (let i = 0; i < n; i++) flat.push(lbOne(it)); });
-  if (UI.layout === 'grid') { const pl = gridPlan(flat.length), per = pl.c * pl.r, pg = []; for (let i = 0; i < flat.length; i += per) pg.push(flat.slice(i, i + per).join(''));
+  const z = rz(SIZES[sz] || SIZES['4x6']), sheet = z[3] * z[4] > 1, total = list.reduce((a, x) => a + x[1], 0), pl = UI.layout === 'grid' ? gridPlan(total) : null, wh = pl ? [pl.cw, pl.ch] : [z[1], z[2]], flat = []; list.forEach(([it, n]) => { for (let i = 0; i < n; i++) flat.push(lbOne(it, false, wh)); });
+  if (pl) { const per = pl.c * pl.r, pg = []; for (let i = 0; i < flat.length; i += per) pg.push(flat.slice(i, i + per).join(''));
     return `<style>@page{size:${pl.pw}in ${pl.ph}in;margin:0}${lbCss([0, pl.cw, pl.ch])}${gridCss(pl, '')}.pg:last-child{page-break-after:auto}</style>${pg.map(x => `<div class="pg">${x}</div>`).join('')}`; }
   if (!sheet) return `<style>@page{size:${z[1]}in ${z[2]}in;margin:0}${lbCss(z)}.lb{page-break-after:always}</style>${flat.join('')}`;
   const per = z[3] * z[4], pages = []; for (let i = 0; i < flat.length; i += per) pages.push(flat.slice(i, i + per).join(''));
@@ -15441,10 +15354,10 @@ function labelsHtml(list, sz) {
 function printList(list) {
   if (!list.length) return toast('Pick at least one item first');
   const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
-  f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><title>Barcode labels</title></head><body>${labelsHtml(list, UI.size)}</body></html>`;
+  f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><title>Item labels</title></head><body>${labelsHtml(list, UI.size)}</body></html>`;
   f.onload = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toast('Printing is not available here'); } setTimeout(() => f.remove(), 60000); };
 }
-/* ---------- PDF export: a real PDF at the exact label / paper size you chose (vector barcodes, standard fonts, no libraries) ---------- */
+/* ---------- PDF export: a real PDF at the exact label / paper size you chose (standard fonts, no libraries) ---------- */
 const HW = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
 const HB = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
 const WINCH = { 8217: 0x92, 8216: 0x91, 8220: 0x93, 8221: 0x94, 8211: 0x96, 8212: 0x97, 8364: 0x80, 8226: 0x95, 8230: 0x85 };
@@ -15461,19 +15374,17 @@ const f3 = v => String(Math.round(v * 1000) / 1000);
 /* draws one label. x, y, w, h are inches from the top-left of the page; PDF itself counts from the bottom-left in points */
 function pdfLabel(out, ph, it, x, y, w, h) {
   const st = UI.style, sh = UI.show, o = it.o, code = assign(it), fam = { Arial: 'H', Verdana: 'H', Impact: 'H', Georgia: 'T', Times: 'T', Courier: 'C' }[st.font] || 'H';
-  const big = h >= 3, pad = big ? .25 : .06, gap = big ? .12 : .03, bwPt = { none: 0, thin: .75, thick: 2.25, round: 1.5 }[st.border] || 0, bw = bwPt / 72;
-  const tp = big ? Math.min(30, w * 9) : Math.max(6.5, Math.min(h * 7, w * 4.2)), sp = big ? Math.min(18, w * 5) : Math.max(6, Math.min(7, w * 3)), np = Math.max(6.5, Math.min(big ? 20 : 99, h * 6, w * 6));
-  const tsz = tp * ({ s: .75, m: 1, l: 1.3 }[st.ts] || 1), cx = x + bw + pad, cw = Math.max(.1, w - 2 * (bw + pad)), ch = Math.max(.1, h - 2 * (bw + pad));
+  const D = fd(w, h), big = D.big, pad = D.pad, gap = D.gap, bwPt = { none: 0, thin: .75, thick: 2.25, round: 1.5 }[st.border] || 0, bw = bwPt / 72;
+  const tp = D.tp, sp = D.sp, np = D.np;
+  const tsz = tp, cx = x + bw + pad, cw = Math.max(.1, w - 2 * (bw + pad)), ch = Math.max(.1, h - 2 * (bw + pad));
   const fk = (bold, f) => '/F' + ({ H: 1, T: 3, C: 5 }[f] + (bold ? 1 : 0));
   const parts = [], line = (t, fs, bold, f, ls, lh) => ({ k: 'x', lines: [t], fs, bold, f, ls: ls || 0, lh: lh || fs * 1.15 / 72 });
   if (sh.name) { const lines = big ? pdfWrap(nameOf(it), fam, st.bold, tsz, cw * 72, 3) : [pdfFit(nameOf(it), fam, st.bold, tsz, cw * 72)]; parts.push({ k: 'x', lines, fs: tsz, bold: st.bold, f: fam, ls: 0, lh: tsz * 1.1 / 72 }); }
   if (sh.sku && o.sku) parts.push(line(pdfFit(o.sku, fam, true, sp, cw * 72), sp, true, fam));
-  if (sh.bar) parts.push({ k: 'b' });
-  if (sh.num) parts.push(line(`${code[0]} ${code.slice(1, 7)} ${code.slice(7)}`, np, true, 'C', .08));
+  if (sh.num) parts.push({ k: 'x', lines: nlines(code, D), fs: np, bold: true, f: 'C', ls: .08, lh: np * 1.1 / 72 });
   if (sh.price && it.k === 'p' && num(o.price) > 0) parts.push(line(pdfFit(money(o.price), fam, true, sp, cw * 72), sp, true, fam));
   if (st.extra) parts.push(line(pdfFit(st.extra, fam, false, sp, cw * 72), sp, false, fam));
-  const hasBar = parts.some(p => p.k === 'b'), fixed = parts.reduce((a, p) => a + (p.k === 'b' ? 0 : p.lh * p.lines.length), 0), gaps = Math.max(0, parts.length - 1) * gap;
-  const barH = Math.max(0, Math.min(ch - fixed - gaps, ({ s: .45, m: .7, t: 1 }[st.bh] || 1) * ch)), total = fixed + gaps + (hasBar ? barH : 0);
+  const fixed = parts.reduce((a, p) => a + p.lh * p.lines.length, 0), gaps = Math.max(0, parts.length - 1) * gap, total = fixed + gaps;
   let yy = y + bw + pad + (ch - total) / 2;
   if (bwPt) { const i = bwPt / 2, X = x * 72 + i, Y = (ph - y - h) * 72 + i, W = w * 72 - bwPt, H = h * 72 - bwPt; out.push(`${f3(bwPt)} w 0 G`);
     if (st.border === 'round') { const r = .12 * 72, k = r * .5523, P = (a, b) => f3(a) + ' ' + f3(b);
@@ -15481,7 +15392,6 @@ function pdfLabel(out, ph, it, x, y, w, h) {
     else out.push(`${f3(X)} ${f3(Y)} ${f3(W)} ${f3(H)} re S`); }
   out.push('0 g');
   parts.forEach((p, n) => {
-    if (p.k === 'b') { const m = modules(code), q = 11, VW = 115; let r = ''; for (let i = 0; i < m.length;) { if (m[i] === '1') { let j = i; while (m[j] === '1') j++; const g = (i < 3 || (i >= 45 && i < 50) || i >= 92), hh = barH * (g ? 55 : 50) / 56; r += `${f3((cx + (q + i) / VW * cw) * 72)} ${f3((ph - yy - hh) * 72)} ${f3((j - i) / VW * cw * 72)} ${f3(hh * 72)} re `; i = j; } else i++; } out.push(r + 'f'); yy += barH + gap; return; }
     p.lines.forEach(l => { const tw = pdfW(l, p.f, p.bold, p.fs, p.ls) / 72, tx = st.align === 'left' ? cx : st.align === 'right' ? cx + cw - tw : cx + (cw - tw) / 2, base = yy + p.lh / 2 + p.fs / 72 * .33;
       out.push(`BT ${fk(p.bold, p.f)} ${f3(p.fs)} Tf ${f3((p.ls || 0) * p.fs)} Tc ${f3(tx * 72)} ${f3((ph - base) * 72)} Td ${pdfStr(l)} Tj ET`); yy += p.lh; });
     yy += gap;
@@ -15495,7 +15405,7 @@ function buildPdf(pw, ph, pages) {
   fonts.forEach((f, i) => obj(3 + i, `<< /Type /Font /Subtype /Type1 /BaseFont /${f} /Encoding /WinAnsiEncoding >>`));
   pages.forEach((ops, i) => { const c = ops.join('\n'); obj(9 + 2 * i, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f3(pw * 72)} ${f3(ph * 72)}] /Resources ${res} /Contents ${10 + 2 * i} 0 R >>`); obj(10 + 2 * i, `<< /Length ${c.length} >>\nstream\n${c}\nendstream`); });
   const n = 9 + 2 * pages.length, xr = len; let x = `xref\n0 ${n}\n0000000000 65535 f \n`; for (let i = 1; i < n; i++) x += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
-  add(x + `trailer\n<< /Size ${n} /Root 1 0 R /Info << /Title (Barcode labels) >> >>\nstartxref\n${xr}\n%%EOF\n`);
+  add(x + `trailer\n<< /Size ${n} /Root 1 0 R /Info << /Title (Item labels) >> >>\nstartxref\n${xr}\n%%EOF\n`);
   const str = chunks.join(''), u = new Uint8Array(str.length); for (let i = 0; i < str.length; i++) u[i] = str.charCodeAt(i) & 255; return u;
 }
 /* same layouts as printing: one label per page, a sheet of labels, or several per sheet */
@@ -15512,101 +15422,95 @@ function labelsPdf(list, sz) {
 function pdfList(list) {
   if (!list.length) return toast('Pick at least one item first');
   let r; try { r = labelsPdf(list, UI.size); } catch (e) { return toast('Could not make the PDF: ' + (e && e.message || e)); }
-  const a = document.createElement('a'), tag = UI.layout === 'grid' ? UI.paper : UI.size; a.href = URL.createObjectURL(new Blob([r.bytes], { type: 'application/pdf' })); a.download = `barcode-labels-${tag}${UI.rot ? '-rotated' : ''}.pdf`;
+  const a = document.createElement('a'), tag = UI.layout === 'grid' ? UI.paper : UI.size; a.href = URL.createObjectURL(new Blob([r.bytes], { type: 'application/pdf' })); a.download = `item-labels-${tag}${UI.rot ? '-rotated' : ''}.pdf`;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
   const d = v => String(Math.round(v * 100) / 100); toast(`PDF made: ${r.count} label${r.count === 1 ? '' : 's'}, page size ${d(r.pw)} x ${d(r.ph)} in`);
 }
+const defDimsNow = () => { const tot = selected().reduce((a, x) => a + x[1], 0); if (UI.layout === 'grid') { const g = gridPlan(Math.max(1, tot)); return catOf(g.cw, g.ch); } const z = rz(SIZES[UI.size] || SIZES['4x6']); return catOf(z[1], z[2]); };
 const selected = () => Object.keys(UI.sel).map(k => [byKey(k), UI.sel[k]]).filter(x => x[0]);
 
 /* ---------- the page ---------- */
-const CSS = `#bc-ov{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}.bc-sheet{background:var(--bg,#fff);color:var(--text,inherit);width:100%;max-width:560px;max-height:94vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden}.bc-top{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}.bc-body{padding:12px 14px 28px;overflow:auto;display:flex;flex-direction:column;gap:10px}.bc-r{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}.bc-r span{color:var(--sub)}.bc-r b{text-align:right;word-break:break-word}.bc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.bc-grid div{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card)}.bc-grid span{display:block;font-size:11px;color:var(--sub)}.bc-grid b{font-size:17px}.bc-pill{display:inline-block;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;margin:6px 6px 0 0}.bc-flash{background:var(--p-soft);color:var(--p);padding:8px 10px;border-radius:10px;font-size:13px;font-weight:600}#bc-cam{position:relative;border-radius:14px;overflow:hidden;background:#000}#bc-cam video{width:100%;max-height:300px;object-fit:cover;display:block}#bc-cam i{position:absolute;left:8%;right:8%;top:50%;height:2px;background:#ff3b30;box-shadow:0 0 8px #ff3b30}.bc-li{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--line)}.bc-li .g{flex:1;min-width:0}.bc-li input[type=number]{width:60px}#bc-hint{position:absolute;left:0;right:0;bottom:0;padding:7px 10px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;font-weight:600;text-align:center}`;
+const CSS = `#bc-ov{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}.bc-sheet{background:var(--bg,#fff);color:var(--text,inherit);width:100%;max-width:560px;max-height:94vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden}.bc-top{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}.bc-body{padding:12px 14px 28px;overflow:auto;display:flex;flex-direction:column;gap:10px}.bc-r{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}.bc-r span{color:var(--sub)}.bc-r b{text-align:right;word-break:break-word}.bc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.bc-grid div{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card)}.bc-grid span{display:block;font-size:11px;color:var(--sub)}.bc-grid b{font-size:17px}.bc-pill{display:inline-block;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px;margin:6px 6px 0 0}.bc-flash{background:var(--p-soft);color:var(--p);padding:8px 10px;border-radius:10px;font-size:13px;font-weight:600}.bc-num{font:700 28px 'Courier New',monospace;letter-spacing:.08em;text-align:center;padding:14px 4px 8px;word-break:break-all}.bc-tpls{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}.bc-tpl{text-align:left;border:1px solid var(--line);background:var(--card);color:inherit;border-radius:12px;padding:8px 10px;cursor:pointer;font:inherit}.bc-tpl b{display:block;font-size:13px}.bc-tpl span{display:block;font-size:11px;opacity:.75;margin-top:2px}.bc-tpl.on{background:var(--p);color:#fff;border-color:var(--p)}`;
 G.V.barcodes = () => '<div class="page stack-sm fade" id="bc-host"></div>';
 function paint() { if ($('#pl-host')) paintPL(); else paintBC(); }
 function paintBC() {
-  const h = $('#bc-host'); if (!h) return; setTimeout(bindCam, 0); const all = items().filter(i => !UI.q || (nameOf(i) + ' ' + (i.o.sku || '') + ' ' + (i.o.barcode || '')).toLowerCase().includes(UI.q.toLowerCase())), missing = items().filter(i => !codeOf(i)).length, ns = Object.keys(UI.sel).length;
+  const h = $('#bc-host'); if (!h) return; ensureInit(); const all = items().filter(i => !UI.q || (nameOf(i) + ' ' + (i.o.sku || '') + ' ' + (i.o.barcode || '')).toLowerCase().includes(UI.q.toLowerCase())), missing = items().filter(i => !codeOf(i)).length, ns = Object.keys(UI.sel).length;
   const modes = [['look', 'Look up'], ['in', 'Receive'], ['out', 'Remove']];
-  h.innerHTML = `<style>${CSS}</style><div class="card"><h3 style="margin:0 0 4px">Barcode scanner</h3><p class="hint" style="margin:0 0 8px">Scan an item to see everything about it. Or use Receive / Remove to count stock in and out as you scan. With the camera, hold the barcode steady on the red line; it shows you the item and asks before any stock changes.</p>
+  h.innerHTML = `<style>${CSS}</style><div class="card"><h3 style="margin:0 0 4px">Find an item</h3><p class="hint" style="margin:0 0 8px">Type an item number or SKU to see everything about it. Or use Receive / Remove to count stock in and out each time you enter one. A USB or Bluetooth scanner that types numbers works here too.</p>
   <div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px">${modes.map(m => `<button class="chip ${UI.mode === m[0] ? 'on active' : ''}" data-bc="mode" data-v="${m[0]}" style="${UI.mode === m[0] ? 'background:var(--p);color:#fff' : ''}">${m[1]}</button>`).join('')}${UI.mode === 'out' ? `<select class="select" id="bc-mwhy" style="width:auto">${['Used', 'Damaged', 'Lost', 'Stolen', 'Gave away', 'Expired', 'Other'].map(x => `<option ${x === UI.reason ? 'selected' : ''}>${x}</option>`).join('')}</select>` : ''}</div>
-  <div id="bc-cam" hidden><video id="bc-vid" playsinline muted></video><i></i><div id="bc-hint">Line the barcode up with the red line</div></div>
-  <div class="row" style="gap:6px;margin-top:8px"><button class="btn b" data-bc="cam">${ic('camera')} Scan with camera</button><button class="btn btn-line" data-bc="stop">Stop</button></div>
-  <div class="row" style="gap:6px;margin-top:8px"><input class="input" id="bc-man" placeholder="Type a barcode number, or use a USB / Bluetooth scanner" inputmode="numeric" style="flex:1"><button class="btn btn-soft" data-bc="go">Go</button></div>
+  <div class="row" style="gap:6px;margin-top:8px"><input class="input" id="bc-man" placeholder="Type an item number or SKU" autocomplete="off" style="flex:1"><button class="btn b" data-bc="go">Go</button></div>
   ${UI.sess.length ? `<div style="margin-top:8px">${UI.sess.map(s => `<div class="bc-r"><span>${s.m === 'in' ? '+' : '-'}${s.q || 1} ${esc(s.n)}</span><b>now ${s.a} <button class="btn btn-line btn-sm" data-bc="undo" data-id="${s.id}">Undo</button></b></div>`).join('')}</div>` : ''}</div>
-  <div class="card"><div class="row between"><h3 style="margin:0">Barcodes & labels</h3>${missing ? `<button class="btn btn-soft btn-sm" data-bc="assign">Create ${missing} missing</button>` : '<span class="xs sub">All items have one</span>'}</div>
-  <p class="hint" style="margin:6px 0">Each item gets a unique 13-digit EAN-13 number (starts with 20, reserved for in-store use, so it never clashes with products from other brands). Items that already have a real UPC/EAN keep it.</p>
+  <div class="card"><div class="row between"><h3 style="margin:0">Item numbers & labels</h3>${missing ? `<button class="btn btn-soft btn-sm" data-bc="assign">Create ${missing} missing</button>` : '<span class="xs sub">All items have one</span>'}</div>
+  <p class="hint" style="margin:6px 0">Each item gets a unique 13-digit number (starts with 20, so it never clashes with numbers from other brands). Items that already have a real 12 or 13 digit number keep it.</p>
   <select class="select" id="bc-size">${Object.keys(SIZES).map(k => `<option value="${k}" ${UI.size === k ? 'selected' : ''}>${SIZES[k][0]}</option>`).join('')}</select>
   <input class="input" id="bc-q" placeholder="Search items" value="${esc(UI.q)}" style="margin:8px 0"><div class="row" style="gap:6px;margin-bottom:6px"><button class="btn btn-line btn-sm" data-bc="all">Select all shown</button><button class="btn btn-line btn-sm" data-bc="none">Clear</button><button class="btn btn-sm b" data-bc="print">${ic('printer')} Print ${ns ? ns + ' item' + (ns > 1 ? 's' : '') : 'labels'}</button><button class="btn btn-soft btn-sm b" data-bc="pdf">${ic('download')} PDF</button></div>
-  <div id="bc-list">${all.slice(0, 150).map(i => { const k = key(i), c = codeOf(i); return `<div class="bc-li"><input type="checkbox" data-bc="pick" data-k="${k}" ${UI.sel[k] ? 'checked' : ''}><button class="g" data-bc="view" data-k="${k}" style="text-align:left;background:none;border:0;color:inherit;padding:0"><div class="trunc b" style="font-size:13px">${esc(nameOf(i))}</div><div class="xs sub">${c ? esc(c) : 'No barcode yet'} - ${num(i.o.qty)} on hand</div></button>${UI.sel[k] ? `<input class="input" type="number" min="1" max="999" value="${UI.sel[k]}" data-bc="copies" data-k="${k}" aria-label="Copies">` : ''}</div>`; }).join('') || '<p class="hint">No items yet. Add products or materials in Inventory first.</p>'}${all.length > 150 ? '<p class="hint">Showing 150. Search to narrow.</p>' : ''}</div></div>
-  <div class="card"><div class="row between"><h3 style="margin:0">Scan &amp; stock log</h3><button class="btn btn-line btn-sm" data-bc="csv">Export CSV</button></div>${log().length ? log().slice(0, 25).map(x => `<div class="bc-r"><span>${fmtT(x.t)} ${esc(x.name)} - ${esc(x.reason || actName(x.act))}</span><b>${x.qty > 0 ? '+' : ''}${x.qty} (${x.after})</b></div>`).join('') : '<p class="hint" style="margin:6px 0 0">Every receive, remove and count is recorded here, with date, reason and before/after quantity.</p>'}</div>`;
+  <div id="bc-list">${all.slice(0, 150).map(i => { const k = key(i), c = codeOf(i); return `<div class="bc-li"><input type="checkbox" data-bc="pick" data-k="${k}" ${UI.sel[k] ? 'checked' : ''}><button class="g" data-bc="view" data-k="${k}" style="text-align:left;background:none;border:0;color:inherit;padding:0"><div class="trunc b" style="font-size:13px">${esc(nameOf(i))}</div><div class="xs sub">${c ? esc(c) : 'No number yet'} - ${num(i.o.qty)} on hand</div></button>${UI.sel[k] ? `<input class="input" type="number" min="1" max="999" value="${UI.sel[k]}" data-bc="copies" data-k="${k}" aria-label="Copies">` : ''}</div>`; }).join('') || '<p class="hint">No items yet. Add products or materials in Inventory first.</p>'}${all.length > 150 ? '<p class="hint">Showing 150. Search to narrow.</p>' : ''}</div></div>
+  <div class="card"><div class="row between"><h3 style="margin:0">Stock log</h3><button class="btn btn-line btn-sm" data-bc="csv">Export CSV</button></div>${log().length ? log().slice(0, 25).map(x => `<div class="bc-r"><span>${fmtT(x.t)} ${esc(x.name)} - ${esc(x.reason || actName(x.act))}</span><b>${x.qty > 0 ? '+' : ''}${x.qty} (${x.after})</b></div>`).join('') : '<p class="hint" style="margin:6px 0 0">Every receive, remove and count is recorded here, with date, reason and before/after quantity.</p>'}</div>`;
 }
 G.V.printlabels = () => '<div class="page stack-sm fade" id="pl-host"></div>';
-const SHOW = [['name', 'Name'], ['sku', 'SKU'], ['bar', 'Barcode'], ['num', 'Barcode number'], ['price', 'Price']];
+const SHOW = [['name', 'Name'], ['sku', 'SKU'], ['num', 'Item number'], ['price', 'Price']];
 function styleCtl() {
   const st = UI.style, c = (k, v, t) => `<button class="chip" data-bc="style" data-k="${k}" data-v="${v}" style="${st[k] === v ? 'background:var(--p);color:#fff' : ''}">${t}</button>`, lab = t => `<div class="xs sub b" style="margin:10px 0 6px">${t}</div>`, row = x => `<div class="row" style="gap:6px;flex-wrap:wrap">${x}</div>`;
   return `${lab('Font')}<select class="select" data-bc="stin" data-k="font">${['Arial', 'Verdana', 'Georgia', 'Times', 'Courier', 'Impact'].map(f => `<option ${st.font === f ? 'selected' : ''}>${f}</option>`).join('')}</select>
   ${lab('Name size')}${row(c('ts', 's', 'Small') + c('ts', 'm', 'Medium') + c('ts', 'l', 'Large') + `<button class="chip" data-bc="style" data-k="bold" style="${st.bold ? 'background:var(--p);color:#fff' : ''}">Bold name</button>`)}
   ${lab('Align')}${row(c('align', 'left', 'Left') + c('align', 'center', 'Center') + c('align', 'right', 'Right'))}
   ${lab('Border')}${row(c('border', 'none', 'None') + c('border', 'thin', 'Thin') + c('border', 'thick', 'Thick') + c('border', 'round', 'Rounded'))}
-  ${lab('Barcode height')}${row(c('bh', 's', 'Short') + c('bh', 'm', 'Medium') + c('bh', 't', 'Tall'))}
+  ${lab('Number size')}${row(c('ns', 's', 'Small') + c('ns', 'm', 'Medium') + c('ns', 'l', 'Large (stacked on 4 x 6)'))}
   ${lab('Extra line on every label (optional)')}<input class="input" data-bc="stin" data-k="extra" maxlength="40" placeholder="e.g. Handmade by Grimms" value="${esc(st.extra)}">`;
 }
 /* list filter for Print Labels: search text + Products/Materials + in stock only */
 const shownItems = () => { const q = (UI.q || '').toLowerCase(); return items().filter(i => (!q || (nameOf(i) + ' ' + (i.o.sku || '') + ' ' + (i.o.barcode || '')).toLowerCase().includes(q)) && (UI.kind === 'all' || (UI.kind === 'p' ? i.k === 'p' : i.k === 's')) && (!UI.inStock || qtyOf(i) > 0)); };
 function paintPL() {
-  const h = $('#pl-host'); if (!h) return; PV = new Map(); const z = rz(SIZES[UI.size] || SIZES['4x6']), sel = selected(), total = sel.reduce((a, x) => a + x[1], 0), grid = UI.layout === 'grid';
+  const h = $('#pl-host'); if (!h) return; ensureInit(); PV = new Map(); const z = rz(SIZES[UI.size] || SIZES['4x6']), sel = selected(), total = sel.reduce((a, x) => a + x[1], 0), grid = UI.layout === 'grid';
+  { const c0 = defDimsNow(); if (!prefs().by[cfgKey()] && !TPL[c0].some(t => t[0] === UI.tpl)) { const r0 = TPL[c0].find(t => t[4]); if (r0) applyTpl(r0[0], c0); } } /* nothing saved for this size yet: follow the recommended template for the label size on screen */
   const all = shownItems(), first = sel.length ? sel[0][0] : (all[0] || items()[0]);
   const chip = (on, a, v, t) => `<button class="chip" data-bc="${a}" data-v="${v}" style="${on ? 'background:var(--p);color:#fff' : ''}">${t}</button>`;
   let pv = '<p class="hint">Add a product in Inventory to see a preview.</p>', css = '', dim = [z[1], z[2]], info = z[0], pl = null;
-  if (first && grid) { pl = gridPlan(total); const per = pl.c * pl.r, src = sel.length ? sel.flatMap(x => Array(x[1]).fill(x[0])).slice(0, per) : Array(per).fill(first); pv = `<div class="pg">${src.map(i => lbOne(i, true)).join('')}</div>`; css = lbCss([0, pl.cw, pl.ch], '#pl-pv ') + gridCss(pl, '#pl-pv ') + '#pl-pv .pg{border:1px solid #999;transform-origin:top left}'; dim = [pl.pw, pl.ph]; info = `${pl.c} across x ${pl.r} down = ${pl.c * pl.r} per page - ${pl.pages} page${pl.pages > 1 ? 's' : ''} for ${total || 'your'} label${total === 1 ? '' : 's'} - each ${pl.cw.toFixed(2)} x ${pl.ch.toFixed(2)} in`; }
-  else if (first) { pv = lbOne(first, true); css = lbCss(z, '#pl-pv ') + '#pl-pv .lb{outline:1px solid #999;transform-origin:top left}'; }
+  if (first && grid) { pl = gridPlan(total); const per = pl.c * pl.r, src = sel.length ? sel.flatMap(x => Array(x[1]).fill(x[0])).slice(0, per) : Array(per).fill(first); pv = `<div class="pg">${src.map(i => lbOne(i, true, [pl.cw, pl.ch])).join('')}</div>`; css = lbCss([0, pl.cw, pl.ch], '#pl-pv ') + gridCss(pl, '#pl-pv ') + '#pl-pv .pg{border:1px solid #999;transform-origin:top left}'; dim = [pl.pw, pl.ph]; info = `${pl.c} across x ${pl.r} down = ${pl.c * pl.r} per page - ${pl.pages} page${pl.pages > 1 ? 's' : ''} for ${total || 'your'} label${total === 1 ? '' : 's'} - each ${pl.cw.toFixed(2)} x ${pl.ch.toFixed(2)} in`; }
+  else if (first) { pv = lbOne(first, true, [z[1], z[2]]); css = lbCss(z, '#pl-pv ') + '#pl-pv .lb{outline:1px solid #999;transform-origin:top left}'; }
   const sizeChips = Object.keys(SIZES).filter(k => k !== '5160').map(k => chip(UI.size === k, 'size', k, SIZES[k][0].replace(/^Roll /, ''))).join('');
   const paperChips = Object.keys(PAPER).map(k => chip(UI.paper === k, 'paper', k, PAPER[k][0])).join('');
-  const gridCtl = UI.paper === '5160' ? '<p class="hint" style="margin:8px 0 0">Fixed sheet: 3 across x 10 down. Bars are 0.55 mm and about 10 mm tall: scans fine.</p>' : (() => { const gp = gridPlan(total), P = presetsFor(), si = scanInfo(gp.cw, gp.ch), nt = scanNote(si), col = { ok: '#1e8e5a', warn: '#d98a00', bad: '#c0392b' }[nt[0]];
+  const gridCtl = UI.paper === '5160' ? '<p class="hint" style="margin:8px 0 0">Fixed sheet: 3 across x 10 down.</p>' : (() => { const gp = gridPlan(total), P = presetsFor(), nt = readNote(gp.cw, gp.ch), col = { ok: '#1e8e5a', warn: '#d98a00', bad: '#c0392b' }[nt[0]];
     const pre = P.map(x => { const on = !UI.auto && UI.cols === x[0] && UI.rows === x[1]; return `<button class="chip" data-bc="preset" data-v="${x[0]},${x[1]}" style="${on ? 'background:var(--p);color:#fff' : ''}">${x[3] ? '&#9733; ' : ''}${x[2]}: ${x[0]} x ${x[1]} (${x[0] * x[1]}/page)</button>`; }).join('');
-    return `<div class="xs sub b" style="margin:10px 0 6px">Quick layouts (tested to scan)</div><div class="row" style="gap:6px;flex-wrap:wrap">${pre}</div><div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">${chip(UI.auto, 'auto', '', 'Auto')}${UI.auto ? `<span class="xs sub">Picked ${gp.c} x ${gp.r} for ${total || 'your'} label${total === 1 ? '' : 's'}</span>` : `<span class="xs sub">Across</span><input class="input" type="number" min="1" max="8" value="${UI.cols}" data-bc="cols" style="width:64px"><span class="xs sub">Down</span><input class="input" type="number" min="1" max="20" value="${UI.rows}" data-bc="rows" style="width:64px">`}</div><p class="hint" style="margin:6px 0 0;color:${col};font-weight:600">${nt[0] === 'ok' ? '&#10003; ' : '&#9888; '}${nt[1]}</p>`; })();
+    return `<div class="xs sub b" style="margin:10px 0 6px">Quick layouts</div><div class="row" style="gap:6px;flex-wrap:wrap">${pre}</div><div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">${chip(UI.auto, 'auto', '', 'Auto')}${UI.auto ? `<span class="xs sub">Picked ${gp.c} x ${gp.r} for ${total || 'your'} label${total === 1 ? '' : 's'}</span>` : `<span class="xs sub">Across</span><input class="input" type="number" min="1" max="8" value="${UI.cols}" data-bc="cols" style="width:64px"><span class="xs sub">Down</span><input class="input" type="number" min="1" max="20" value="${UI.rows}" data-bc="rows" style="width:64px">`}</div><p class="hint" style="margin:6px 0 0;color:${col};font-weight:600">${nt[0] === 'ok' ? '&#10003; ' : '&#9888; '}${nt[1]}</p>`; })();
+  const cd = grid ? (pl || gridPlan(Math.max(1, total))) : null, cat = cd ? catOf(cd.cw, cd.ch) : catOf(z[1], z[2]), tl = TPL[cat], curT = tl.find(t => t[0] === UI.tpl), where = grid ? (PAPER[UI.paper] || PAPER.letter)[0] : z[0].replace(/^Roll /, '');
+  const tplBlock = `<div class="xs sub b" style="margin:10px 0 6px">Templates for ${CATN[cat]} labels <span style="font-weight:500">(&#9733; = recommended)</span></div><div class="bc-tpls">${tl.map(t => `<button type="button" class="bc-tpl ${UI.tpl === t[0] ? 'on' : ''}" data-bc="tpl" data-v="${t[0]}"><b>${t[4] ? '&#9733; ' : ''}${esc(t[1])}</b><span>${t[2].split(',').map(k => SHOWN[k]).join(' &middot; ')}</span></button>`).join('')}</div><p class="hint" style="margin:6px 0 0">${curT ? '' : 'Custom mix. Pick a template to switch. '}Remembered for ${esc(where)}: it comes back the way you left it until you change it.</p>`;
   h.innerHTML = `<style>${CSS}${css}</style>
   <div class="card sm"><div class="row between" style="margin-bottom:${UI.pv ? 6 : 0}px"><span class="xs sub b">Preview${first && !grid ? ': ' + esc(nameOf(first)) : ''}</span><button class="chip" data-bc="pvtoggle">${UI.pv ? 'Hide' : 'Show'}</button></div>${UI.pv ? `<div style="display:flex;justify-content:center;background:rgba(128,128,128,.12);border-radius:10px;padding:6px"><div id="pl-box" style="overflow:hidden;flex:none"><div id="pl-pv">${pv}</div></div></div>` : ''}<div class="xs sub" style="margin-top:4px">${info}</div></div>
   <div class="card"><div class="xs sub b" style="margin-bottom:6px">Layout</div><div class="row" style="gap:6px;flex-wrap:wrap">${chip(!grid, 'layout', 'single', 'One label each')}${chip(grid, 'layout', 'grid', 'Several per sheet')}</div>
   <div class="xs sub b" style="margin:10px 0 6px">${grid ? 'Paper' : 'Label size'}</div><div class="row" style="gap:6px;flex-wrap:wrap">${grid ? paperChips : sizeChips}</div>${grid ? gridCtl : ''}
-  <div style="margin-top:10px">${chip(UI.rot, 'rot', '', 'Rotate 90° (wider rectangle)')}</div><div class="xs sub b" style="margin:10px 0 6px">Show on label</div><div class="row" style="gap:6px;flex-wrap:wrap">${SHOW.map(x => chip(UI.show[x[0]], 'show', x[0], x[1])).join('')}</div>
+  <div style="margin-top:10px">${chip(UI.rot, 'rot', '', 'Rotate 90° (wider rectangle)')}</div>${tplBlock}<div class="xs sub b" style="margin:10px 0 6px">Show on label</div><div class="row" style="gap:6px;flex-wrap:wrap">${SHOW.map(x => chip(UI.show[x[0]], 'show', x[0], x[1])).join('')}</div>
   <div style="margin-top:10px"><button class="chip" data-bc="styleopen" style="${UI.styleOpen ? 'background:var(--p);color:#fff' : ''}">Style ${UI.styleOpen ? '(hide)' : '(font, size, border...)'}</button></div>${UI.styleOpen ? styleCtl() : ''}</div>
 
   <div class="card"><input class="input" id="pl-q" placeholder="Search items" value="${esc(UI.q)}"><div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px">${[['all', 'All'], ['p', 'Products'], ['s', 'Materials']].map(x => chip(UI.kind === x[0], 'kind', x[0], x[1])).join('')}${chip(UI.inStock, 'instock', '', 'In stock only')}</div><div class="xs sub" style="margin-top:6px">Showing ${all.length} of ${items().length} items${UI.inStock ? ' (only ones with stock)' : ''}${total ? ' - ' + sel.length + ' picked' : ''}</div><div class="row" style="gap:6px;margin:8px 0"><button class="btn btn-line btn-sm" data-bc="all">Select all shown</button><button class="btn btn-line btn-sm" data-bc="none">Clear</button></div>
-  ${all.slice(0, 150).map(i => { const k = key(i), c = codeOf(i); return `<div class="bc-li"><input type="checkbox" data-bc="pick" data-k="${k}" ${UI.sel[k] ? 'checked' : ''}><div class="g"><div class="trunc b" style="font-size:13px">${esc(nameOf(i))}</div><div class="xs sub">${esc(i.o.sku || 'No SKU')} - ${c ? esc(c) : 'barcode made when printed'}</div></div>${UI.sel[k] ? `<input class="input" type="number" min="1" max="999" value="${UI.sel[k]}" data-bc="copies" data-k="${k}" aria-label="Copies">` : ''}</div>`; }).join('') || '<p class="hint">No items yet.</p>'}${all.length > 150 ? '<p class="hint">Showing 150. Search to narrow.</p>' : ''}</div>
+  ${all.slice(0, 150).map(i => { const k = key(i), c = codeOf(i); return `<div class="bc-li"><input type="checkbox" data-bc="pick" data-k="${k}" ${UI.sel[k] ? 'checked' : ''}><div class="g"><div class="trunc b" style="font-size:13px">${esc(nameOf(i))}</div><div class="xs sub">${esc(i.o.sku || 'No SKU')} - ${c ? esc(c) : 'number made when printed'}</div></div>${UI.sel[k] ? `<input class="input" type="number" min="1" max="999" value="${UI.sel[k]}" data-bc="copies" data-k="${k}" aria-label="Copies">` : ''}</div>`; }).join('') || '<p class="hint">No items yet.</p>'}${all.length > 150 ? '<p class="hint">Showing 150. Search to narrow.</p>' : ''}</div>
   <div style="position:sticky;bottom:0;z-index:5;background:var(--bg,#fff);padding:8px 0"><div class="row" style="gap:8px"><button class="btn b" style="flex:1" data-bc="print">${ic('printer')} ${total ? 'Print ' + total : 'Print'}</button><button class="btn btn-soft b" style="flex:1" data-bc="pdf">${ic('download')} ${total ? 'Save PDF' : 'Save PDF'}</button></div>${total ? '' : '<p class="hint" style="margin:6px 0 0;text-align:center">Pick items above first</p>'}</div>`;
   const box = $('#pl-box'), pvEl = $('#pl-pv'), lab = pvEl && pvEl.firstElementChild; if (lab && lab.classList && (lab.classList.contains('lb') || lab.classList.contains('pg')) && box) { const av = box.parentElement.clientWidth - 16, k = Math.min(2.5, av / (dim[0] * 96), (grid ? 150 : 120) / (dim[1] * 96)); lab.style.transform = `scale(${k})`; box.style.width = (dim[0] * 96 * k + 2) + 'px'; box.style.height = (dim[1] * 96 * k + 2) + 'px'; }
 }
 function csv() {
-  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"', rows = [['Date', 'Item', 'SKU', 'Barcode', 'Action', 'Reason', 'Change', 'Before', 'After', 'Note']].concat(log().map(x => [new Date(x.t).toISOString(), x.name, x.sku, x.code, actName(x.act), x.reason, x.qty, x.before, x.after, x.note]));
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"', rows = [['Date', 'Item', 'SKU', 'Item number', 'Action', 'Reason', 'Change', 'Before', 'After', 'Note']].concat(log().map(x => [new Date(x.t).toISOString(), x.name, x.sku, x.code, actName(x.act), x.reason, x.qty, x.before, x.after, x.note]));
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([rows.map(r => r.map(q).join(',')).join('\n')], { type: 'text/csv' })); a.download = 'stock-log.csv'; document.body.appendChild(a); a.click(); a.remove();
 }
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-bc]'); if (!t) { if (e.target.id === 'bc-ov') closeOv(true); return; }
+  const t = e.target.closest('[data-bc]'); if (!t) { if (e.target.id === 'bc-ov') closeOv(); return; }
   const a = t.dataset.bc, k = t.dataset.k, it = k && byKey(k), val = id => { const n = $(id); return n ? num(n.value) : 0; };
-  if (a === 'close') closeOv(true);
+  if (a === 'close') closeOv();
   else if (a === 'mode') { UI.mode = t.dataset.v; paint(); }
   else if (a === 'styleopen') { UI.styleOpen = !UI.styleOpen; paint(); }
-  else if (a === 'style') { const k = t.dataset.k; UI.style[k] = k === 'bold' ? !UI.style.bold : t.dataset.v; paint(); }
+  else if (a === 'style') { const k = t.dataset.k; UI.style[k] = k === 'bold' ? !UI.style.bold : t.dataset.v; UI.tpl = ''; saveCfg(); paint(); }
+  else if (a === 'tpl') { const d = defDimsNow(); applyTpl(t.dataset.v, d); saveCfg(); paint(); }
   else if (a === 'pvtoggle') { UI.pv = !UI.pv; paint(); }
   else if (a === 'kind') { UI.kind = t.dataset.v; paint(); }
   else if (a === 'instock') { UI.inStock = !UI.inStock; paint(); }
-  else if (a === 'rot') { UI.rot = !UI.rot; bestPreset(); paint(); }
-  else if (a === 'size') { UI.size = t.dataset.v; paint(); }
-  else if (a === 'layout') { UI.layout = t.dataset.v; paint(); }
-  else if (a === 'paper') { UI.paper = t.dataset.v; bestPreset(); paint(); }
-  else if (a === 'preset') { const p = t.dataset.v.split(','); UI.cols = +p[0]; UI.rows = +p[1]; UI.auto = false; paint(); }
-  else if (a === 'auto') { if (UI.auto) { const g = gridPlan(selected().reduce((x, y) => x + y[1], 0)); UI.cols = g.c; UI.rows = g.r; } UI.auto = !UI.auto; paint(); }
-  else if (a === 'show') { const v = t.dataset.v; if (UI.show[v] && Object.values(UI.show).filter(Boolean).length < 2) toast('Keep at least one thing on the label'); else { UI.show[v] = !UI.show[v]; paint(); } }
-  else if (a === 'cam') startCam(); else if (a === 'stop') stopCam();
-  else if (a === 'cq') { const q = $('#bc-cqty'); if (q) q.value = Math.max(1, Math.round((num(q.value) || 1) + num(t.dataset.d))); }
-  else if (a === 'cok' && it) {
-    const n = val('#bc-cqty'), inn = UI.mode === 'in'; if (!(n > 0)) return toast('Enter a quantity above 0');
-    if (!inn && n >= 100 && !confirm(`Remove ${n} of ${nameOf(it)}?`)) return;
-    const e = adjust(it, inn ? 'in' : 'out', n, inn ? 'Received (scan)' : UI.reason, 'scan'); if (!e) return;
-    UI.sess.unshift({ id: e.id, n: nameOf(it), m: UI.mode, a: e.after, q: n }); UI.sess.length = Math.min(UI.sess.length, 15);
-    closeOv(true); toast(`${nameOf(it)}: now ${e.after}`); G.render();
-  }
+  else if (a === 'rot') { UI.rot = !UI.rot; bestPreset(); saveCfg(); paint(); }
+  else if (a === 'size') { UI.size = t.dataset.v; loadCfg(); paint(); }
+  else if (a === 'layout') { UI.layout = t.dataset.v; if (!loadCfg()) bestPreset(); paint(); }
+  else if (a === 'paper') { UI.paper = t.dataset.v; if (!loadCfg()) bestPreset(); paint(); }
+  else if (a === 'preset') { const p = t.dataset.v.split(','); UI.cols = +p[0]; UI.rows = +p[1]; UI.auto = false; saveCfg(); paint(); }
+  else if (a === 'auto') { if (UI.auto) { const g = gridPlan(selected().reduce((x, y) => x + y[1], 0)); UI.cols = g.c; UI.rows = g.r; } UI.auto = !UI.auto; saveCfg(); paint(); }
+  else if (a === 'show') { const v = t.dataset.v; if (UI.show[v] && Object.values(UI.show).filter(Boolean).length < 2) toast('Keep at least one thing on the label'); else { UI.show[v] = !UI.show[v]; UI.tpl = ''; saveCfg(); paint(); } }
   else if (a === 'go') { const m = $('#bc-man'); if (m) { lastCode = ''; handle(m.value); m.value = ''; } }
-  else if (a === 'assign') { toast(assignAll() + ' barcodes created'); G.render(); }
+  else if (a === 'assign') { toast(assignAll() + ' numbers created'); G.render(); }
   else if (a === 'all') { ($('#pl-host') ? shownItems() : items().filter(i => !UI.q || (nameOf(i) + ' ' + (i.o.sku || '')).toLowerCase().includes(UI.q.toLowerCase()))).forEach(i => { UI.sel[key(i)] = UI.sel[key(i)] || 1; }); paint(); }
   else if (a === 'none') { UI.sel = {}; paint(); }
   else if (a === 'print') printList(selected());
@@ -15617,7 +15521,7 @@ document.addEventListener('click', e => {
   else if (a === 'csv') csv();
   else if (a === 'undo') undo(t.dataset.id);
   else if (a === 'link' && it) { const d = $('#bc-ov'), c = d && d.dataset.code; if (c && !(it.o.barcode && !confirm('This item already has barcode ' + it.o.barcode + '. Replace it with ' + c + '?'))) { it.o.barcode = c; save(); beep(); itemPage(it, 'Linked. This barcode now opens this item.'); } }
-  else if (a === 'open' && it) { closeOv(); stopCam(); G.ui.q = nameOf(it); G.ui.sub = null; G.ui.tab = 'stock'; G.ui.seg.stock = it.k === 'p' ? 'products' : 'materials'; G.render(); }
+  else if (a === 'open' && it) { closeOv(); G.ui.q = nameOf(it); G.ui.sub = null; G.ui.tab = 'stock'; G.ui.seg.stock = it.k === 'p' ? 'products' : 'materials'; G.render(); }
   else if ((a === 'in' || a === 'out' || a === 'set') && it) {
     const n = val('#bc-qty'), vs = $('#bc-var'), vid = vs ? vs.value : ''; if (a !== 'set' && !(n > 0)) return toast('Enter a quantity above 0'); if (a === 'set' && n < 0) return toast('Enter 0 or more');
     if (a === 'set' && !confirm(`Set ${nameOf(it)} to ${n}? This replaces the current count.`)) return;
@@ -15627,10 +15531,10 @@ document.addEventListener('click', e => {
   }
 });
 document.addEventListener('change', e => { const t = e.target;
-  if (t.id === 'bc-size') UI.size = t.value; else if (t.id === 'bc-mwhy') UI.reason = t.value;
+  if (t.id === 'bc-size') { UI.size = t.value; loadCfg(); } else if (t.id === 'bc-mwhy') UI.reason = t.value;
   else if (t.dataset && t.dataset.bc === 'pick') { if (t.checked) UI.sel[t.dataset.k] = 1; else delete UI.sel[t.dataset.k]; paint(); }
-  else if (t.dataset && (t.dataset.bc === 'cols' || t.dataset.bc === 'rows')) { UI[t.dataset.bc] = Math.max(1, Math.min(t.dataset.bc === 'cols' ? 8 : 20, Math.round(num(t.value)) || 1)); paint(); }
-  else if (t.dataset && t.dataset.bc === 'stin') { UI.style[t.dataset.k] = t.value; paint(); }
+  else if (t.dataset && (t.dataset.bc === 'cols' || t.dataset.bc === 'rows')) { UI[t.dataset.bc] = Math.max(1, Math.min(t.dataset.bc === 'cols' ? 8 : 20, Math.round(num(t.value)) || 1)); saveCfg(); paint(); }
+  else if (t.dataset && t.dataset.bc === 'stin') { UI.style[t.dataset.k] = t.value; saveCfg(); paint(); }
   else if (t.dataset && t.dataset.bc === 'copies') UI.sel[t.dataset.k] = Math.max(1, Math.min(999, Math.round(num(t.value)) || 1));
 });
 document.addEventListener('input', e => { const t = e.target; if (t.id === 'bc-q' || t.id === 'pl-q') { UI.q = t.value; const pos = t.selectionStart; paint(); const n = $('#' + t.id); if (n) { n.focus(); n.setSelectionRange(pos, pos); } } else if (t.id === 'bc-lq') linkList(t.value); });
@@ -15642,7 +15546,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter') { if (keydown.b.length >= 4) { e.preventDefault(); handle(keydown.b); } keydown.b = ''; } else if (e.key.length === 1) keydown.b += e.key;
 });
 function keydown() { } keydown.b = ''; keydown.t = 0;
-function inject() { if (G.ui.sub === 'printlabels') { const h = $('#pl-host'); if (h && !h.dataset.ready) { h.dataset.ready = '1'; paintPL(); } stopCam(); } else if (G.ui.sub === 'barcodes') { const h = $('#bc-host'); if (h && !h.dataset.ready) { h.dataset.ready = '1'; paint(); } } else { stopCam(); } }
+function inject() { if (G.ui.sub === 'printlabels') { const h = $('#pl-host'); if (h && !h.dataset.ready) { h.dataset.ready = '1'; paintPL(); } } else if (G.ui.sub === 'barcodes') { const h = $('#bc-host'); if (h && !h.dataset.ready) { h.dataset.ready = '1'; paint(); } } }
 new MutationObserver(inject).observe($('#scroll'), { childList: true }); inject();
 })();
 
