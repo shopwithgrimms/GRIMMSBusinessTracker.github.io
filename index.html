@@ -15299,6 +15299,14 @@ function confirmScan(it, code) {
   document.body.appendChild(d);
 }
 const camHint = t => { const h = $('#bc-hint'); if (h) h.textContent = t; };
+/* zoom slider (when the phone supports it) so you can stay back where the camera is in focus */
+function zoomUi() {
+  const c = UI.cam, box = $('#bc-cam'); if (!c || !box || $('#bc-zoom')) return;
+  let cp = {}; try { const tr = c.stream.getVideoTracks()[0]; cp = (tr.getCapabilities && tr.getCapabilities()) || {}; } catch (e) { } if (!cp.zoom) return;
+  const z = document.createElement('input'); z.type = 'range'; z.id = 'bc-zoom'; z.min = cp.zoom.min; z.max = cp.zoom.max; z.step = cp.zoom.step || .1; z.value = c.zoom || cp.zoom.min; z.setAttribute('aria-label', 'Zoom');
+  z.style.cssText = 'position:absolute;left:12%;right:12%;bottom:8px;width:76%;opacity:.9;z-index:2'; z.oninput = () => { c.zoom = +z.value; try { c.stream.getVideoTracks()[0].applyConstraints({ advanced: [{ zoom: c.zoom }] }); } catch (e) { } }; box.appendChild(z);
+  if (c.zoom) { try { c.stream.getVideoTracks()[0].applyConstraints({ advanced: [{ zoom: c.zoom }] }); } catch (e) { } }
+}
 /* Pick the barcode the person is actually aiming at. The detector returns every barcode in the whole camera frame (in no useful order),
    but the screen only shows the middle part and the red line is the centre. Taking the first result is what made a label scan as its neighbour. */
 function pickDetected(r, v) {
@@ -15308,12 +15316,14 @@ function pickDetected(r, v) {
   if (!list.length) return out;
   const vis = list.filter(d => !d.hasBox || (d.bot > y0 && d.top < y0 + visH && d.x + d.w > x0 && d.x < x0 + visW));
   if (!vis.length) return out;
-  /* like a real scanner: only a barcode that is ON the red line counts. One that is merely somewhere in the picture is ignored, even if it is the only one. */
-  const tol = vh * .03, on = vis.filter(d => d.hasBox && d.top - tol <= cy && d.bot + tol >= cy);
-  if (!on.length) { out.multi = new Set(vis.map(d => d.code)).size > 1; return out; }
-  if (new Set(on.map(d => d.code)).size === 1) { out.code = on[0].code; return out; }
-  on.sort((a, b) => Math.abs(a.mid - cx) - Math.abs(b.mid - cx)); const a1 = on[0], b1 = on[1];
-  if (Math.abs(b1.mid - cx) - Math.abs(a1.mid - cx) > vw * .12) { out.code = a1.code; return out; }
+  /* like a real scanner: the barcode nearest the red line wins, so you can hold the phone far enough back to stay in focus.
+     It only gives up when two barcodes are about equally close to the line. */
+  const dist = d => d.hasBox ? Math.abs(d.vm - cy) + .35 * Math.abs(d.mid - cx) : 1e9, sorted = vis.slice().sort((a, b) => dist(a) - dist(b));
+  const best = sorted[0], other = sorted.find(d => d.code !== best.code);
+  if (!best.hasBox) { if (!other) out.code = best.code; else out.multi = true; return out; }
+  const bh = Math.max(best.bot - best.top, 1);
+  if (!other) { if (Math.abs(best.vm - cy) <= bh * 1.1) out.code = best.code; return out; }
+  if (dist(other) - dist(best) >= bh * .6 && Math.abs(best.vm - cy) <= bh * 1.4) { out.code = best.code; return out; }
   out.multi = true; return out;
 }
 function pauseCam() { if (UI.cam) { UI.cam.paused = true; UI.cam.n = 0; UI.cam.code = ''; camHint('Paused. Check the item, then close it to scan again'); } }
@@ -15321,17 +15331,17 @@ function resumeCam() { if (UI.cam) { UI.cam.paused = false; UI.cam.n = 0; UI.cam
 /* the page re-draws after stock changes, which replaces the <video>. Hook the live stream back up. */
 async function bindCam() {
   const c = UI.cam; if (!c || !c.on) return; const v = $('#bc-vid'); if (!v || v.srcObject === c.stream) return;
-  v.srcObject = c.stream; const b = $('#bc-cam'); if (b) b.hidden = false; try { await v.play(); } catch (e) { }
+  v.srcObject = c.stream; const b = $('#bc-cam'); if (b) b.hidden = false; try { await v.play(); } catch (e) { } zoomUi();
   camHint(c.paused ? 'Paused. Check the item, then close it to scan again' : 'Line the barcode up with the red line');
 }
 async function startCam() {
   stopCam(); const v = $('#bc-vid'); if (!v) return; const box = $('#bc-cam'); box.hidden = false;
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }, audio: false });
-    v.srcObject = stream; await v.play(); let det = null;
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+    v.srcObject = stream; await v.play(); let det = null; try { const tr = stream.getVideoTracks()[0], cp = (tr.getCapabilities && tr.getCapabilities()) || {}; if (cp.focusMode && cp.focusMode.includes('continuous')) await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) { }
     try { if (window.BarcodeDetector) det = new BarcodeDetector({ formats: ['ean_13', 'upc_a', 'ean_8', 'upc_e'] }); } catch (e) { }
     const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true }); const me = UI.cam = { stream, on: true, paused: false, code: '', n: 0, at: 0 };
-    camHint('Line the barcode up with the red line');
+    camHint('Line the barcode up with the red line'); zoomUi();
     const tick = async () => {
       if (UI.cam !== me || !me.on) return;
       try {
@@ -15340,7 +15350,7 @@ async function startCam() {
           let c = null;
           let multi = false;
           if (det) { const r = await det.detect(v), pk = pickDetected(r, v); c = pk.code; multi = pk.multi; }
-          if (!c) { const w = Math.min(960, v.videoWidth), h = Math.round(w * v.videoHeight / v.videoWidth); cv.width = w; cv.height = h; cx.drawImage(v, 0, 0, w, h); const px = cx.getImageData(0, 0, w, h).data, g = new Uint8Array(w * h); for (let i = 0; i < g.length; i++) g[i] = (px[i * 4] * 77 + px[i * 4 + 1] * 150 + px[i * 4 + 2] * 29) >> 8; c = decodeGray(g, w, h); multi = multi || !!decodeGray.multi; }
+          if (!c) { const w = Math.min(1280, v.videoWidth), h = Math.round(w * v.videoHeight / v.videoWidth); cv.width = w; cv.height = h; cx.drawImage(v, 0, 0, w, h); const px = cx.getImageData(0, 0, w, h).data, g = new Uint8Array(w * h); for (let i = 0; i < g.length; i++) g[i] = (px[i * 4] * 77 + px[i * 4 + 1] * 150 + px[i * 4 + 2] * 29) >> 8; c = decodeGray(g, w, h); multi = multi || !!decodeGray.multi; }
           if (UI.cam !== me || me.paused) { setTimeout(tick, 140); return; }
           const now = Date.now();
           if (c) {
