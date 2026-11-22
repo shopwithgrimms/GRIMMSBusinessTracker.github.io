@@ -15283,7 +15283,7 @@ function handle(code, src) {
   if (!it) { beep(); if (cam) pauseCam(); if (UI.mode === 'look' || cam) return unknown(code); return toast('Not found: ' + code); }
   beep();
   if (cam) pauseCam(); /* freeze the camera until you have looked at the result */
-  if (UI.mode === 'look') return itemPage(it);
+  if (UI.mode === 'look') return itemPage(it, cam ? 'Scanned ' + code : '');
   if ((it.o.variants || []).some(v => v.size || v.color)) return itemPage(it, 'This item has sizes/colors. Pick one and adjust here.');
   if (cam) return confirmScan(it, code); /* camera: show the item and ask before any stock changes */
   const e = adjust(it, UI.mode === 'in' ? 'in' : 'out', 1, UI.mode === 'in' ? 'Received (scan)' : UI.reason, 'scan'); if (!e) return;
@@ -15347,16 +15347,23 @@ async function startCam() {
       try {
         await bindCam(); const v = $('#bc-vid');
         if (v && v.videoWidth && !me.paused) {
+          /* a frozen picture is the worst case: it would keep re-reading the LAST barcode you scanned. Make sure the video is really moving. */
+          const tm = v.currentTime, mv = tm !== me.lt; me.lt = tm;
+          if (v.paused || v.readyState < 2 || !mv) { me.stale = (me.stale || 0) + 1; if (v.paused) { try { v.play(); } catch (e) { } } if (me.stale > 20) { camHint('Camera froze. Restarting...'); setTimeout(startCam, 50); return; } setTimeout(tick, 140); return; }
+          me.stale = 0;
           let c = null;
           let multi = false;
-          if (det) { const r = await det.detect(v), pk = pickDetected(r, v); c = pk.code; multi = pk.multi; }
-          if (!c) { const w = Math.min(1280, v.videoWidth), h = Math.round(w * v.videoHeight / v.videoWidth); cv.width = w; cv.height = h; cx.drawImage(v, 0, 0, w, h); const px = cx.getImageData(0, 0, w, h).data, g = new Uint8Array(w * h); for (let i = 0; i < g.length; i++) g[i] = (px[i * 4] * 77 + px[i * 4 + 1] * 150 + px[i * 4 + 2] * 29) >> 8; c = decodeGray(g, w, h); multi = multi || !!decodeGray.multi; }
+          /* read ONLY the part of the picture you can see on screen (the box crops the camera frame), so nothing outside it can be picked up */
+          const vw = v.videoWidth, vh = v.videoHeight, bw = v.clientWidth || vw, bh = v.clientHeight || vh, sc = Math.max(bw / vw, bh / vh), sw = Math.min(vw, bw / sc), sh = Math.min(vh, bh / sc), sx = (vw - sw) / 2, sy = (vh - sh) / 2;
+          const w = Math.min(1280, Math.round(sw)), h = Math.max(1, Math.round(w * sh / sw)); cv.width = w; cv.height = h; cx.drawImage(v, sx, sy, sw, sh, 0, 0, w, h);
+          if (det) { const r = await det.detect(cv), pk = pickDetected(r, { videoWidth: w, videoHeight: h, clientWidth: w, clientHeight: h }); c = pk.code; multi = pk.multi; }
+          if (!c) { const px = cx.getImageData(0, 0, w, h).data, g = new Uint8Array(w * h); for (let i = 0; i < g.length; i++) g[i] = (px[i * 4] * 77 + px[i * 4 + 1] * 150 + px[i * 4 + 2] * 29) >> 8; c = decodeGray(g, w, h); multi = multi || !!decodeGray.multi; }
           if (UI.cam !== me || me.paused) { setTimeout(tick, 140); return; }
           const now = Date.now();
           if (c) {
             if (c === me.code && now - me.at < 800) me.n++; else { me.code = c; me.n = 1; } me.at = now;
             if (me.n >= NEED_READS) { me.code = ''; me.n = 0; camHint('Got it ' + c); handle(c, 'cam'); }
-            else camHint('Hold steady ' + '\u25cf'.repeat(me.n) + '\u25cb'.repeat(NEED_READS - me.n));
+            else camHint('Reading ' + c + '  ' + '\u25cf'.repeat(me.n) + '\u25cb'.repeat(NEED_READS - me.n));
           } else if (multi) { me.n = 0; me.code = ''; camHint('Several barcodes in view. Move closer so only one is on the red line'); }
           else if (me.n && now - me.at > 800) { me.n = 0; me.code = ''; camHint('Line the barcode up with the red line'); }
         }
