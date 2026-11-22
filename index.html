@@ -1255,6 +1255,7 @@ html[data-lofibg=l-matcha] .scroll{background-image:linear-gradient(var(--lv),va
       <button class="btn block sub" style="font-size:12px;padding:8px" data-act="import-pick">Restore from a backup file</button>
       <button class="btn block sub" style="font-size:12px;padding:8px" data-act="paste-restore">Restore by pasting copied text</button>
     </div>
+    <p class="hint" style="text-align:center;margin-top:14px" data-appver></p>
   </section>
 
   <!-- ================= SETUP ================= -->
@@ -2819,6 +2820,9 @@ function chartHover(el, ev, leave) {
 /* =====================================================================
    11. HEADER + NAV
    ===================================================================== */
+/* APP VERSION: shown on the welcome screen, More and Settings. Changes with every update so you can tell which copy you are on. */
+const APP_VERSION = '2026.11.22.1', APP_VERSION_NOTE = 'Scanner fix and PDF labels';
+document.querySelectorAll('[data-appver]').forEach(n => { n.textContent = 'Version ' + APP_VERSION; });
 const TITLES = { barcodes: 'Barcodes', sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More', plan: 'Plan', goals: 'Goals', suppliers: 'Suppliers', customers: 'Customers', notes: 'Notes', mileage: 'Mileage', activity: 'Activity', settings: 'Settings', taxes: 'Taxes', assistant: 'Business Assistant', inbox: 'Inbox', bills: 'Bills & Invoices', forecast: 'Cash Flow Forecast', purchases: 'Orders & Deliveries', faq: 'Help & FAQ', labels: 'Label Designer', printlabels: 'Print Labels' };
 function addType() {
   const v = ui.sub || ui.tab, s = ui.seg;
@@ -4381,7 +4385,7 @@ V.more = () => {
       ${row('info', 'Help & FAQ', 'How to use the app from start to finish, plus answers to common questions', 'faq')}
       ${row('settings', 'Settings', 'Business, platforms, invoices, backup', 'settings')}
     </div>
-    <p class="hint" style="text-align:center">Saved on this device with automatic safety copies. Back up anytime from Settings.</p></div>`;
+    <p class="hint" style="text-align:center">Saved on this device with automatic safety copies. Back up anytime from Settings.<br>Version ${APP_VERSION}</p></div>`;
 };
 
 /* ---------------- PLAN ---------------- */
@@ -4931,7 +4935,7 @@ V.settings = () => {
       <p class="hint" style="margin:0 0 12px">Off: you get a reminder when a planned day passes and you have not confirmed it. On: it is marked as listed on its planned day without asking. This happens when you open the app.</p>
       <label class="row b sm-t" style="margin-bottom:10px"><input type="checkbox" class="chk" data-quarterly ${s.quarterly ? 'checked' : ''}> Show US quarterly estimated tax dates</label>
       <p class="hint">Use your local mileage rate. Items you resell are costed automatically when sold, so don't log inventory purchases as expenses (that would count them twice).</p>`)}
-    <p class="hint" style="text-align:center;margin-top:8px">Grimms Business Tracker</p></div>`;
+    <p class="hint" style="text-align:center;margin-top:8px">Grimms Business Tracker<br><b>Version ${APP_VERSION}</b> &middot; ${APP_VERSION_NOTE}</p></div>`;
 };
 
 
