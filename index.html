@@ -1255,7 +1255,6 @@ html[data-lofibg=l-matcha] .scroll{background-image:linear-gradient(var(--lv),va
       <button class="btn block sub" style="font-size:12px;padding:8px" data-act="import-pick">Restore from a backup file</button>
       <button class="btn block sub" style="font-size:12px;padding:8px" data-act="paste-restore">Restore by pasting copied text</button>
     </div>
-    <p class="hint" style="text-align:center;margin-top:14px" data-appver></p>
   </section>
 
   <!-- ================= SETUP ================= -->
@@ -2820,9 +2819,6 @@ function chartHover(el, ev, leave) {
 /* =====================================================================
    11. HEADER + NAV
    ===================================================================== */
-/* APP VERSION: shown on the welcome screen, More and Settings. Changes with every update so you can tell which copy you are on. */
-const APP_VERSION = '2026.11.22.1', APP_VERSION_NOTE = 'Scanner fix and PDF labels';
-document.querySelectorAll('[data-appver]').forEach(n => { n.textContent = 'Version ' + APP_VERSION; });
 const TITLES = { barcodes: 'Barcodes', sales: 'Sales', stock: 'Inventory', money: 'Money', more: 'More', plan: 'Plan', goals: 'Goals', suppliers: 'Suppliers', customers: 'Customers', notes: 'Notes', mileage: 'Mileage', activity: 'Activity', settings: 'Settings', taxes: 'Taxes', assistant: 'Business Assistant', inbox: 'Inbox', bills: 'Bills & Invoices', forecast: 'Cash Flow Forecast', purchases: 'Orders & Deliveries', faq: 'Help & FAQ', labels: 'Label Designer', printlabels: 'Print Labels' };
 function addType() {
   const v = ui.sub || ui.tab, s = ui.seg;
@@ -4385,7 +4381,7 @@ V.more = () => {
       ${row('info', 'Help & FAQ', 'How to use the app from start to finish, plus answers to common questions', 'faq')}
       ${row('settings', 'Settings', 'Business, platforms, invoices, backup', 'settings')}
     </div>
-    <p class="hint" style="text-align:center">Saved on this device with automatic safety copies. Back up anytime from Settings.<br>Version ${APP_VERSION}</p></div>`;
+    <p class="hint" style="text-align:center">Saved on this device with automatic safety copies. Back up anytime from Settings.</p></div>`;
 };
 
 /* ---------------- PLAN ---------------- */
@@ -4935,7 +4931,7 @@ V.settings = () => {
       <p class="hint" style="margin:0 0 12px">Off: you get a reminder when a planned day passes and you have not confirmed it. On: it is marked as listed on its planned day without asking. This happens when you open the app.</p>
       <label class="row b sm-t" style="margin-bottom:10px"><input type="checkbox" class="chk" data-quarterly ${s.quarterly ? 'checked' : ''}> Show US quarterly estimated tax dates</label>
       <p class="hint">Use your local mileage rate. Items you resell are costed automatically when sold, so don't log inventory purchases as expenses (that would count them twice).</p>`)}
-    <p class="hint" style="text-align:center;margin-top:8px">Grimms Business Tracker<br><b>Version ${APP_VERSION}</b> &middot; ${APP_VERSION_NOTE}</p></div>`;
+    <p class="hint" style="text-align:center;margin-top:8px">Grimms Business Tracker</p></div>`;
 };
 
 
@@ -15178,7 +15174,14 @@ function runsOf(row) {
   r.push(n); return r;
 }
 function decodeRow(row) { const r = runsOf(row); if (!r) return null; if (r.length < 59) return null; const a = decodeRuns(r); if (a) return a; const v = r.slice().reverse(); return decodeRuns((r.length - 1) % 2 ? v.slice(1) : v); }
-function decodeGray(g, w, h) { for (const f of [.5, .42, .58, .35, .65, .28, .72, .5]) { const y = Math.floor(h * f), row = g.subarray(y * w, y * w + w); const c = decodeRow(row); if (c) return c; } return null; }
+/* The row on the red line wins. If it can't read, only rows close to the line are tried, and if they disagree (two different barcodes near the line, e.g. a sheet of labels) nothing is returned.
+   It never guesses the neighbour: decodeGray.multi is set so the camera can tell you to move closer. */
+function decodeGray(g, w, h) {
+  const mid = decodeRow(g.subarray(Math.floor(h * .5) * w, Math.floor(h * .5) * w + w)); decodeGray.multi = false; if (mid) return mid; /* exactly on the red line: trust it */
+  const seen = new Set(); let first = null;
+  for (const f of [.47, .53, .44, .56, .41, .59, .38, .62]) { const y = Math.floor(h * f), c = decodeRow(g.subarray(y * w, y * w + w)); if (c) { seen.add(c); if (first === null) first = c; } }
+  decodeGray.multi = seen.size > 1; return seen.size === 1 ? first : null;
+}
 if (typeof module !== 'undefined') { module.exports = { svg, modules, decodeGray, decodeRow, check, validEan, toEan }; return; }
 
 /* ---------- app glue ---------- */
@@ -15294,8 +15297,23 @@ function confirmScan(it, code) {
   document.body.appendChild(d);
 }
 const camHint = t => { const h = $('#bc-hint'); if (h) h.textContent = t; };
+/* Pick the barcode the person is actually aiming at. The detector returns every barcode in the whole camera frame (in no useful order),
+   but the screen only shows the middle part and the red line is the centre. Taking the first result is what made a label scan as its neighbour. */
+function pickDetected(r, v) {
+  const out = { code: null, multi: false }; const vw = v.videoWidth, vh = v.videoHeight, cw = v.clientWidth || vw, ch = v.clientHeight || vh;
+  const sc = Math.max(cw / vw, ch / vh), visW = cw / sc, visH = ch / sc, x0 = (vw - visW) / 2, y0 = (vh - visH) / 2, cy = vh / 2, cx = vw / 2;
+  const list = (r || []).filter(d => d && d.rawValue).map(d => { const b = d.boundingBox || {}; return { code: d.rawValue, top: b.y, bot: b.y + b.height, mid: b.x + b.width / 2, vm: b.y + b.height / 2, hasBox: isFinite(b.y) && isFinite(b.height) && b.height > 0, x: b.x, w: b.width }; });
+  if (!list.length) return out;
+  const vis = list.filter(d => !d.hasBox || (d.bot > y0 && d.top < y0 + visH && d.x + d.w > x0 && d.x < x0 + visW));
+  if (!vis.length) return out;
+  if (new Set(vis.map(d => d.code)).size === 1) { out.code = vis[0].code; return out; }
+  const tol = vh * .04, on = vis.filter(d => d.hasBox && d.top - tol <= cy && d.bot + tol >= cy);
+  if (on.length && new Set(on.map(d => d.code)).size === 1) { out.code = on[0].code; return out; }
+  if (on.length > 1) { on.sort((a, b) => Math.abs(a.mid - cx) - Math.abs(b.mid - cx)); const a = on[0], b = on[1]; if (Math.abs(b.mid - cx) - Math.abs(a.mid - cx) > vw * .12) { out.code = a.code; return out; } }
+  out.multi = true; return out;
+}
 function pauseCam() { if (UI.cam) { UI.cam.paused = true; UI.cam.n = 0; UI.cam.code = ''; camHint('Paused. Check the item, then close it to scan again'); } }
-function resumeCam() { if (UI.cam) { UI.cam.paused = false; UI.cam.n = 0; UI.cam.code = ''; UI.cam.at = 0; UI.cam.blockAt = Date.now(); lastCode = ''; camHint('Line the barcode up with the red line'); } }
+function resumeCam() { if (UI.cam) { UI.cam.paused = false; UI.cam.n = 0; UI.cam.code = ''; UI.cam.at = 0; lastCode = ''; camHint('Line the barcode up with the red line'); } }
 /* the page re-draws after stock changes, which replaces the <video>. Hook the live stream back up. */
 async function bindCam() {
   const c = UI.cam; if (!c || !c.on) return; const v = $('#bc-vid'); if (!v || v.srcObject === c.stream) return;
@@ -15308,7 +15326,7 @@ async function startCam() {
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }, audio: false });
     v.srcObject = stream; await v.play(); let det = null;
     try { if (window.BarcodeDetector) det = new BarcodeDetector({ formats: ['ean_13', 'upc_a', 'ean_8', 'upc_e', 'code_128', 'code_39'] }); } catch (e) { }
-    const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true }); const me = UI.cam = { stream, on: true, paused: false, code: '', n: 0, at: 0, block: '', blockAt: 0 };
+    const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true }); const me = UI.cam = { stream, on: true, paused: false, code: '', n: 0, at: 0 };
     camHint('Line the barcode up with the red line');
     const tick = async () => {
       if (UI.cam !== me || !me.on) return;
@@ -15316,17 +15334,17 @@ async function startCam() {
         await bindCam(); const v = $('#bc-vid');
         if (v && v.videoWidth && !me.paused) {
           let c = null;
-          if (det) { const r = await det.detect(v); if (r.length) c = r[0].rawValue; }
-          if (!c) { const w = Math.min(960, v.videoWidth), h = Math.round(w * v.videoHeight / v.videoWidth); cv.width = w; cv.height = h; cx.drawImage(v, 0, 0, w, h); const px = cx.getImageData(0, 0, w, h).data, g = new Uint8Array(w * h); for (let i = 0; i < g.length; i++) g[i] = (px[i * 4] * 77 + px[i * 4 + 1] * 150 + px[i * 4 + 2] * 29) >> 8; c = decodeGray(g, w, h); }
+          let multi = false;
+          if (det) { const r = await det.detect(v), pk = pickDetected(r, v); c = pk.code; multi = pk.multi; }
+          if (!c) { const w = Math.min(960, v.videoWidth), h = Math.round(w * v.videoHeight / v.videoWidth); cv.width = w; cv.height = h; cx.drawImage(v, 0, 0, w, h); const px = cx.getImageData(0, 0, w, h).data, g = new Uint8Array(w * h); for (let i = 0; i < g.length; i++) g[i] = (px[i * 4] * 77 + px[i * 4 + 1] * 150 + px[i * 4 + 2] * 29) >> 8; c = decodeGray(g, w, h); multi = multi || !!decodeGray.multi; }
           if (UI.cam !== me || me.paused) { setTimeout(tick, 140); return; }
           const now = Date.now();
-          /* the barcode you just handled is still in view: ignore it until it leaves, so it cannot trigger twice */
-          if (c && c === me.block) { me.blockAt = now; c = null; } else if (me.block && now - me.blockAt > 700) me.block = '';
           if (c) {
             if (c === me.code && now - me.at < 800) me.n++; else { me.code = c; me.n = 1; } me.at = now;
-            if (me.n >= NEED_READS) { me.code = ''; me.n = 0; me.block = c; me.blockAt = now; camHint('Got it'); handle(c, 'cam'); }
+            if (me.n >= NEED_READS) { me.code = ''; me.n = 0; camHint('Got it'); handle(c, 'cam'); }
             else camHint('Hold steady ' + '\u25cf'.repeat(me.n) + '\u25cb'.repeat(NEED_READS - me.n));
-          } else if (me.n && now - me.at > 800) { me.n = 0; me.code = ''; camHint('Line the barcode up with the red line'); }
+          } else if (multi) { me.n = 0; me.code = ''; camHint('Several barcodes in view. Move closer so only one is on the red line'); }
+          else if (me.n && now - me.at > 800) { me.n = 0; me.code = ''; camHint('Line the barcode up with the red line'); }
         }
       } catch (e) { }
       setTimeout(tick, 140);
