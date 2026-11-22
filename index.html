@@ -15188,7 +15188,7 @@ const fmtT = t => new Date(t).toLocaleString(undefined, { month: 'short', day: '
 const stateOf = it => { const q = it.k === 'p' ? num(it.o.qty) : num(it.o.qty), low = it.o.low === '' || it.o.low == null ? num(S().settings.lowStock) : num(it.o.low); return q <= 0 ? ['Out of stock', '#c0392b'] : (!it.o.oneOff && q <= low) ? ['Low stock', '#d98a00'] : ['In stock', '#1e8e5a']; };
 
 /* ---------- item page (what a scan opens) ---------- */
-const UI = { inStock: false, kind: 'all', pv: true, mode: 'look', reason: 'Used', sel: {}, size: '4x6', layout: 'single', rot: false, paper: 'letter', auto: true, cols: 2, rows: 4, show: { name: true, sku: true, num: true, price: false }, style: { font: 'Arial', ts: 'm', bold: true, align: 'center', border: 'none', ns: 'm', extra: '' }, tpl: '', styleOpen: false, q: '', sess: [], ready: false };
+const UI = { inStock: false, kind: 'all', pv: true, mode: 'look', reason: 'Used', sel: {}, size: '4x6', layout: 'single', rot: false, paper: 'letter', auto: true, cols: 2, rows: 4, show: { name: true, sku: true, num: true, price: false }, style: { font: 'Arial', ts: 'm', bold: true, align: 'center', border: 'none', ns: 'm', extra: '', wrap: true }, tpl: '', styleOpen: false, q: '', sess: [], ready: false };
 function sales(id) {
   const out = []; (S().orders || []).forEach(o => { if (/cancel|refunded/i.test(o.status || '')) return; (o.items || []).forEach(l => { if (l.productId === id) out.push({ d: o.date || '', n: o.sku || ('#' + (o.no || '')), q: num(l.qty) - num(l.returned), p: num(l.price), s: o.status, c: o.customer || o.customerName || '' }); }); });
   return out.sort((a, b) => String(b.d).localeCompare(String(a.d)));
@@ -15243,18 +15243,29 @@ const rz = z => UI.rot ? [z[0], z[2], z[1], z[3], z[4]] : z;
 const PAPER = { '4x6': ['4 x 6 in thermal', 4, 6, .1, .06], letter: ['Letter', 8.5, 11, .4, .1], a4: ['A4', 8.27, 11.69, .4, .1], '5160': ['Avery 5160 (30-up)', 8.5, 11, 0, 0] };
 /* ---- text sizing: one place decides every font size so the screen, print and PDF all match ---- */
 const NM = { s: .7, m: .9, l: 1 };
+/* longest name / SKU among the labels being made: decides how many lines they need when wrapping is on */
+let LN = { name: 0, sku: 0 };
+const setLN = its => { LN = { name: 0, sku: 0 }; (its || []).forEach(it => { if (!it) return; LN.name = Math.max(LN.name, nameOf(it).length); LN.sku = Math.max(LN.sku, String(it.o.sku || '').length); }); };
 function fd(w, h, st, sh) {
-  st = st || UI.style; sh = sh || UI.show; const big = h >= 3, pad = big ? .25 : .06, gap = big ? .12 : .03, bwi = ({ none: 0, thin: 1, thick: 3, round: 2 }[st.border] || 0) / 96;
-  const avail = Math.max(.3, w - 2 * (pad + bwi)), H = Math.max(.2, h - 2 * (pad + bwi)) * 72, L = 1.15;
-  const stack = big && st.ns === 'l', fit = avail * 72 / ((stack ? 8 : 15) * .68);
-  const tw = { s: .75, m: 1, l: 1.3 }[st.ts] || 1, nw = ({ s: .6, m: 1, l: 1.5 }[st.ns] || 1) * 1.1;
-  const nT = sh.name ? (big ? 2 : 1) : 0, nN = sh.num ? (stack ? 2 : 1) : 0, nS = (sh.sku ? 1 : 0) + (sh.price ? 1 : 0) + (st.extra ? 1 : 0), parts = (sh.name ? 1 : 0) + (sh.num ? 1 : 0) + nS;
-  const free = H - Math.max(0, parts - 1) * gap * 72, u = Math.max(4, free / Math.max(.1, (nT * tw + nN * nw + nS * .6) * L));
-  const capT = Math.min(big ? 60 : 44, avail * 72 / (big ? 7 : 10)), capS = Math.min(26, avail * 72 / 10), capN = Math.min(big ? 90 : 60, fit);
-  const tp = Math.max(6, Math.min(tw * u, capT)), np = Math.max(6, Math.min(nw * u, capN)), sp = Math.max(6, Math.min(.6 * u, capS, tp));
-  /* whatever height is left over goes to the number, so the label fills up instead of leaving white space */
-  const used = nT * tp * L + nN * np * L + nS * sp * L, left = free - used, np2 = nN && left > 0 ? Math.min(capN, np + left / (nN * L)) : np;
-  return { big, pad, gap, tp, sp, np: np2, stack };
+  st = st || UI.style; sh = sh || UI.show; const big = h >= 3, pad = big ? .25 : .06, gap = big ? .12 : .03, bwi = ({ none: 0, thin: 1, thick: 3, round: 2 }[st.border] || 0) / 96, wrap = st.wrap !== false;
+  const avail = Math.max(.3, w - 2 * (pad + bwi)), H = Math.max(.2, h - 2 * (pad + bwi)) * 72, L = 1.15, AW = avail * 72;
+  const stack = big && st.ns === 'l', fit = AW / ((stack ? 8 : 15) * .68);
+  const tw = { s: .75, m: 1, l: 1.3 }[st.ts] || 1, nw = ({ s: .6, m: 1, l: 1.5 }[st.ns] || 1) * 1.1, nN = sh.num ? (stack ? 2 : 1) : 0;
+  const capT = Math.min(big ? 60 : 44, AW / (big ? 7 : 10)), capS = Math.min(26, AW / 10), capN = Math.min(big ? 90 : 60, fit);
+  const calc = (kT, kS) => {
+    const nT = sh.name ? kT : 0, nS = (sh.sku ? kS : 0) + (sh.price ? 1 : 0) + (st.extra ? 1 : 0), parts = (sh.name ? 1 : 0) + (sh.num ? 1 : 0) + (sh.sku ? 1 : 0) + (sh.price ? 1 : 0) + (st.extra ? 1 : 0);
+    const free = H - Math.max(0, parts - 1) * gap * 72, u = Math.max(4, free / Math.max(.1, (nT * tw + nN * nw + nS * .6) * L));
+    const tp = Math.max(6, Math.min(tw * u, capT)), np = Math.max(6, Math.min(nw * u, capN)), sp = Math.max(6, Math.min(.6 * u, capS, tp));
+    const used = nT * tp * L + nN * np * L + nS * sp * L, left = free - used;
+    /* the name has to fit on kT lines at this size, the SKU on kS lines */
+    const okT = !sh.name || Math.ceil(LN.name * .66 * tp / AW) <= kT, okS = !sh.sku || Math.ceil(LN.sku * .7 * sp / AW) <= kS;
+    return { tp, sp, np: nN && left > 0 ? Math.min(capN, np + left / (nN * L)) : np, kT, kS, ok: okT && okS };
+  };
+  /* wrapping on: use the fewest lines that hold the longest name / SKU. Off: one line each, long ones get "..." */
+  let r = calc(1, 1);
+  if (wrap) { const maxT = big || h >= 1.1 ? 3 : 2, tries = []; for (let a = 1; a <= maxT; a++) for (let b = 1; b <= 2; b++) tries.push([a, b]); tries.sort((x, y) => (x[0] + x[1]) - (y[0] + y[1]));
+    r = null; for (const t of tries) { const c = calc(t[0], t[1]); if (c.ok) { r = c; break; } } if (!r) { r = calc(maxT, 2); /* still too long: shrink the text until it fits instead of cutting it off */ if (sh.name) r.tp = Math.max(6, Math.min(r.tp, maxT * AW / (LN.name * .66))); if (sh.sku) r.sp = Math.max(6, Math.min(r.sp, 2 * AW / (LN.sku * .7))); } }
+  return { big, pad, gap, tp: r.tp, sp: r.sp, np: r.np, stack, kT: wrap ? r.kT : 1, kS: wrap ? r.kS : 1, wrap };
 }
 const nlines = (c, d) => d.stack ? [c[0] + ' ' + c.slice(1, 7), c.slice(7)] : [c[0] + ' ' + c.slice(1, 7) + ' ' + c.slice(7)];
 function readNote(w, h) {
@@ -15337,7 +15348,7 @@ function gridPlan(n) {
 const gridCss = (pl, p) => `${p}.pg{box-sizing:border-box;width:${pl.pw}in;height:${pl.ph}in;padding:${pl.pt}in ${pl.pl}in;display:grid;grid-template-columns:repeat(${pl.c},${pl.cw}in);grid-template-rows:repeat(${pl.r},${pl.ch}in);column-gap:${pl.cg}in;row-gap:${pl.rg}in;overflow:hidden;page-break-after:always;background:#fff}`;
 function lbCss(z, p) {
   p = p || ''; const st = UI.style, FAM = { Arial: 'Arial,sans-serif', Georgia: 'Georgia,serif', Courier: "'Courier New',monospace", Verdana: 'Verdana,sans-serif', Times: "'Times New Roman',serif", Impact: 'Impact,Arial Black,sans-serif' }[st.font] || 'Arial,sans-serif', BORD = { none: '0', thin: '1px solid #000', thick: '3px solid #000', round: '2px solid #000;border-radius:.12in' }[st.border] || '0'; const w = z[1], h = z[2], d = fd(w, h);
-  return `${p ? '' : 'body{margin:0}'}${p}.lb{box-sizing:border-box;font-family:${FAM};border:${BORD};color:#000;background:#fff;width:${w}in;height:${h}in;padding:${d.pad}in;display:flex;flex-direction:column;justify-content:center;gap:${d.gap}in;overflow:hidden;text-align:${st.align};page-break-inside:avoid}${p}.t{font-size:${d.tp}pt;font-weight:${st.bold ? 700 : 400};line-height:1.1;overflow:hidden;${d.big ? 'display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical' : 'white-space:nowrap;text-overflow:ellipsis'}}${p}.s{font-size:${d.sp}pt;font-weight:600}${p}.x{font-size:${d.sp}pt}${p}.n{font-size:${d.np}pt;font-weight:700;letter-spacing:.08em;font-family:'Courier New',monospace;line-height:1.1;white-space:nowrap}`;
+  return `${p ? '' : 'body{margin:0}'}${p}.lb{box-sizing:border-box;font-family:${FAM};border:${BORD};color:#000;background:#fff;width:${w}in;height:${h}in;padding:${d.pad}in;display:flex;flex-direction:column;justify-content:center;gap:${d.gap}in;overflow:hidden;text-align:${st.align};page-break-inside:avoid}${p}.t{font-size:${d.tp}pt;font-weight:${st.bold ? 700 : 400};line-height:1.1;overflow:hidden;${d.wrap ? `white-space:normal;word-break:break-word;display:-webkit-box;-webkit-line-clamp:${d.kT};-webkit-box-orient:vertical` : 'white-space:nowrap;text-overflow:ellipsis'}}${p}.s{font-size:${d.sp}pt;font-weight:600;${d.wrap ? `white-space:normal;word-break:break-all;display:-webkit-box;-webkit-line-clamp:${d.kS};-webkit-box-orient:vertical;overflow:hidden` : 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'}}${p}.x{font-size:${d.sp}pt}${p}.n{font-size:${d.np}pt;font-weight:700;letter-spacing:.08em;font-family:'Courier New',monospace;line-height:1.1;white-space:nowrap}`;
 }
 let PV = null;
 function pvCode(it) { if (!PV) return nextCode(); const k = key(it); if (!PV.has(k)) { const b = '20' + String(parseInt(nextCode().slice(2, 12), 10) + PV.size).padStart(10, '0'); PV.set(k, b + check(b)); } return PV.get(k); }
@@ -15346,6 +15357,7 @@ function lbOne(it, preview, wh) {
   return `<div class="lb">${sh.name ? `<div class="t">${esc(nameOf(it))}</div>` : ''}${sh.sku && o.sku ? `<div class="s">${esc(o.sku)}</div>` : ''}${sh.num ? `<div class="n">${nlines(c, d).join('<br>')}</div>` : ''}${sh.price && it.k === 'p' && num(o.price) > 0 ? `<div class="s">${esc(money(o.price))}</div>` : ''}${UI.style.extra ? `<div class="x">${esc(UI.style.extra)}</div>` : ''}</div>`;
 }
 function labelsHtml(list, sz) {
+  setLN(list.map(x => x[0]));
   const z = rz(SIZES[sz] || SIZES['4x6']), sheet = z[3] * z[4] > 1, total = list.reduce((a, x) => a + x[1], 0), pl = UI.layout === 'grid' ? gridPlan(total) : null, wh = pl ? [pl.cw, pl.ch] : [z[1], z[2]], flat = []; list.forEach(([it, n]) => { for (let i = 0; i < n; i++) flat.push(lbOne(it, false, wh)); });
   if (pl) { const per = pl.c * pl.r, pg = []; for (let i = 0; i < flat.length; i += per) pg.push(flat.slice(i, i + per).join(''));
     return `<style>@page{size:${pl.pw}in ${pl.ph}in;margin:0}${lbCss([0, pl.cw, pl.ch])}${gridCss(pl, '')}.pg:last-child{page-break-after:auto}</style>${pg.map(x => `<div class="pg">${x}</div>`).join('')}`; }
@@ -15381,8 +15393,8 @@ function pdfLabel(out, ph, it, x, y, w, h) {
   const tsz = tp, cx = x + bw + pad, cw = Math.max(.1, w - 2 * (bw + pad)), ch = Math.max(.1, h - 2 * (bw + pad));
   const fk = (bold, f) => '/F' + ({ H: 1, T: 3, C: 5 }[f] + (bold ? 1 : 0));
   const parts = [], line = (t, fs, bold, f, ls, lh) => ({ k: 'x', lines: [t], fs, bold, f, ls: ls || 0, lh: lh || fs * 1.15 / 72 });
-  if (sh.name) { const lines = big ? pdfWrap(nameOf(it), fam, st.bold, tsz, cw * 72, 3) : [pdfFit(nameOf(it), fam, st.bold, tsz, cw * 72)]; parts.push({ k: 'x', lines, fs: tsz, bold: st.bold, f: fam, ls: 0, lh: tsz * 1.1 / 72 }); }
-  if (sh.sku && o.sku) parts.push(line(pdfFit(o.sku, fam, true, sp, cw * 72), sp, true, fam));
+  if (sh.name) { const lines = D.wrap ? pdfWrap(nameOf(it), fam, st.bold, tsz, cw * 72, D.kT) : [pdfFit(nameOf(it), fam, st.bold, tsz, cw * 72)]; parts.push({ k: 'x', lines, fs: tsz, bold: st.bold, f: fam, ls: 0, lh: tsz * 1.1 / 72 }); }
+  if (sh.sku && o.sku) { const sl = D.wrap ? pdfWrap(o.sku, fam, true, sp, cw * 72, D.kS) : [pdfFit(o.sku, fam, true, sp, cw * 72)]; parts.push({ k: 'x', lines: sl, fs: sp, bold: true, f: fam, ls: 0, lh: sp * 1.15 / 72 }); }
   if (sh.num) parts.push({ k: 'x', lines: nlines(code, D), fs: np, bold: true, f: 'C', ls: .08, lh: np * 1.1 / 72 });
   if (sh.price && it.k === 'p' && num(o.price) > 0) parts.push(line(pdfFit(money(o.price), fam, true, sp, cw * 72), sp, true, fam));
   if (st.extra) parts.push(line(pdfFit(st.extra, fam, false, sp, cw * 72), sp, false, fam));
@@ -15412,6 +15424,7 @@ function buildPdf(pw, ph, pages) {
 }
 /* same layouts as printing: one label per page, a sheet of labels, or several per sheet */
 function labelsPdf(list, sz) {
+  setLN(list.map(x => x[0]));
   const flat = []; list.forEach(([it, n]) => { for (let i = 0; i < n; i++) flat.push(it); });
   const z = rz(SIZES[sz] || SIZES['4x6']), sheet = z[3] * z[4] > 1; let pw, ph, cells = [];
   if (UI.layout === 'grid') { const pl = gridPlan(flat.length), per = pl.c * pl.r; pw = pl.pw; ph = pl.ph;
@@ -15463,7 +15476,7 @@ function styleCtl() {
 /* list filter for Print Labels: search text + Products/Materials + in stock only */
 const shownItems = () => { const q = (UI.q || '').toLowerCase(); return items().filter(i => (!q || (nameOf(i) + ' ' + (i.o.sku || '') + ' ' + (i.o.barcode || '')).toLowerCase().includes(q)) && (UI.kind === 'all' || (UI.kind === 'p' ? i.k === 'p' : i.k === 's')) && (!UI.inStock || qtyOf(i) > 0)); };
 function paintPL() {
-  const h = $('#pl-host'); if (!h) return; ensureInit(); PV = new Map(); const z = rz(SIZES[UI.size] || SIZES['4x6']), sel = selected(), total = sel.reduce((a, x) => a + x[1], 0), grid = UI.layout === 'grid';
+  const h = $('#pl-host'); if (!h) return; ensureInit(); PV = new Map(); const z = rz(SIZES[UI.size] || SIZES['4x6']), sel = selected(), _ln = setLN(sel.length ? sel.map(x => x[0]) : shownItems().slice(0, 1)), total = sel.reduce((a, x) => a + x[1], 0), grid = UI.layout === 'grid';
   { const c0 = defDimsNow(); if (!prefs().by[cfgKey()] && !TPL[c0].some(t => t[0] === UI.tpl)) { const r0 = TPL[c0].find(t => t[4]); if (r0) applyTpl(r0[0], c0); } } /* nothing saved for this size yet: follow the recommended template for the label size on screen */
   const all = shownItems(), first = sel.length ? sel[0][0] : (all[0] || items()[0]);
   const chip = (on, a, v, t) => `<button class="chip" data-bc="${a}" data-v="${v}" style="${on ? 'background:var(--p);color:#fff' : ''}">${t}</button>`;
@@ -15481,7 +15494,7 @@ function paintPL() {
   <div class="card sm"><div class="row between" style="margin-bottom:${UI.pv ? 6 : 0}px"><span class="xs sub b">Preview${first && !grid ? ': ' + esc(nameOf(first)) : ''}</span><button class="chip" data-bc="pvtoggle">${UI.pv ? 'Hide' : 'Show'}</button></div>${UI.pv ? `<div style="display:flex;justify-content:center;background:rgba(128,128,128,.12);border-radius:10px;padding:6px"><div id="pl-box" style="overflow:hidden;flex:none"><div id="pl-pv">${pv}</div></div></div>` : ''}<div class="xs sub" style="margin-top:4px">${info}</div></div>
   <div class="card"><div class="xs sub b" style="margin-bottom:6px">Layout</div><div class="row" style="gap:6px;flex-wrap:wrap">${chip(!grid, 'layout', 'single', 'One label each')}${chip(grid, 'layout', 'grid', 'Several per sheet')}</div>
   <div class="xs sub b" style="margin:10px 0 6px">${grid ? 'Paper' : 'Label size'}</div><div class="row" style="gap:6px;flex-wrap:wrap">${grid ? paperChips : sizeChips}</div>${grid ? gridCtl : ''}
-  <div style="margin-top:10px">${chip(UI.rot, 'rot', '', 'Rotate 90° (wider rectangle)')}</div>${tplBlock}<div class="xs sub b" style="margin:10px 0 6px">Show on label</div><div class="row" style="gap:6px;flex-wrap:wrap">${SHOW.map(x => chip(UI.show[x[0]], 'show', x[0], x[1])).join('')}</div>
+  <div style="margin-top:10px">${chip(UI.rot, 'rot', '', 'Rotate 90° (wider rectangle)')}</div>${tplBlock}<div class="xs sub b" style="margin:10px 0 6px">Show on label</div><div class="row" style="gap:6px;flex-wrap:wrap">${SHOW.map(x => chip(UI.show[x[0]], 'show', x[0], x[1])).join('')}${chip(UI.style.wrap !== false, 'wrapt', '', 'Wrap long names')}</div>
   <div style="margin-top:10px"><button class="chip" data-bc="styleopen" style="${UI.styleOpen ? 'background:var(--p);color:#fff' : ''}">Style ${UI.styleOpen ? '(hide)' : '(font, size, border...)'}</button></div>${UI.styleOpen ? styleCtl() : ''}</div>
 
   <div class="card"><input class="input" id="pl-q" placeholder="Search items" value="${esc(UI.q)}"><div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px">${[['all', 'All'], ['p', 'Products'], ['s', 'Materials']].map(x => chip(UI.kind === x[0], 'kind', x[0], x[1])).join('')}${chip(UI.inStock, 'instock', '', 'In stock only')}</div><div class="xs sub" style="margin-top:6px">Showing ${all.length} of ${items().length} items${UI.inStock ? ' (only ones with stock)' : ''}${total ? ' - ' + sel.length + ' picked' : ''}</div><div class="row" style="gap:6px;margin:8px 0"><button class="btn btn-line btn-sm" data-bc="all">Select all shown</button><button class="btn btn-line btn-sm" data-bc="none">Clear</button></div>
@@ -15500,6 +15513,7 @@ document.addEventListener('click', e => {
   else if (a === 'mode') { UI.mode = t.dataset.v; paint(); }
   else if (a === 'styleopen') { UI.styleOpen = !UI.styleOpen; paint(); }
   else if (a === 'style') { const k = t.dataset.k; UI.style[k] = k === 'bold' ? !UI.style.bold : t.dataset.v; UI.tpl = ''; saveCfg(); paint(); }
+  else if (a === 'wrapt') { UI.style.wrap = UI.style.wrap === false; saveCfg(); paint(); }
   else if (a === 'tpl') { const d = defDimsNow(); applyTpl(t.dataset.v, d); saveCfg(); paint(); }
   else if (a === 'pvtoggle') { UI.pv = !UI.pv; paint(); }
   else if (a === 'kind') { UI.kind = t.dataset.v; paint(); }
