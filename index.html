@@ -5868,11 +5868,12 @@ function formLive0(f, target) {
     const eh = $('#est-hint', f); if (eh) { const est = plist.length ? sum(plist, x => num(x.price)) : 0; eh.hidden = !(est > 0); if (est > 0) eh.textContent = (plist.length > 1 ? 'Your estimate for these products together: ' : 'Your estimate: ') + money(est); }
     pv.innerHTML = (r.bundle.length ? `<div class="kv"><span>Products if sold separately</span><b class="num">${money(sum(plist, x => num(x.price)))}</b></div>` : '') + `<div class="kv"><span>Price buyers see${lp !== price_(r) ? ' (discounted)' : ''}</span><b class="num">${money(lp)}</b></div>${perChan}${floorHtml}${r.status === 'Active' && r.listedDate ? `<div class="kv"><span>Live for</span><b>${listingAge(r) == null ? 'Starts ' + fmtDate(r.listedDate) : listingAge(r) + ' days'} · renews ${fmtDate(r.relistDate)}</b></div>` : ''}${r.discounts.length ? r.discounts.map(d => `<div class="kv"><span>${discActive(d) ? 'Running' : discUpcoming(d) ? 'Scheduled' : 'Ended'}</span><b style="text-align:right">${esc(discText(d))}</b></div>`).join('') : ''}${unit != null ? `<p class="hint" style="margin:6px 0 0">Margins use your cost (${money(unit)}) and each platform's fees, before shipping.</p>` : ''}`;
   } else if (type === 'bulklist') {
-    $('#combine-box', f).hidden = new FormData(f).get('combine') !== 'on';
+    $('#combine-box', f).hidden = new FormData(f).get('combine') !== 'on'; $('#spread-box', f).hidden = new FormData(f).get('spread') !== 'on';
     const plan = bulkListPlan(new FormData(f)), mk = plan.filter(x => !x.skip).length, sk = plan.length - mk, b = $('.sheet-foot .btn-primary', f);
     const np = new FormData(f).getAll('bp').length, comb = new FormData(f).get('combine') === 'on';
     pv.innerHTML = comb ? `<div class="kv"><span>Products in the bundle</span><b class="num">${np}</b></div><div class="kv"><span>Listings to create</span><b class="num">${mk}</b></div>${np < 2 ? '<p class="hint" style="margin:4px 0 0">Pick at least two products to make a bundle.</p>' : ''}` : `<div class="kv"><span>Listings to create</span><b class="num">${mk}</b></div>${sk ? `<div class="kv"><span>Skipped (already listed)</span><b class="num">${sk}</b></div>` : ''}`;
     b.disabled = !mk;
+    { const f_ = new FormData(f); if (!comb && mk && f_.get('spread') === 'on') { const ds = spreadDates(mk, f_.get('listedDate') || today(), Math.max(1, Math.round(num(f_.get('perday'))) || 10), spreadOpts(f_)); pv.innerHTML += `<div class="kv"><span>Scheduled</span><b>${fmtDate(ds[0])} to ${fmtDate(ds[ds.length - 1])}</b></div><div class="kv"><span>Days it takes</span><b class="num">${new Set(ds).size}</b></div>`; } }
   } else if (type === 'bulkrenew') {
     const fd = new FormData(f), ts = bulkRenewTargets(fd), days = Math.round(num(fd.get('days'))), on = fd.get('on') || today(), b = $('.sheet-foot .btn-primary', f);
     const old = ts.filter(l => l.relistDate).length;
@@ -6001,11 +6002,31 @@ const KEEP = ['', 'Keep as is'];
 const keepOpts = (arr, extra = []) => [KEEP].concat(arr.map(x => Array.isArray(x) ? x : [x, x])).concat(extra);
 const adjFields = (label, p) => `<div class="fld"><span class="lbl">${label}</span><div class="grid2"><select class="select" name="${p}mode"><option value="">Keep as is</option><option value="set">Set to</option><option value="up">Increase by %</option><option value="down">Decrease by %</option></select><input class="input" type="number" step="any" min="0" name="${p}val" placeholder="Amount"></div></div>`;
 const adjust = (old, mode, val) => r2(Math.max(0, mode === 'set' ? val : mode === 'up' ? num(old) * (1 + val / 100) : mode === 'down' ? num(old) * (1 - val / 100) : num(old)));
+/* spread listings over days: n items, start date, per day, weekdays only -> array of dates */
+function spreadDates(n, start, perDay, o) {
+  const days = (o && o.days && o.days.length) ? o.days : [1, 2, 3, 4, 5], every = Math.max(1, (o && o.every) || 1), out = [];
+  let d = start || today(), c = 0;
+  const a0 = dparse(d), anchor = new Date(a0.getFullYear(), a0.getMonth(), a0.getDate() - ((a0.getDay() + 6) % 7));   /* Monday of the start week */
+  const ok = k => { const x = dparse(k), wk = Math.floor(Math.round((x - anchor) / 864e5) / 7); return days.includes(x.getDay()) && wk % every === 0; };
+  const next = k => { let g = 0; do { k = addDays(k, 1); } while (!ok(k) && ++g < 800); return k; };
+  if (!ok(d)) d = next(d);
+  for (let i = 0; i < n; i++) { out.push(d); if (++c >= perDay) { c = 0; d = next(d); } }
+  return out;
+}
+const spreadOpts = fd => ({ days: fd.getAll('sd').map(Number), every: Math.round(num(fd.get('severy'))) || 1 });
+const SPREAD_DAYS = (on = [1, 2, 3, 4, 5]) => `<div class="fld"><span class="lbl">Which days</span><select class="select sm" aria-label="Day preset" onchange="const f=this.closest('form'),m={w:[1,2,3,4,5],e:[0,6],a:[0,1,2,3,4,5,6]}[this.value];if(m){f.querySelectorAll('[name=sd]').forEach(c=>c.checked=m.includes(+c.value));f.dispatchEvent(new Event('input',{bubbles:true}))}"><option value="">Quick pick…</option><option value="w">Weekdays (Mon to Fri)</option><option value="e">Weekends (Sat and Sun)</option><option value="a">Every day</option></select><div class="mchips" style="margin-top:8px">${[[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']].map(([v, l]) => `<label class="mchip"><input type="checkbox" name="sd" value="${v}" ${on.includes(v) ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div></div>${fSel('How often', 'severy', [['1', 'Every week'], ['2', 'Every 2 weeks (biweekly)'], ['3', 'Every 3 weeks'], ['4', 'Every 4 weeks']], '1')}`;
+/* title from a pattern: {name} {sku} {price} {platform} */
+function makeTitle(pat, p, chans) {
+  const t = tidy(String(pat || '{name}').replace(/\{name\}/gi, () => p.name || '').replace(/\{sku\}/gi, () => p.sku || '').replace(/\{price\}/gi, () => money(num(p.price))).replace(/\{platform\}/gi, () => (chans || []).join(', '))).replace(/[\s\-–,|]+$/, '');
+  return (t || p.name || '').slice(0, 140);
+}
+const BT_FIELDS = () => `<p class="eyebrow" style="margin:0 0 8px">Change titles</p><div class="grid2">${fText('Find', 'tfind', '', 'placeholder="Keep as is"')}${fText('Replace with', 'trep', '', 'placeholder="Blank removes it"')}</div><div class="grid2">${fText('Add to start', 'tpre', '')}${fText('Add to end', 'tsuf', '')}</div>
+  <p class="eyebrow" style="margin:4px 0 8px">Spread out over days (optional)</p><div class="grid2">${fDate('Start on', 'sstart', '', false)}${fNum('Listings per day', 'sperday', '10', '10', 'min="1" step="1"')}</div>${SPREAD_DAYS()}<p class="hint" style="margin:-6px 0 14px">Fill in Start on to give the selected listings dates, lowest SKU first. They become Planned.</p>`;
 const bulkFields = {
   order: () => fSel('Status', 'status', keepOpts(ALL_STATUSES), '') + fSel('Sold via', 'channel', keepOpts(activeChans().map(c => c.name)), '') + `<div class="grid2">${fSel('Paid with', 'payment', keepOpts(state.settings.paymentMethods), '')}${fSel('Carrier', 'carrier', keepOpts(state.settings.carriers), '')}</div>` + fDate('Ship by', 'shipBy', '', false),
   product: () => `<div class="grid2">${fSel('Category', 'category', keepOpts(state.settings.stockCats), '')}${fSupplier('', 'Keep as is')}</div>` + `<div class="grid2">${fText('Location', 'location', '', 'placeholder="Keep as is"')}${fNum('Low-stock alert', 'low', '', 'Keep as is', 'min="0" step="1"')}</div>` + fText('Add tag', 'tag', '', 'placeholder="Optional"'),
   supply: () => `<div class="grid2">${fSel('Category', 'category', keepOpts(state.settings.stockCats), '')}${fSupplier('', 'Keep as is')}</div>` + `<div class="grid2">${fText('Location', 'location', '', 'placeholder="Keep as is"')}${fNum('Low-stock alert', 'low', '', 'Keep as is', 'min="0"')}</div>` + adjFields('Cost per unit', 'p'),
-  listing: () => fSel('Status', 'status', keepOpts(LISTING_STATUSES), '') + `<div class="fld"><span class="lbl">Also list on</span><div class="mchips">${activeChans().map(c => `<label class="mchip"><input type="checkbox" name="addch" value="${esc(c.name)}"><span>${esc(c.name)}</span></label>`).join('')}</div></div>` + adjFields('Price', 'p') + `<p class="eyebrow" style="margin:4px 0 8px">Add a discount to all of them</p><div class="grid3" style="margin-bottom:8px"><label class="xs sub b">% off<input class="input sm" type="number" min="0" max="100" step="any" name="dpct" placeholder="None"></label><label class="xs sub b">From<input class="input sm" type="date" name="dstart"></label><label class="xs sub b">Until<input class="input sm" type="date" name="dend"></label></div><label class="row b xs" style="margin-bottom:12px"><input type="checkbox" class="chk" name="dno"> I don't know when it ends yet</label>` + fSel('Renew', 'renew', [['', 'Keep as is'], ['now', 'Renew now (resets listing age)']], ''),
+  listing: () => BT_FIELDS() + fSel('Status', 'status', keepOpts(LISTING_STATUSES), '') + `<div class="fld"><span class="lbl">Also list on</span><div class="mchips">${activeChans().map(c => `<label class="mchip"><input type="checkbox" name="addch" value="${esc(c.name)}"><span>${esc(c.name)}</span></label>`).join('')}</div></div>` + adjFields('Price', 'p') + `<p class="eyebrow" style="margin:4px 0 8px">Add a discount to all of them</p><div class="grid3" style="margin-bottom:8px"><label class="xs sub b">% off<input class="input sm" type="number" min="0" max="100" step="any" name="dpct" placeholder="None"></label><label class="xs sub b">From<input class="input sm" type="date" name="dstart"></label><label class="xs sub b">Until<input class="input sm" type="date" name="dend"></label></div><label class="row b xs" style="margin-bottom:12px"><input type="checkbox" class="chk" name="dno"> I don't know when it ends yet</label>` + fSel('Renew', 'renew', [['', 'Keep as is'], ['now', 'Renew now (resets listing age)']], ''),
   expense: () => `<div class="grid2">${fCat('Category', 'cat', 'expenseCats', '')}${fText('Vendor', 'vendor', '', 'placeholder="Keep as is"')}</div>` + fSel('Tax deductible', 'deductible', [['', 'Keep as is'], ['yes', 'Yes'], ['no', 'No']], '') + fDate('Date', 'date', '', false),
   task: () => `<div class="grid2">${fSel('Priority', 'priority', keepOpts(PRIORITIES), '')}${fDate('Due date', 'due', '', false)}</div>` + fSel('Progress', 'done', [['', 'Keep as is'], ['yes', 'Mark done'], ['no', 'Reopen']], ''),
   note: () => fSel('Pin', 'pin', [['', 'Keep as is'], ['yes', 'Pin to top'], ['no', 'Unpin']], ''),
@@ -6024,6 +6045,11 @@ FORMS.bulk = async (f, fd, type) => {
       const chans = [...new Set(listingChans(r).concat(fd.getAll('addch')))];
       const c = await askSoldPlatform(r.title, chans); if (c === null) return; soldPick[id] = c;
     }
+  }
+  let sdates = null;
+  if (type === 'listing' && g('sstart')) {
+    const per = Math.max(1, Math.round(num(fd.get('sperday'))) || 10), ls = ids.map(id => find(COLL[type], id)).filter(r => r && r.status !== 'Sold').sort((a, b) => skuCmp(a.sku, b.sku)), ds = spreadDates(ls.length, g('sstart'), per, spreadOpts(fd));
+    sdates = new Map(ls.map((r, i) => [r.id, ds[i]]));
   }
   let dmode = 'both', dmap = new Map();
   if (type === 'listing' && Math.max(0, Math.min(100, num(fd.get('dpct')))) > 0) {
@@ -6044,6 +6070,8 @@ FORMS.bulk = async (f, fd, type) => {
         if (g('pmode')) { const f_ = type === 'product' ? 'price' : 'cost'; r[f_] = adjust(r[f_], g('pmode'), num(fd.get('pval'))); }
         if (type === 'product' && g('tag')) { const tags = String(r.tags || '').split(',').map(x => x.trim()).filter(Boolean); if (!tags.includes(g('tag').trim())) tags.push(g('tag').trim()); r.tags = tags.join(', '); }
       } else if (type === 'listing') {
+        { let t = r.title || ''; const fi = fd.get('tfind') || ''; if (fi) t = t.replace(new RegExp(fi.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), () => fd.get('trep') || ''); t = g('tpre') + t + g('tsuf'); r.title = tidy(t).slice(0, 140) || r.title; }
+        if (sdates && sdates.has(id)) { r.listedDate = sdates.get(id); r.status = 'Planned'; r.relistDate = ''; }
         if (g('status')) { r.status = g('status'); if (r.status === 'Active' && r.listedDate && r.listedDate > today()) r.status = 'Planned'; if (r.status === 'Active' && !r.listedDate) { r.listedDate = today(); r.relistDate = listingAutoRenew(r) ? addDays(today(), listingRenewDays(r)) : ''; } }
         fd.getAll('addch').forEach(c => { if (!listingChans(r).includes(c)) r.channels.push(c); });
         if (g('pmode')) r.price = adjust(r.price, g('pmode'), num(fd.get('pval')));
@@ -6072,7 +6100,7 @@ FORMS.bulk = async (f, fd, type) => {
 
 /* ---------- bulk listings: one multi-platform listing per product ---------- */
 OPEN.bulkListings = () => {
-  const prods = state.products.filter(active).sort((a, b) => a.name.localeCompare(b.name));
+  const prods = state.products.filter(active).sort((a, b) => skuCmp(a.sku, b.sku) || a.name.localeCompare(b.name));
   if (!prods.length) return toast('Add a product first, then create listings for it');
   const listed = new Set(); state.listings.filter(l => active(l) && l.status !== 'Sold' && l.status !== 'Expired').forEach(l => listingProducts(l).forEach(id => listed.add(id)));
   const chans = activeChans().map(c => c.name);
@@ -6080,19 +6108,26 @@ OPEN.bulkListings = () => {
     <p class="hint" style="margin:0 0 12px">Pick products and where to list them. Each product gets its own listing on every platform you tick, with title, description and price filled in from the product. Or tick "Combine" to put all the picked products in ONE listing (a bundle or lot).</p>
     <div class="row between" style="margin-bottom:6px"><span class="eyebrow">Products</span><span class="row" style="gap:14px"><button type="button" class="link" data-act="pick-all" data-v="1">All shown</button><button type="button" class="link" data-act="pick-all" data-v="0">None</button></span></div>
     ${pickFilterBox('Search name or SKU…')}
-    <div class="scrollbox" style="margin-bottom:14px">${prods.map(p => `<label class="pick"><input type="checkbox" class="chk" name="bp" value="${p.id}" ${listed.has(p.id) ? '' : 'checked'}><span class="grow" style="min-width:0"><span class="trunc b" style="display:block">${esc(p.name)}${listed.has(p.id) ? ' <small>· already listed</small>' : ''}</span><small>${p.sku ? esc(p.sku) : 'No SKU'}</small></span><small class="num">${money(p.price)}</small></label>`).join('')}</div>
+    <label class="fld" style="margin-bottom:8px"><span>Order (listings are created, and scheduled, in this order)</span><select class="select sm" data-picksort aria-label="Order"><option value="sku">SKU low to high</option><option value="sku_d">SKU high to low</option><option value="name">Name A to Z</option></select></label>
+    <div class="scrollbox" style="margin-bottom:14px">${prods.map(p => `<label class="pick" data-sku="${esc(p.sku || '')}" data-nm="${esc(p.name)}"><input type="checkbox" class="chk" name="bp" value="${p.id}" ${listed.has(p.id) ? '' : 'checked'}><span class="grow" style="min-width:0"><span class="trunc b" style="display:block">${esc(p.name)}${listed.has(p.id) ? ' <small>· already listed</small>' : ''}</span><small>${p.sku ? esc(p.sku) : 'No SKU'}</small></span><small class="num">${money(p.price)}</small></label>`).join('')}</div>
     <p class="eyebrow" style="margin-bottom:6px">Platforms</p>
     <div class="mchips" style="margin-bottom:14px">${chans.map((c, i) => `<label class="mchip"><input type="checkbox" name="bc" value="${esc(c)}" ${i === 0 ? 'checked' : ''}><span>${esc(c)}</span></label>`).join('')}</div>
     <div class="grid2">${fSel('Status', 'status', ['Active', 'Planned'], 'Active')}${fDate('Listed on', 'listedDate', today(), false)}</div>
     <p class="hint" style="margin:-6px 0 12px">If the Listed on date is after today, these are saved as Planned automatically, because they are not live yet.</p>
     ${adjFields('Price vs. product price', 'p').replace('<option value="set">Set to</option>', '')}
     ${descTpls().length ? fSel('Description', 'tpl', [['auto', 'Automatic: the template set for the product, if any'], ['', 'None']].concat(descTpls().map(t => [t.id, t.name])), 'auto') : ''}
+    ${fText('Title', 'tpat', '{name}', 'maxlength="140" placeholder="{name}"')}
+    <p class="hint" style="margin:-6px 0 12px">Fill-ins: {name} {sku} {price} {platform}. Example: <b>{name} - {sku}</b>. Any title can still be changed later in Bulk edit.</p>
+    ${fCheck('Spread over several days (list a few each day)', 'spread', false)}
+    <div id="spread-box" hidden><div class="grid2">${fNum('Listings per day', 'perday', '10', '10', 'min="1" step="1"')}</div>${SPREAD_DAYS()}<p class="hint" style="margin:-6px 0 12px">Starts on the Listed on date, follows the order above, and saves everything as Planned. Each one shows as "Scheduled for today" on its day.</p></div>
     ${fCheck('Combine ALL picked products into ONE listing (a bundle or lot)', 'combine', false)}
     <div id="combine-box" hidden>${fText('Bundle title *', 'btitle', '', 'maxlength="140" placeholder="e.g. Jewelry lot, 5 pieces"')}${fArea('Bundle description', 'bdesc', '', 'Leave blank to use each product name and description', 'maxlength="5000"')}<p class="hint" style="margin-top:-6px;margin-bottom:12px">The bundle price starts as the total of the picked products' prices.</p></div>
     ${fCheck('Make a separate listing for each platform', 'split', false)}
     ${fCheck('Skip products already listed on that platform', 'skip', true)}
     <div class="preview" id="pv"></div>`, foot('', '', 'Create listings')));
-  formLive($('form[data-form=bulklist]'));
+  const bf = $('form[data-form=bulklist]'), sb = $('.scrollbox', bf), ps = $('[data-picksort]', bf);
+  ps.addEventListener('change', () => { const k = ps.value; [...sb.children].sort((a, b) => k === 'sku_d' ? skuDesc(a.dataset.sku, b.dataset.sku) : k === 'name' ? a.dataset.nm.localeCompare(b.dataset.nm) : skuCmp(a.dataset.sku, b.dataset.sku)).forEach(x => sb.appendChild(x)); formLive(bf); });
+  formLive(bf);
 };
 function bulkListPlan(fd) {
   const prods = fd.getAll('bp'), chans = fd.getAll('bc'), skip = fd.get('skip') === 'on', split = fd.get('split') === 'on', plan = [];
@@ -6107,10 +6142,10 @@ function bulkListPlan(fd) {
 FORMS.bulklist = (f, fd) => {
   const plan = bulkListPlan(fd).filter(x => !x.skip); if (!plan.length) return toast(fd.get('combine') === 'on' ? 'Pick at least two products and a platform to make a bundle' : 'Nothing to create. Pick products and platforms');
   if (plan.some(x => x.combine) && !tidy(fd.get('btitle'))) return toast('Give the bundle a title');
-  const status0 = fd.get('status'), listed = fd.get('listedDate') || (status0 === 'Active' ? today() : ''), status = (status0 === 'Active' && listed > today()) ? 'Planned' : status0, autoPlanned = status !== status0, mode = fd.get('pmode'), val = num(fd.get('pval')), tm = fd.get('tpl') == null ? 'auto' : fd.get('tpl');
+  const spread = fd.get('spread') === 'on' && !plan.some(x => x.combine), perDay = Math.max(1, Math.round(num(fd.get('perday'))) || 10), status0 = spread ? 'Planned' : fd.get('status'), listed = fd.get('listedDate') || ((status0 === 'Active' || spread) ? today() : ''), dates = spread ? spreadDates(plan.length, listed, perDay, spreadOpts(fd)) : null, status = (status0 === 'Active' && listed > today()) ? 'Planned' : status0, autoPlanned = status !== status0, mode = fd.get('pmode'), val = num(fd.get('pval')), tm = fd.get('tpl') == null ? 'auto' : fd.get('tpl');
   closeSheet();
-  undoable(`Created ${plan.length} listing${plan.length > 1 ? 's' : ''}${autoPlanned ? ' as Planned, because ' + fmtDate(listed) + ' is a future date' : ''}`, () => {
-    plan.forEach(x => {
+  undoable(`Created ${plan.length} listing${plan.length > 1 ? 's' : ''}${spread ? ' as Planned, ' + fmtDate(dates[0]) + ' to ' + fmtDate(dates[dates.length - 1]) : autoPlanned ? ' as Planned, because ' + fmtDate(listed) + ' is a future date' : ''}`, () => {
+    plan.forEach((x, ix) => {
       if (x.combine) {
         const ps = x.pids.map(id => find('products', id)).filter(Boolean); if (ps.length < 2) return;
         state.counters.listing++;
@@ -6120,7 +6155,7 @@ FORMS.bulklist = (f, fd) => {
       }
       const p = find('products', x.pid); if (!p) return;
       state.counters.listing++;
-      state.listings.push({ id: uid('l'), createdDate: today(), title: productTitle(p), description: bulkDesc(tm, [p], productTitle(p), x.chans, mode ? adjust(p.price, mode, val) : num(p.price)), productId: p.id, channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(p.price, mode, val) : num(p.price), status, listedDate: status === 'Active' || status === 'Planned' ? listed : '', relistDate: status === 'Active' && autoRenewOn() ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: p.tags || '', notes: '' });
+      state.listings.push({ id: uid('l'), createdDate: today(), title: makeTitle(fd.get('tpat'), p, x.chans), description: bulkDesc(tm, [p], makeTitle(fd.get('tpat'), p, x.chans), x.chans, mode ? adjust(p.price, mode, val) : num(p.price)), productId: p.id, channels: x.chans.slice(), sku: nextListingSku(), price: mode ? adjust(p.price, mode, val) : num(p.price), status, listedDate: status === 'Active' || status === 'Planned' ? (dates ? dates[ix] : listed) : '', relistDate: status === 'Active' && autoRenewOn() ? addDays(listed, renewEvery(x.chans)) : '', urls: {}, discounts: [], snaps: [], tags: p.tags || '', notes: '' });
     });
     logAct(`Bulk created ${plan.length} listings`, 'layers'); ui.seg.stock = 'listings'; ui.filter = 'all';
   });
