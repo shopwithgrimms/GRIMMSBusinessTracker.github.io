@@ -3207,6 +3207,7 @@ V.sales = () => {
 
 /* ---------------- INVENTORY ---------------- */
 const STOCK_SORTS = [['name', 'A to Z'], ['sku', 'SKU low to high'], ['sku_d', 'SKU high to low'], ['name_d', 'Z to A'], ['need', 'Needs restock first'], ['qty_l', 'Quantity: low to high'], ['qty_h', 'Quantity: high to low'], ['price_h', 'Value per unit: high to low'], ['price_l', 'Value per unit: low to high']];
+const LISTING_SORTS = [['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['plan_n', 'Planned: nearest date first'], ['plan_f', 'Planned: furthest date first'], ['renew', 'Renewal date'], ['sku', 'Listing SKU low to high'], ['sku_d', 'Listing SKU high to low'], ['title', 'Title A to Z'], ['price_h', 'Price: high to low'], ['price_l', 'Price: low to high']];
 const supplierName = id => (state.suppliers.find(s => s.id === id) || {}).name || '';
 function stockFiltered() {
   const prod = ui.seg.stock === 'products';
@@ -3619,7 +3620,8 @@ const invBar = pg => {
   const L = invLook(pg), tk = pg !== 'home' && L.tools === 'tuck', sl = pg === 'sales', open = sl ? ui.salesTools : ui.invTools;
   const n = (ui.filter && ui.filter !== 'all' ? 1 : 0) + (ui.cat && !sl ? 1 : 0) + (ui.ch ? 1 : 0);
   if (!tk) return '';
-  return `<div class="row" style="gap:8px">${tk ? `<button type="button" class="btn ${open ? 'btn-primary' : 'btn-line'} btn-sm grow" data-act="lk-tools" data-pg="${pg}">${ic('list-checks')} Filters${n ? ' (' + n + ')' : ''}</button>` : ''}</div>`;
+  const so = pg === 'listings' ? LISTING_SORTS : (pg === 'products' || pg === 'materials') ? STOCK_SORTS : null;   /* sort stays in sight even when filters are tucked away */
+  return `<div class="row" style="gap:8px">${tk ? `<button type="button" class="btn ${open ? 'btn-primary' : 'btn-line'} btn-sm grow" data-act="lk-tools" data-pg="${pg}">${ic('list-checks')} Filters${n ? ' (' + n + ')' : ''}</button>` : ''}${so ? `<div style="flex:1;min-width:0">${optSel('sort', so, ui.sort || 'sku_d', 'Sort')}</div>` : ''}</div>`;
 };
 const LK_ROWS = ['list', 'open', 'bubbles', 'zebra', 'compact', 'minimal'];
 const isCardLk = st => st === 'cards' || st === 'filled', isTileLk = st => st === 'tiles' || st === 'tiles3';
@@ -3680,9 +3682,9 @@ V.stock = () => {
   const s = ui.seg.stock, prod = s === 'products', SEG = [['home', 'Home'], ['materials', 'Materials'], ['products', 'Products'], ['listings', 'Listings']];
   if (s === 'home') return `<div class="page stack-sm fade">${invTop()}${seg('stock', SEG, s)}${invBar('home')}${valBasisPicker()}<div class="invh stack-sm inv-${invLook('home').style}">${inventoryHome()}</div></div>`;
   const K = invLook(s), filt = s === 'listings'
-      ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted'], ['nophoto', 'No photos']].concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${optSel('sort', [['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['plan_n', 'Planned: nearest date first'], ['plan_f', 'Planned: furthest date first'], ['renew', 'Renewal date'], ['sku', 'Listing SKU low to high'], ['sku_d', 'Listing SKU high to low'], ['title', 'Title A to Z'], ['price_h', 'Price: high to low'], ['price_l', 'Price: low to high']], ui.sort || 'sku_d', 'Sort')}</div>
+      ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted']].concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${(K.tools === 'show' ? optSel('sort', LISTING_SORTS, ui.sort || 'sku_d', 'Sort') : '')}</div>
          <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn btn-soft btn-sm grow" data-act="bulk-listings">${ic('layers')} Bulk create</button><button class="btn btn-soft btn-sm grow" data-act="bulk-discount">${ic('percent')} Bulk discount</button><button class="btn btn-soft btn-sm grow" data-act="bulk-renew">${ic('refresh')} Bulk renew</button></div>`
-      : chips([['all', 'All'], ['low', 'Low'], ['out', 'Out of stock'], ['ok', 'In stock']].concat(prod ? [['nophoto', 'No photos']] : []), ui.filter) + `<div class="grid2">${optSel('cat', [['', 'All categories']].concat(state.settings.stockCats.map(c => [c, c])), ui.cat, 'Category')}${optSel('sort', STOCK_SORTS, ui.sort || 'sku_d', 'Sort')}</div>
+      : chips([['all', 'All'], ['low', 'Low'], ['out', 'Out of stock'], ['ok', 'In stock']].concat([]), ui.filter) + `<div class="grid2">${optSel('cat', [['', 'All categories']].concat(state.settings.stockCats.map(c => [c, c])), ui.cat, 'Category')}${K.tools === 'show' ? optSel('sort', STOCK_SORTS, ui.sort || 'sku_d', 'Sort') : ''}</div>
          ${prod ? `<button class="btn btn-primary btn-sm block" data-act="bulk-products">${ic('layers')} Bulk add products</button>` : ''}
          <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="reorder">${ic('list-checks')} Reorder list</button>${prod ? `<button class="btn btn-line btn-sm grow" data-act="csv-import">${ic('upload')} Import CSV</button><button class="btn btn-soft btn-sm grow" data-act="bulk-discount">${ic('percent')} Bulk discount</button>` : ''}</div>`;
   const pre = s === 'listings' ? plannedCard() : valBasisPicker();
@@ -4552,6 +4554,8 @@ function dataBody() {
       <button class="btn btn-soft block" data-act="copy-backup">${ic('copy')} Copy ALL my data as text</button>
       <button class="btn btn-soft block" data-act="paste-restore">${ic('upload')} Restore by pasting text</button>
       <p class="hint" style="margin:-2px 0 4px">Moving to another phone or computer? Copy here, then open the app there and choose "Restore by pasting text". Photos come along too, at a smaller size. For full-size photos use Download backup file, then Restore from backup file.</p>
+      <button class="btn btn-primary block" data-act="custom-export">${ic('layers')} Choose what to export</button>
+      <p class="hint" style="margin:-2px 0 4px">Pick just the parts you want (for example products and listings, with everything linked to them). Copy it as text to show an AI, or download it to save or move. A partial file can be loaded back in without erasing anything else.</p>
       <button class="btn btn-soft block" data-act="biz-text">${ic('file-text')} Copy my whole business as text (report)</button>
       <p class="hint" style="margin:-2px 0 4px">A readable list of everything: supplies, products, listings and orders, active, archived and sold. Different from "Copy ALL my data", which is for moving to another device.</p>
       <p class="eyebrow" style="margin-top:6px">Export spreadsheets (CSV)</p>
@@ -6017,7 +6021,7 @@ const spreadOpts = fd => ({ days: fd.getAll('sd').map(Number), every: Math.round
 const SPREAD_DAYS = (on = [1, 2, 3, 4, 5]) => `<div class="fld"><span class="lbl">Which days</span><select class="select sm" aria-label="Day preset" onchange="const f=this.closest('form'),m={w:[1,2,3,4,5],e:[0,6],a:[0,1,2,3,4,5,6]}[this.value];if(m){f.querySelectorAll('[name=sd]').forEach(c=>c.checked=m.includes(+c.value));f.dispatchEvent(new Event('input',{bubbles:true}))}"><option value="">Quick pick…</option><option value="w">Weekdays (Mon to Fri)</option><option value="e">Weekends (Sat and Sun)</option><option value="a">Every day</option></select><div class="mchips" style="margin-top:8px">${[[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [0, 'Sun']].map(([v, l]) => `<label class="mchip"><input type="checkbox" name="sd" value="${v}" ${on.includes(v) ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div></div>${fSel('How often', 'severy', [['1', 'Every week'], ['2', 'Every 2 weeks (biweekly)'], ['3', 'Every 3 weeks'], ['4', 'Every 4 weeks']], '1')}`;
 /* title from a pattern: {name} {sku} {price} {platform} */
 function makeTitle(pat, p, chans) {
-  const t = tidy(String(pat || '{name}').replace(/\{name\}/gi, () => p.name || '').replace(/\{sku\}/gi, () => p.sku || '').replace(/\{price\}/gi, () => money(num(p.price))).replace(/\{platform\}/gi, () => (chans || []).join(', '))).replace(/[\s\-–,|]+$/, '');
+  const t = tidy(String(pat || '{name}').replace(/\{name\}/gi, () => p.name || '').replace(/\{sku\}/gi, () => p.sku || '').replace(/\{price\}/gi, () => money(num(p.price))).replace(/\{platform\}/gi, () => (chans || []).join(', ')).replace(/\s{2,}/g, ' ')).replace(/[\s\-–,|]+$/, '');
   return (t || p.name || '').slice(0, 140);
 }
 const BT_FIELDS = () => `<p class="eyebrow" style="margin:0 0 8px">Change titles</p><div class="grid2">${fText('Find', 'tfind', '', 'placeholder="Keep as is"')}${fText('Replace with', 'trep', '', 'placeholder="Blank removes it"')}</div><div class="grid2">${fText('Add to start', 'tpre', '')}${fText('Add to end', 'tsuf', '')}</div>
@@ -6070,7 +6074,7 @@ FORMS.bulk = async (f, fd, type) => {
         if (g('pmode')) { const f_ = type === 'product' ? 'price' : 'cost'; r[f_] = adjust(r[f_], g('pmode'), num(fd.get('pval'))); }
         if (type === 'product' && g('tag')) { const tags = String(r.tags || '').split(',').map(x => x.trim()).filter(Boolean); if (!tags.includes(g('tag').trim())) tags.push(g('tag').trim()); r.tags = tags.join(', '); }
       } else if (type === 'listing') {
-        { let t = r.title || ''; const fi = fd.get('tfind') || ''; if (fi) t = t.replace(new RegExp(fi.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), () => fd.get('trep') || ''); t = g('tpre') + t + g('tsuf'); r.title = tidy(t).slice(0, 140) || r.title; }
+        { let t = r.title || ''; const fi = fd.get('tfind') || ''; if (fi) t = t.replace(new RegExp(fi.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), () => fd.get('trep') || ''); t = g('tpre') + t + g('tsuf'); r.title = tidy(t.replace(/\s{2,}/g, ' ')).slice(0, 140) || r.title; }
         if (sdates && sdates.has(id)) { r.listedDate = sdates.get(id); r.status = 'Planned'; r.relistDate = ''; }
         if (g('status')) { r.status = g('status'); if (r.status === 'Active' && r.listedDate && r.listedDate > today()) r.status = 'Planned'; if (r.status === 'Active' && !r.listedDate) { r.listedDate = today(); r.relistDate = listingAutoRenew(r) ? addDays(today(), listingRenewDays(r)) : ''; } }
         fd.getAll('addch').forEach(c => { if (!listingChans(r).includes(c)) r.channels.push(c); });
@@ -7563,6 +7567,7 @@ ACT['ref-copy-all'] = () => {
 
 
 async function importData(data) {
+  if (data && typeof data === 'object' && data.partialExport) return mergePartial(data);
   try {
     if (!data || typeof data !== 'object' || Array.isArray(data) || !(Array.isArray(data.orders) || data.settings)) throw new Error('bad');
     const pd = data.photoData; delete data.photoData;
@@ -7573,6 +7578,57 @@ async function importData(data) {
     state = fresh; state.setup = true; save(); flush(); enterApp(); toast(PH.failed ? `Restored, but ${PH.failed} photo${PH.failed === 1 ? '' : 's'} could not be saved (device storage may be full)` : np ? `Restored with ${np} photo${np === 1 ? '' : 's'}` : 'Backup restored');
     return true;
   } catch (e) { toast('That is not a valid backup'); return false; }
+}
+
+/* ---------- choose what to export (partial export) + merge it back in ---------- */
+const CX = [['products', 'Products'], ['listings', 'Listings'], ['supplies', 'Materials & supplies'], ['suppliers', 'Suppliers'], ['orders', 'Sales & orders'], ['customers', 'Customers'], ['expenses', 'Expenses'], ['income', 'Other income'], ['bills', 'Bills'], ['purchaseOrders', 'Purchase orders'], ['mileage', 'Mileage'], ['taxPayments', 'Tax payments'], ['tasks', 'Tasks'], ['events', 'Calendar events'], ['notes', 'Notes'], ['goals', 'Goals'], ['shifts', 'Work shifts'], ['meetings', 'Meetings'], ['accounts', 'Accounts'], ['transfers', 'Transfers']];
+const CX_PRESETS = { inv: ['products', 'listings', 'supplies', 'suppliers'], money: ['orders', 'expenses', 'income', 'bills', 'taxPayments', 'mileage', 'purchaseOrders'], all: CX.map(x => x[0]), none: [] };
+ACT['custom-export'] = () => {
+  const rows = CX.filter(([k]) => (state[k] || []).length).map(([k, l]) => `<label class="pick"><input type="checkbox" class="chk" data-cx value="${k}" ${k === 'products' || k === 'listings' ? 'checked' : ''}><span class="grow b">${l}</span><small class="num">${state[k].length}</small></label>`).join('');
+  const opt = (k, on, t) => `<label class="row b sm-t" style="margin-bottom:8px;align-items:flex-start"><input type="checkbox" class="chk" data-cxo="${k}" ${on ? 'checked' : ''} style="margin-top:2px"> <span>${t}</span></label>`;
+  openSheet('Choose what to export', `<div class="sheet-body">
+    <p class="hint" style="margin:0 0 10px">Tick what to include. Copy it as text to paste to an AI so it can see your setup, or download it to save or move it.</p>
+    <div class="row" style="gap:14px;flex-wrap:wrap;margin-bottom:8px"><span class="eyebrow">Quick pick</span><button type="button" class="link" data-act="cx-preset" data-v="inv">Inventory</button><button type="button" class="link" data-act="cx-preset" data-v="money">Money</button><button type="button" class="link" data-act="cx-preset" data-v="all">Everything</button><button type="button" class="link" data-act="cx-preset" data-v="none">None</button></div>
+    <div class="scrollbox" style="margin-bottom:14px;max-height:none">${rows}</div>
+    <p class="eyebrow" style="margin-bottom:8px">Also bring along</p>
+    ${opt('link', true, 'Everything linked to the picked products and listings: their listings or products, the materials they use, and suppliers')}
+    ${opt('sales', true, 'Sales of the picked products and listings')}
+    ${opt('snaps', true, 'Analytics history on listings (views, likes, offers)')}
+    ${opt('skip', false, 'Leave out archived, sold and expired items')}
+    ${opt('settings', false, 'My settings (fees, platforms, categories)')}
+    <p class="hint" style="margin-top:4px">Photos are never included.</p></div>
+    <div class="sheet-foot"><button class="btn btn-line" data-act="cx-dl">${ic('download')} Download file</button><button class="btn btn-primary" data-act="cx-copy">${ic('copy')} Copy as text</button></div>`);
+};
+ACT['cx-preset'] = el => { const set = CX_PRESETS[el.dataset.v] || []; $$('[data-cx]', $('#modal')).forEach(c => { c.checked = set.includes(c.value); }); const st = $('[data-cxo=settings]', $('#modal')); if (st) st.checked = el.dataset.v === 'all'; };
+function cxBuild() {
+  const m = $('#modal'), keys = $$('[data-cx]:checked', m).map(c => c.value), on = k => { const c = $(`[data-cxo=${k}]`, m); return !!(c && c.checked); };
+  if (!keys.length && !on('settings')) { toast('Tick at least one thing to export'); return null; }
+  const S = state, live = r => !on('skip') || !(r.archived || r.status === 'Sold' || r.status === 'Expired'), pick = {};
+  CX.forEach(([k]) => { pick[k] = new Set(keys.includes(k) ? (S[k] || []).filter(live).map(r => r.id) : []); });
+  if (on('link') && (pick.products.size || pick.listings.size)) {
+    const P0 = new Set(pick.products), L0 = new Set(pick.listings);
+    S.listings.forEach(l => { const ps = listingProducts(l); if (L0.has(l.id)) ps.forEach(id => pick.products.add(id)); else if (ps.some(id => P0.has(id)) && live(l)) pick.listings.add(l.id); });
+    S.products.filter(x => pick.products.has(x.id)).forEach(x => { (x.recipe || []).forEach(r => r.supplyId && pick.supplies.add(r.supplyId)); if (x.supplierId) pick.suppliers.add(x.supplierId); });
+    S.supplies.filter(x => pick.supplies.has(x.id)).forEach(x => { if (x.supplierId) pick.suppliers.add(x.supplierId); });
+  }
+  if (on('sales') && (pick.products.size || pick.listings.size)) S.orders.forEach(o => { if (live(o) && (o.items || []).some(i => pick.products.has(i.productId) || (i.listingId && pick.listings.has(i.listingId)))) pick.orders.add(o.id); });
+  const clean = r => { const c = { ...r }; delete c.photos; delete c.hero; if (!on('snaps')) delete c.snaps; return c; };
+  const out = { _about: `Partial export from Grimms Business Tracker, ${today()}. Records link by id: listing.productId and listing.bundle[] point to products, product.recipe[].supplyId to materials, supplierId to suppliers, order.items[].productId and listingId to products and listings.`, partialExport: true, exportedAt: new Date().toISOString(), v: S.v }, parts = [];
+  CX.forEach(([k, l]) => { if (pick[k].size) { out[k] = (S[k] || []).filter(r => pick[k].has(r.id)).map(clean); parts.push(pick[k].size + ' ' + l.toLowerCase()); } });
+  if (on('settings')) { const st = JSON.parse(JSON.stringify(S.settings || {})); if (st.look) delete st.look.bgImg; out.settings = st; parts.push('settings'); }
+  return { out, parts };
+}
+ACT['cx-copy'] = async () => { const r = cxBuild(); if (!r) return; const t = JSON.stringify(r.out); await copyText(t, r.parts.join(', ') + ' (' + Math.max(1, Math.round(t.length / 1024)) + ' KB)'); };
+ACT['cx-dl'] = () => { const r = cxBuild(); if (!r) return; const t = JSON.stringify(r.out, null, 1); phDownload(new Blob([t], { type: 'application/json' }), `grimms-partial-export-${today()}.json`); toast('Downloaded ' + r.parts.join(', ') + ' (' + Math.max(1, Math.round(t.length / 1024)) + ' KB)'); };
+/* a partial export is added to what you have (matched by id), nothing is deleted or replaced wholesale */
+async function mergePartial(data) {
+  const ks = CX.map(x => x[0]).filter(k => Array.isArray(data[k]) && Array.isArray(state[k]));
+  if (!ks.length) { toast('That file has no items to add'); return false; }
+  let add = 0, upd = 0; ks.forEach(k => { const have = new Set(state[k].map(r => r.id)); data[k].forEach(r => { if (r && r.id) have.has(r.id) ? upd++ : add++; }); });
+  if (!await confirmBox('Add this partial export?', `This file holds ${add} new and ${upd} existing item${add + upd === 1 ? '' : 's'}. New ones are added, matching ones are updated. Nothing else is erased, and a safety copy is kept first.` + (data.settings ? ' Settings in the file are not applied.' : ''), 'Add to my data', false)) return false;
+  await snapshotNow('Before adding a partial export');
+  ks.forEach(k => data[k].forEach(r => { if (!r || !r.id) return; const i = state[k].findIndex(x => x.id === r.id); if (i >= 0) state[k][i] = r; else state[k].push(r); }));
+  save(); render(); toast(`Added ${add}, updated ${upd}`); return true;
 }
 async function importFile(file) {
   if (!file) return;
@@ -8611,7 +8667,7 @@ const phTx = (mode, fn) => phOpenDb().then(db => new Promise((res, rej) => { con
 const phPut = r => phTx('readwrite', s => s.put(r)), phGet = id => phTx('readonly', s => s.get(id)), phDel = id => phTx('readwrite', s => s.delete(id)), phAll = () => phTx('readonly', s => s.getAll());
 const phBlob = r => new Blob([r.buf], { type: r.type || 'image/jpeg' });
 const phNewId = () => 'ph' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-const phOn = () => state.settings.showPhotos !== false;
+const phOn = () => false;   /* photos are switched off */
 const phHero = r => r && Array.isArray(r.photos) && r.photos.includes(r.hero) ? r.hero : '';
 const phRefs = () => { const s = new Set(); state.products.concat(state.listings).forEach(r => (r.photos || []).forEach(i => s.add(i))); return s; };
 const phSlug = s => String(s || 'photo').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'photo';
@@ -8640,7 +8696,7 @@ function phSecInner(kind) {
     ${D.ids.length ? `<div class="phgrid">${tiles}</div>` : ''}
     <div class="row" style="gap:8px;flex-wrap:wrap"><label class="btn btn-soft btn-sm" style="cursor:pointer">${ic('plus')} Add photos<input type="file" accept="image/*" multiple hidden data-phfile></label>${phTouch() ? `<label class="btn btn-soft btn-sm" style="cursor:pointer">${ic('camera')} Take photo<input type="file" accept="image/*" capture="environment" hidden data-phfile></label>` : ''}${D.ids.length ? `<button type="button" class="btn btn-line btn-sm" data-act="ph-saveall">${ic('download')} Save all</button>` : ''}${canUse ? `<button type="button" class="btn btn-line btn-sm" data-act="ph-useprod">Use the product's photos</button>` : ''}</div>`;
 }
-const phSection = (kind, r) => `<div class="phsec" id="ph-sec" data-kind="${kind}">${phSecInner(kind)}</div>`;
+const phSection = () => '';   /* no photo box in forms */
 function phRefresh() { const s = $('#ph-sec'); if (!s) return; s.innerHTML = phSecInner(s.dataset.kind); const f = s.closest('form'); if (f) f.dataset.dirty = '1'; try { clearTimeout(draftTimer); draftTimer = setTimeout(draftSave, 500); } catch (e) { } }
 function phApply(rec) { const D = PH.draft; if (!D) return; rec.photos = D.ids.slice(); rec.hero = D.ids.includes(D.hero) ? D.hero : (D.ids[0] || ''); }
 function phCommit() { const D = PH.draft; if (!D) return; PH.draft = null; const gone = D.orig.filter(i => !D.ids.includes(i)), refs = phRefs(); gone.filter(i => !refs.has(i)).forEach(i => { phDel(i).catch(() => { }); const u = PH.urls.get(i); if (u) { URL.revokeObjectURL(u); PH.urls.delete(i); } }); }
@@ -8674,33 +8730,32 @@ const phNames = (title, ids, hero) => ids.map((id, i) => ({ id, name: `${phSlug(
 
 /* ----- backup and restore (photos travel inside the backup file) ----- */
 async function phBackupBlob() {
-  const recs = (await phAll().catch(() => [])) || [], head = JSON.stringify(state, null, 2), parts = [head.slice(0, head.lastIndexOf('}')).replace(/\s+$/, ''), ',\n"photoData": ['];
+  const recs = [], head = JSON.stringify(state, null, 2), parts = [head.slice(0, head.lastIndexOf('}')).replace(/\s+$/, ''), ',\n"photoData": ['];
   for (let i = 0; i < recs.length; i++) { const r = recs[i]; parts.push((i ? ',\n' : '\n') + JSON.stringify({ id: r.id, type: r.type, name: r.name, t: r.t, w: r.w, h: r.h, data: await phB64(phBlob(r)) })); }
   parts.push('\n]\n}'); return { blob: new Blob(parts, { type: 'application/json' }), n: recs.length };
 }
 async function phRestore(arr) {
-  if (!Array.isArray(arr)) return 0; let n = 0;
+  return 0; let n = 0;
   PH.urls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); PH.urls.clear();
   for (const x of arr) { if (!x || typeof x.id !== 'string' || typeof x.data !== 'string') continue; try { const b = atob(x.data), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); await phPut({ id: x.id, type: x.type || 'image/jpeg', buf: u.buffer, name: x.name || '', t: x.t || Date.now(), w: x.w, h: x.h }); n++; } catch (e) { PH.failed = (PH.failed || 0) + 1; } }
   return n;
 }
 /* photo-carrying text for "Copy ALL my data": photos are shrunk so the text stays pasteable */
 async function phCopyText() {
-  const recs = (await phAll().catch(() => [])) || [], refs = phRefs(), heroes = new Set(state.products.concat(state.listings).map(phHero).filter(Boolean));
+  const recs = [], refs = phRefs(), heroes = new Set(state.products.concat(state.listings).map(phHero).filter(Boolean));
   const build = async (list, max, q) => { const out = []; for (const r of list) { try { const c = await phCompress(phBlob(r), max, q); out.push({ id: r.id, type: 'image/jpeg', name: r.name || '', t: r.t, w: c.w, h: c.h, data: await phB64(c.blob) }); } catch (e) { } } return out; };
   let note = '', pd = await build(recs.filter(r => refs.has(r.id)), 640, .6), text = JSON.stringify({ ...state, photoData: pd });
   if (text.length > 12e6) { pd = await build(recs.filter(r => heroes.has(r.id)), 640, .6); text = JSON.stringify({ ...state, photoData: pd }); note = 'hero'; }
   return { text, n: pd.length, note };
 }
-const phAny = () => state.products.concat(state.listings).some(r => (r.photos || []).length);
+const phAny = () => false;
 
 /* ----- settings ----- */
 function photosBody() {
-  return `<label class="row b sm-t" style="margin-bottom:4px"><input type="checkbox" class="chk" data-phshow ${phOn() ? 'checked' : ''}> Show photos in lists</label>
-    <p class="hint" style="margin:0 0 12px">Lists only ever show an item's hero shot. Turn this off to hide the small pictures. Your photos are not deleted.</p>
-    <div class="notice" id="ph-stats" style="margin-bottom:12px"><span>Counting photos…</span></div>
-    <div class="stack-sm"><button class="btn btn-primary block" data-act="ph-zipall">${ic('download')} Save all photos (zip, sorted by item)</button><button class="btn btn-line block" data-act="ph-unused">Delete unused photos</button></div>
-    <p class="hint">Photos stay on this device in their own storage. <b>Download backup file</b> includes every photo, so use it (and Restore from backup file) to move to another phone or computer. "Copy ALL my data as text" carries your photos at a smaller size. The auto-save file does not include photos. Erase everything keeps your photos.</p>`;
+  return `<p class="hint" style="margin:0 0 12px">Photos are turned off. They are not shown, added, or included in backups, so they no longer add to your data.</p>
+    <div class="notice" id="ph-stats" style="margin-bottom:12px"><span>Counting saved photos…</span></div>
+    <button class="btn btn-line block" data-act="ph-delall">Delete all saved photos from this device</button>
+    <p class="hint">This frees the space they use. It cannot be undone, so download a backup file first if you want to keep them.</p>`;
 }
 async function phStats() {
   const el = $('#ph-stats'); if (!el) return;
@@ -8712,6 +8767,12 @@ async function phStats() {
 
 /* ----- actions ----- */
 Object.assign(ACT, {
+  'ph-delall': async () => {
+    if (!await confirmBox('Delete all saved photos?', 'Every photo is removed from this device and from your products and listings. This cannot be undone.', 'Delete all')) return;
+    try { await phTx('readwrite', st => st.clear()); } catch (e) { }
+    PH.urls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); PH.urls.clear();
+    state.products.concat(state.listings).forEach(r => { r.photos = []; r.hero = ''; }); save(); toast('All photos deleted'); const el = $('#ph-stats'); if (el) el.innerHTML = '<span>0 photos on this device.</span>'; render();
+  },
   'ph-ml': el => { const D = PH.draft, i = +el.dataset.i; if (!D || i < 1 || !D.ids[i]) return; [D.ids[i - 1], D.ids[i]] = [D.ids[i], D.ids[i - 1]]; phRefresh(); },
   'ph-mr': el => { const D = PH.draft, i = +el.dataset.i; if (!D || i >= D.ids.length - 1 || !D.ids[i]) return; [D.ids[i + 1], D.ids[i]] = [D.ids[i], D.ids[i + 1]]; phRefresh(); },
   'ph-rot': async el => {
@@ -8758,7 +8819,7 @@ Object.assign(ACT, {
 });
 async function phAddFiles(files) {
   files = (files || []).filter(f => f && /^image\//.test(f.type || 'image/'));
-  if (!PH.draft || !files.length) return; let n = 0;
+  return; let n = 0;
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (x) { }
   for (const f of files) { try { const c = await phCompress(f), id = phNewId(); await phPut({ id, type: 'image/jpeg', buf: await c.blob.arrayBuffer(), name: f.name || '', t: Date.now(), w: c.w, h: c.h }); if (!PH.draft) return; PH.draft.ids.push(id); if (!PH.draft.hero) PH.draft.hero = id; n++; } catch (x) { toast('One file could not be read as a photo'); } }
   phRefresh(); if (n) toast(n + ' photo' + (n === 1 ? '' : 's') + ' added. Press Save to keep ' + (n === 1 ? 'it' : 'them'));
