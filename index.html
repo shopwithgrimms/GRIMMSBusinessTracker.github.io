@@ -2138,12 +2138,34 @@ function putOrder(o) {
   const i = state.orders.findIndex(x => x.id === o.id), old = i >= 0 ? state.orders[i] : null;
   applyStock(old, o);
   if (i >= 0) state.orders[i] = o; else state.orders.unshift(o);
+  syncSoldListings();
 }
 function removeOrder(id) {
   const i = state.orders.findIndex(x => x.id === id);
   if (i < 0) return;
   applyStock(state.orders[i], null);
   state.orders.splice(i, 1);
+  syncSoldListings();
+}
+/* A listing whose item sold out, with a sale recorded for it, becomes Sold by itself. If that sale is cancelled or deleted and the item is back in stock, it goes back to how it was. */
+function syncSoldListings() {
+  const good = o => !o.archived && !NOT_SALE.includes(o.status), first = new Map(), live = new Set();
+  state.orders.forEach(o => { if (!good(o)) return; live.add(o.id); (o.items || []).forEach(i => { if (i.listingId && !first.has(i.listingId)) first.set(i.listingId, o); }); });
+  let n = 0;
+  state.listings.forEach(l => {
+    if (l.archived) return;
+    const ps = listingProducts(l).map(id => state.products.find(x => x.id === id)).filter(Boolean), out = ps.some(p => num(p.qty) <= 0);
+    if ((l.status === 'Active' || l.status === 'Paused') && out && first.has(l.id)) {
+      const o = first.get(l.id), ch = listingChans(l), pick = ch.includes(o.channel) ? o.channel : (ch[0] || '');
+      l.autoSold = { o: o.id, st: l.status, ch: ch.slice(), urls: { ...(l.urls || {}) }, rl: l.relistDate || '' };
+      l.status = 'Sold'; applySold(l, pick); n++;
+    } else if (l.autoSold && l.status === 'Sold' && (!out || !live.has(l.autoSold.o))) {
+      const a = l.autoSold; l.status = a.st || 'Active'; if (a.ch && a.ch.length) l.channels = a.ch; l.urls = a.urls || l.urls || {};
+      l.relistDate = a.rl || (l.status === 'Active' ? addDays(today(), listingRenewDays(l)) : ''); delete l.autoSold;
+    } else if (l.autoSold && l.status !== 'Sold') delete l.autoSold;
+  });
+  if (n) logAct(`${n} listing${n > 1 ? 's' : ''} marked Sold because ${n > 1 ? 'they' : 'it'} sold out`, 'check-circle');
+  return n;
 }
 const autoOrderNo = n => 'ORD-' + String(n || 0).padStart(3, '0');
 const nextOrderSku = skipId => { const used = new Set(); (state.orders || []).forEach(o => { if (o.id === skipId) return; const x = /^ORD-(\d+)$/i.exec(orderNo(o)); if (x) used.add(parseInt(x[1], 10)); }); let n = 1; while (used.has(n)) n++; return autoOrderNo(n); };
@@ -3549,7 +3571,7 @@ const plannedCard = () => {
   return `<details class="card sm" data-planned-dd style="padding:10px 12px"><summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px"><span class="eyebrow grow">Planned listings (${l.length})</span>${ic('chevron-right', 'refchev')}</summary><div class="row between" style="margin-top:8px"><span class="xs sub">Soonest first</span><button class="link" data-act="planned-sheet">See all</button></div>${l.slice(0, 5).map(x => { const ps = listingProdObjs(x); return `<button class="row" style="gap:8px;align-items:flex-start;width:100%;text-align:left;padding:7px 0;border-top:1px solid var(--line)" data-act="edit" data-type="listing" data-id="${x.id}"><div class="grow" style="min-width:0"><div class="b" style="font-size:13px;word-break:break-word">${esc(x.title)}</div><div class="xs sub" style="word-break:break-word">${esc([x.sku ? 'SKU ' + x.sku : '', ps.map(p => p.name + (p.sku ? ' (' + p.sku + ')' : '')).join(' + ')].filter(Boolean).join(' · ') || 'No product linked yet')}</div></div>${!x.listedDate ? pill('No date', 'mute') : plannedDue(x) ? listingStatusPill(x) : pill(fmtDate(x.listedDate), 'brand')}</button>`; }).join('')}${l.length > 5 ? `<div class="xs sub" style="padding-top:6px">+ ${l.length - 5} more</div>` : ''}</div></details>`;
 };
 const syncSelTop = () => { };
-const invTop = () => { const n = plannedListings().length, lst = ui.seg.stock !== 'home'; return `<div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="planned-sheet">${ic('calendar')} Planned${n ? ' (' + n + ')' : ''}</button><button class="btn btn-line btn-sm grow" data-act="ref-sheet">${ic('list-checks')} SKU lookup</button></div>`; };
+const invTop = () => { const n = plannedListings().length, lst = ui.seg.stock !== 'home'; return `<div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="planned-sheet">${ic('calendar')} Planned${n ? ' (' + n + ')' : ''}</button><button class="btn btn-line btn-sm grow" data-act="ref-sheet">${ic('list-checks')} SKU lookup</button>${(() => { let k = 0; try { k = dataChecks().filter(c => c.tone !== 'info').length; } catch (e) { } return `<button class="btn btn-line btn-sm grow" data-act="data-check">${ic('check-circle')} Check data${k ? ' (' + k + ')' : ''}</button>`; })()}</div>`; };
 const refSt = { q: '', v: 'all', s: 'sku_d' };
 const REF_SORTS = [['sku_d', 'SKU high to low'], ['sku', 'SKU low to high'], ['planned', 'Planned: nearest date first'], ['planned_f', 'Planned: furthest date first'], ['name', 'Name A to Z'], ['price_h', 'Price / value high to low'], ['price_l', 'Price / value low to high']];
 function refData() {
@@ -4554,6 +4576,8 @@ function dataBody() {
       <button class="btn btn-soft block" data-act="copy-backup">${ic('copy')} Copy ALL my data as text</button>
       <button class="btn btn-soft block" data-act="paste-restore">${ic('upload')} Restore by pasting text</button>
       <p class="hint" style="margin:-2px 0 4px">Moving to another phone or computer? Copy here, then open the app there and choose "Restore by pasting text". Photos come along too, at a smaller size. For full-size photos use Download backup file, then Restore from backup file.</p>
+      <button class="btn btn-soft block" data-act="data-check">${ic('check-circle')} Check my data</button>
+      <p class="hint" style="margin:-2px 0 4px">Looks for duplicate names, listings with nothing in stock, missing costs and other things worth a look, in plain words.</p>
       <button class="btn btn-primary block" data-act="custom-export">${ic('layers')} Choose what to export</button>
       <p class="hint" style="margin:-2px 0 4px">Pick just the parts you want (for example products and listings, with everything linked to them). Copy it as text to show an AI, or download it to save or move. A partial file can be loaded back in without erasing anything else.</p>
       <button class="btn btn-soft block" data-act="biz-text">${ic('file-text')} Copy my whole business as text (report)</button>
@@ -5060,9 +5084,11 @@ OPEN.product = id => {
     </details>`, foot('product', id)));
   formLive($('form[data-form=product]')); syncVarQty($('form[data-form=product]'));
 };
-FORMS.product = (f, fd, id) => {
+FORMS.product = async (f, fd, id) => {
   const name = tidy(fd.get('name')); if (!name) return toast('Please enter a name');
   const old = id ? find('products', id) : null;
+  let keepDup = null;
+  if (!old || nameKey(old.name) !== nameKey(name)) { const dups = dupMatches('products', name, id); if (dups.length) { if (!await confirmBox('Already in your inventory', `You already have "${dups[0].name}"${dups[0].sku ? ' (' + dups[0].sku + ')' : ''}. Add this one anyway? If it is a second copy of the same thing, it is cleaner to raise the quantity on the first one.`, 'Add anyway', false)) return; keepDup = dups; } }
   const recipe = readRecipe(f), batch = Math.max(1, Math.round(num(fd.get('batch')) || 1));
   if (!old || !old.archived) {
     for (const r of recipe) { const free = freeFor(r.supplyId, id), s = find('supplies', r.supplyId); if (r.qty > free + 1e-9) return toast(`Only ${free} ${s.unit} of ${s.name} available. Add stock first or use less`); }
@@ -5077,6 +5103,7 @@ FORMS.product = (f, fd, id) => {
   rec.free = !(num(rec.cost) > 0) && !recipe.length;
   if (rec.valEst === '' && state.settings.valFromPrice !== 'no' && rec.price > 0) { rec.valEst = rec.price; rec.valAuto = true; }
   phApply(rec);
+  if (keepDup) { rec.dupOk = true; keepDup.forEach(x => { x.dupOk = true; }); }
   if (id) Object.assign(old, rec);
   else { const np = { id: uid('p'), ...rec }, pd = (!recipe.length && num(np.cost) > 0) ? num(np.cost) : 0; state.products.push(np); if (np.qty > 0) logIn(np, 'product', np.qty, pd > 0 ? pd * np.qty : unitCost(np) * np.qty, 'start', fd.get('recvDate'), { est: !(pd > 0) }); }
   phCommit();
@@ -5742,6 +5769,8 @@ function readListing(f) {
 }
 FORMS.listing = async (f, fd, id) => {
   const rec = readListing(f); if (!rec.title) return toast('Give the listing a title');
+  { const prev0 = id ? find('listings', id) : null;
+    if (!prev0 || nameKey(prev0.title) !== nameKey(rec.title)) { const dups = dupMatches('listings', rec.title, id); if (dups.length) { if (!await confirmBox('Already have a listing like this', `You already have a listing called "${dups[0].title}"${dups[0].sku ? ' (' + dups[0].sku + ')' : ''}. Add this one anyway?`, 'Add anyway', false)) return; rec.dupOk = true; dups.forEach(x => { x.dupOk = true; }); } } }
   if (rec.status !== 'Planned' && !rec.channels.length) return toast('Choose at least one platform it is listed on');
   if (rec.discounts.some(d => d.start && d.end && d.end < d.start)) return toast('A discount ends before it starts');
   const prev = id ? find('listings', id) : null;
@@ -5811,6 +5840,7 @@ function formLive(f, target) {
 function formLive0(f, target) {
   if (!f) return;
   const type = f.dataset.form, pv = $('#pv', f);
+  try { dupHint(f); } catch (e) { }
   if (type === 'listing' && target && target.name === 'description') {
     const tg = $('[name=tags]', f), hs = hashtagsIn(target.value);
     if (tg && hs.length) { const m = mergeTags(splitTags(tg.value), hs); if (m !== splitTags(tg.value).join(', ')) tg.value = m; }
@@ -6488,6 +6518,7 @@ function enterApp(keepPlace) {
   ui.tab = 'home'; ui.sub = null; ui.ret = null; lastView = null; resetFilters();
   const nav = keepPlace ? navRestore() : null;
   if (processRecurring()) save();
+  { const ns = syncSoldListings(); if (ns) { save(); setTimeout(() => toast(`${ns} listing${ns > 1 ? 's' : ''} marked Sold because ${ns > 1 ? 'they' : 'it'} sold out`), 600); } }
   showScreen('app'); render();
   if (nav && nav.scroll) { const sc = $('#scroll'); if (sc) sc.scrollTop = nav.scroll; }
 }
@@ -6873,7 +6904,7 @@ const ACT = {
   delete: el => confirmDelete(el.dataset.type, [el.dataset.id]),
   'archive-sold': async () => {
     const seg_ = ui.seg.stock, type = seg_ === 'products' ? 'product' : seg_ === 'listings' ? 'listing' : 'supply';
-    const items = state[COLL[type]].filter(r => !r.archived && (type !== 'supply' || matMatch(r)) && (type === 'listing' ? /sold/i.test(r.status || '') : stockQty(r) <= 0));
+    const items = state[COLL[type]].filter(r => !r.archived && (type !== 'supply' || matMatch(r)) && (type === 'listing' ? listingReleased(r) : stockQty(r) <= 0));
     const all_ = items.slice(); items.length = 0; const skipped = [];
     all_.forEach(r => { const why = archiveBlock(type, r); why ? skipped.push(r) : items.push(r); });
     if (!all_.length) return toast('Nothing sold out to archive. Items that still have stock are never archived');
@@ -7591,6 +7622,7 @@ ACT['custom-export'] = () => {
     <div class="row" style="gap:14px;flex-wrap:wrap;margin-bottom:8px"><span class="eyebrow">Quick pick</span><button type="button" class="link" data-act="cx-preset" data-v="inv">Inventory</button><button type="button" class="link" data-act="cx-preset" data-v="money">Money</button><button type="button" class="link" data-act="cx-preset" data-v="all">Everything</button><button type="button" class="link" data-act="cx-preset" data-v="none">None</button></div>
     <div class="scrollbox" style="margin-bottom:14px;max-height:none">${rows}</div>
     <p class="eyebrow" style="margin-bottom:8px">Also bring along</p>
+    ${opt('anon', true, 'Hide buyer names and contact details (best when sharing with an AI). Turn this off to save or move your data, because a hidden copy cannot be loaded back in')}
     ${opt('link', true, 'Everything linked to the picked products and listings: their listings or products, the materials they use, and suppliers')}
     ${opt('sales', true, 'Sales of the picked products and listings')}
     ${opt('snaps', true, 'Analytics history on listings (views, likes, offers)')}
@@ -7615,13 +7647,26 @@ function cxBuild() {
   const clean = r => { const c = { ...r }; delete c.photos; delete c.hero; if (!on('snaps')) delete c.snaps; return c; };
   const out = { _about: `Partial export from Grimms Business Tracker, ${today()}. Records link by id: listing.productId and listing.bundle[] point to products, product.recipe[].supplyId to materials, supplierId to suppliers, order.items[].productId and listingId to products and listings.`, partialExport: true, exportedAt: new Date().toISOString(), v: S.v }, parts = [];
   CX.forEach(([k, l]) => { if (pick[k].size) { out[k] = (S[k] || []).filter(r => pick[k].has(r.id)).map(clean); parts.push(pick[k].size + ' ' + l.toLowerCase()); } });
-  if (on('settings')) { const st = JSON.parse(JSON.stringify(S.settings || {})); if (st.look) delete st.look.bgImg; out.settings = st; parts.push('settings'); }
+  if (on('settings')) { const st = JSON.parse(JSON.stringify(S.settings || {})); if (st.look) delete st.look.bgImg; if (on('anon') && st.business) ['address', 'email', 'phone', 'taxId'].forEach(k => { st.business[k] = ''; }); out.settings = st; parts.push('settings'); }
+  if (on('anon')) {
+    const label = new Map(), baseOf = n => String(n || '').replace(/\(.*?\)/g, '').trim(), alias = new Map(); let seq = 0;
+    const reg = n => { const raw = String(n || '').trim(); if (!raw) return ''; const b = baseOf(raw).toLowerCase() || raw.toLowerCase(); if (!label.has(b)) label.set(b, 'Customer ' + (++seq)); const L = label.get(b); alias.set(raw.toLowerCase(), L); alias.set(b, L); const m = /\((.*?)\)/.exec(raw); if (m && m[1].trim()) alias.set(m[1].trim().toLowerCase(), L); return L; };
+    S.customers.forEach(c => reg(c.name)); S.orders.forEach(o => reg(o.customer));
+    const names = [...alias.keys()].filter(k => k.length > 2).sort((a, b) => b.length - a.length);
+    const scrub = txt => { let t = String(txt || ''); names.forEach(k => { t = t.replace(new RegExp('(?<![\\w])' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w])', 'gi'), alias.get(k)); }); return t; }, scrubText = txt => scrub(txt).replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '[email]').replace(/\+?\d[\d\s().-]{7,}\d/g, '[phone]');
+    const TEXT = new Set(['notes', 'note', 'body', 'text']), walk = (v, k) => typeof v === 'string' ? (TEXT.has(k) ? scrubText(v) : scrub(v)) : Array.isArray(v) ? v.map(x => walk(x, k)) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([kk, x]) => [kk, walk(x, kk)])) : v;
+    if (out.orders) out.orders = out.orders.map(o => { const c = { ...o, customer: reg(o.customer), tracking: o.tracking ? 'removed' : '' }; return walk(c, ''); });
+    if (out.customers) { const seen = new Set(); out.customers = out.customers.map(c => ({ id: c.id, name: reg(c.name) })).filter(c => { if (seen.has(c.name)) return false; seen.add(c.name); return true; }); }
+    Object.keys(out).forEach(k => { if (k !== 'customers' && k !== 'orders' && out[k] && typeof out[k] === 'object') out[k] = walk(out[k], ''); });
+    out.anonymized = true; parts.push('buyer details hidden');
+  }
   return { out, parts };
 }
 ACT['cx-copy'] = async () => { const r = cxBuild(); if (!r) return; const t = JSON.stringify(r.out); await copyText(t, r.parts.join(', ') + ' (' + Math.max(1, Math.round(t.length / 1024)) + ' KB)'); };
 ACT['cx-dl'] = () => { const r = cxBuild(); if (!r) return; const t = JSON.stringify(r.out, null, 1); phDownload(new Blob([t], { type: 'application/json' }), `grimms-partial-export-${today()}.json`); toast('Downloaded ' + r.parts.join(', ') + ' (' + Math.max(1, Math.round(t.length / 1024)) + ' KB)'); };
 /* a partial export is added to what you have (matched by id), nothing is deleted or replaced wholesale */
 async function mergePartial(data) {
+  if (data.anonymized) { toast('That copy has buyer details hidden, so it cannot be loaded back in. Make a copy with that box turned off.'); return false; }
   const ks = CX.map(x => x[0]).filter(k => Array.isArray(data[k]) && Array.isArray(state[k]));
   if (!ks.length) { toast('That file has no items to add'); return false; }
   let add = 0, upd = 0; ks.forEach(k => { const have = new Set(state[k].map(r => r.id)); data[k].forEach(r => { if (r && r.id) have.has(r.id) ? upd++ : add++; }); });
@@ -7630,6 +7675,81 @@ async function mergePartial(data) {
   ks.forEach(k => data[k].forEach(r => { if (!r || !r.id) return; const i = state[k].findIndex(x => x.id === r.id); if (i >= 0) state[k][i] = r; else state[k].push(r); }));
   save(); render(); toast(`Added ${add}, updated ${upd}`); return true;
 }
+
+/* ---------- duplicate names ---------- */
+const nameKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const dupMatches = (coll, name, selfId) => { const k = nameKey(name); if (!k) return []; return (state[coll] || []).filter(r => !r.archived && r.id !== selfId && nameKey(coll === 'products' ? r.name : r.title) === k); };
+function dupHint(f) {
+  const type = f.dataset.form; if (type !== 'product' && type !== 'listing') return;
+  const inp = $(type === 'product' ? '[name=name]' : '[name=title]', f); if (!inp) return;
+  let p = $('[data-duphint]', f); if (!p) { p = document.createElement('p'); p.className = 'hint warn-t'; p.dataset.duphint = '1'; p.style.margin = '4px 0 10px'; p.hidden = true; inp.insertAdjacentElement('afterend', p); }
+  const m = dupMatches(type === 'product' ? 'products' : 'listings', inp.value, f.dataset.id || '');
+  p.hidden = !m.length;
+  if (m.length) p.textContent = `Heads up: you already have ${type === 'product' ? 'a product' : 'a listing'} with this name${m[0].sku ? ' (' + m[0].sku + ')' : ''}. If it is a second copy, raise the quantity on the first one instead of adding it twice.`;
+}
+
+/* ---------- Check my data: plain-words list of things worth a look ---------- */
+function dataChecks() {
+  const out = [], t = today(), A = a => a.filter(x => !x.archived), listLive = l => l.status === 'Active' || l.status === 'Paused';
+  const prods = A(state.products), lists = A(state.listings), money = n => money_(n);
+  const rec = (type, r) => ({ label: type === 'product' ? r.name : r.title, sub: (r.sku || 'No SKU') + (type === 'listing' ? ' · ' + r.status : ' · ' + num(r.qty) + ' in stock'), type, id: r.id });
+  /* 1 duplicate names */
+  { const groups = [];
+    [['product', prods, r => r.name], ['listing', lists.filter(l => l.status !== 'Sold' && l.status !== 'Expired'), r => r.title]].forEach(([type, arr, nm]) => {
+      const by = new Map(); arr.forEach(r => { const k = nameKey(nm(r)); if (k) { if (!by.has(k)) by.set(k, []); by.get(k).push(r); } });
+      by.forEach(g => { if (g.length > 1 && !g.every(r => r.dupOk)) groups.push({ type, g }); });
+    });
+    const nDup = new Set(groups.map(x => nameKey(x.type === 'product' ? x.g[0].name : x.g[0].title))).size;
+    if (groups.length) out.push({ key: 'dup', tone: 'warn', title: `${nDup} name${nDup > 1 ? 's' : ''} used more than once`, why: 'Two products or listings with the same name are easy to mix up, and are often one item typed in twice. If you really own two copies, one product with a quantity of 2 is simpler. If they are truly different, tap "They are different" and I will stop flagging them.', items: groups.flatMap(x => x.g.map(r => rec(x.type, r))), fix: { label: 'They are different', act: 'dc-keep', ids: groups.flatMap(x => x.g.map(r => x.type + ':' + r.id)).join(',') } }); }
+  /* 2 live listings with nothing in stock */
+  { const a = lists.filter(listingOOS); if (a.length) out.push({ key: 'oos', tone: 'bad', title: `${a.length} live listing${a.length > 1 ? 's' : ''} with nothing in stock`, why: 'Someone could buy something you do not have. Pause or end them.', items: a.slice(0, 10).map(l => rec('listing', l)) }); }
+  /* 3 orders open a long time */
+  { const a = state.orders.filter(o => !o.archived && !closedOrder(o) && !NOT_SALE.includes(o.status) && o.date && daysBetween(o.date, t) >= 10);
+    if (a.length) out.push({ key: 'old-ord', tone: 'warn', title: `${a.length} order${a.length > 1 ? 's' : ''} open for 10+ days`, why: 'Still not marked finished. If they have arrived, mark them Fulfilled so the money counts as earned.', items: a.slice(0, 10).map(o => ({ label: orderNo(o) + ' · ' + (o.customer || 'No name'), sub: o.status + ' · ' + fmtDate(o.date), type: 'order', id: o.id })) }); }
+  /* 4 money still on the way */
+  { const a = state.orders.filter(o => !o.archived && !closedOrder(o) && !NOT_SALE.includes(o.status)), v = sum(a, o => cashAmt(o));
+    if (a.length && v > 0) out.push({ key: 'wait-money', tone: 'info', title: `${money(v)} not in your balances yet`, why: `${a.length} order${a.length > 1 ? 's are' : ' is'} still open (shipped but not Fulfilled). Money from an order is only added to your account balances once you mark it Fulfilled, so these balances can look lower than what is coming. Mark ${a.length > 1 ? 'them' : 'it'} Fulfilled when ${a.length > 1 ? 'they arrive' : 'it arrives'}.`, items: a.slice(0, 10).map(o => ({ label: orderNo(o) + ' · ' + (o.customer || 'No name'), sub: o.status + ' · ' + money(cashAmt(o)), type: 'order', id: o.id })) }); }
+  /* 5 no cost */
+  { const a = prods.filter(p => num(p.qty) > 0 && num(p.price) > 0 && !(num(p.cost) > 0) && !(p.recipe || []).length);
+    if (a.length) out.push({ key: 'nocost', tone: 'warn', title: `${a.length} product${a.length > 1 ? 's' : ''} with no cost entered`, why: 'With no cost, every sale counts as pure profit, so your profit and margin numbers look better than they are. Even a rough cost per item (what you paid for the lot divided by the count) fixes it.', items: a.slice(0, 8).map(p => rec('product', p)), more: a.length > 8 ? a.length - 8 : 0 }); }
+  /* 6 platform fee set to zero but fees were paid */
+  { (state.settings.channels || []).forEach(c => {
+      if (num(c.pct) > 0 || num(c.fixed) > 0) return;
+      const os = state.orders.filter(o => !o.archived && o.channel === c.name && num(o.fees) > 0); if (!os.length) return;
+      const inUse = state.orders.some(o => !o.archived && o.channel === c.name && o.date && daysBetween(o.date, t) <= 30) || state.listings.some(l => !l.archived && (l.status === 'Active' || l.status === 'Planned' || l.status === 'Paused') && listingChans(l).includes(c.name)); if (!inUse) return;
+      const sub = sum(os, o => sum(o.items || [], i => num(i.qty) * num(i.price))), fees = sum(os, o => num(o.fees)), rate = sub > 0 ? fees / sub * 100 : 0;
+      out.push({ key: 'fee-' + c.name, tone: 'warn', title: `${c.name} fees are set to 0%`, why: `${os.length} past ${c.name} order${os.length > 1 ? 's' : ''} paid fees (about ${rate.toFixed(1)}% of the sale), but new ${c.name} sales will show no fees. Set your real fee in Settings under Platforms if you still sell there.`, items: [] });
+    }); }
+  /* 7 listing price differs from product price */
+  { const a = lists.filter(l => listLive(l) && listingProducts(l).length === 1).map(l => ({ l, p: state.products.find(x => x.id === l.productId) })).filter(x => x.p && Math.abs(num(x.l.price) - num(x.p.price)) > 0.005);
+    if (a.length) out.push({ key: 'price-diff', tone: 'info', title: `${a.length} listing${a.length > 1 ? 's' : ''} priced differently from the product`, why: 'This is fine if you repriced on purpose. Your stock value uses the product price, so it can differ from what you are asking.', items: a.slice(0, 8).map(x => ({ label: x.l.title, sub: `Listing ${money(num(x.l.price))} · product ${money(num(x.p.price))}`, type: 'listing', id: x.l.id })), more: a.length > 8 ? a.length - 8 : 0 }); }
+  /* 8 similar customers */
+  { const base = n => nameKey(String(n || '').replace(/\(.*?\)/g, '')), by = new Map();
+    state.customers.forEach(c => { const k = base(c.name); if (k) { if (!by.has(k)) by.set(k, []); by.get(k).push(c); } });
+    by.forEach(g => { if (g.length > 1) out.push({ key: 'cust-' + g[0].id, tone: 'warn', title: 'Maybe the same customer twice', why: 'These look like one person saved under slightly different names. Merging moves all their sales to one record.', items: g.map(c => ({ label: c.name, sub: customerStats(c.name).orders + ' sale' + (customerStats(c.name).orders === 1 ? '' : 's') })), fix: { label: 'Merge', act: 'dc-merge', ids: g.map(c => c.id).join(',') } }); }); }
+  /* 9 in stock but not on sale anywhere */
+  { const on = new Set(); lists.filter(l => l.status === 'Active' || l.status === 'Paused' || l.status === 'Planned').forEach(l => listingProducts(l).forEach(id => on.add(id)));
+    const a = prods.filter(p => num(p.qty) > 0 && !on.has(p.id)); if (a.length) out.push({ key: 'nolist', tone: 'info', title: `${a.length} product${a.length > 1 ? 's' : ''} in stock with no listing`, why: 'You have these but they are not for sale anywhere yet.', items: a.slice(0, 8).map(p => rec('product', p)), more: a.length > 8 ? a.length - 8 : 0 }); }
+  return out;
+}
+const money_ = n => (typeof money === 'function' ? money(n) : '$' + (Math.round(num(n) * 100) / 100).toFixed(2));
+ACT['data-check'] = () => {
+  const cs = dataChecks(), bad = cs.filter(c => c.tone !== 'info').length, tone = { bad: 'bad', warn: 'warn', info: 'brand' };
+  const card = c => `<details class="card sm" style="padding:10px 12px;margin-bottom:8px"><summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px"><span class="grow b" style="min-width:0">${esc(c.title)}</span>${pill(c.tone === 'bad' ? 'Fix' : c.tone === 'warn' ? 'Look' : 'Info', tone[c.tone])}${ic('chevron-right', 'refchev')}</summary>
+    <p class="sub" style="margin:8px 0">${esc(c.why)}</p>
+    ${(c.items || []).map(i => `<div class="row" style="gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)"><span class="grow" style="min-width:0"><b class="trunc" style="display:block;font-size:13px">${esc(i.label)}</b><span class="xs sub trunc" style="display:block">${esc(i.sub || '')}</span></span>${i.type ? `<button class="link" data-act="edit" data-type="${i.type}" data-id="${i.id}">Open</button>` : ''}</div>`).join('')}
+    ${c.more ? `<p class="xs sub" style="margin:6px 0 0">and ${c.more} more</p>` : ''}
+    ${c.fix ? `<button class="btn btn-soft btn-sm block" style="margin-top:8px" data-act="${c.fix.act}" data-ids="${esc(c.fix.ids)}">${esc(c.fix.label)}</button>` : ''}</details>`;
+  openSheet('Check my data', `<div class="sheet-body"><div class="notice" style="margin-bottom:12px">${ic(bad ? 'alert-triangle' : 'check-circle')}<span>${cs.length ? `<b>${bad ? bad + ' thing' + (bad > 1 ? 's' : '') + ' worth a look.' : 'Nothing wrong.'}</b> ${cs.length - bad ? (cs.length - bad) + ' note' + (cs.length - bad > 1 ? 's' : '') + ' to help you read your numbers.' : ''} Tap one to see what it means.` : '<b>All clear.</b> Nothing to fix right now.'}</span></div>${cs.map(card).join('')}<p class="hint" style="margin-top:10px">Links between your products, listings, orders and materials are checked automatically, and none are broken.</p></div><div class="sheet-foot"><button class="btn btn-primary" data-act="close-sheet">Done</button></div>`);
+};
+ACT['dc-keep'] = el => { String(el.dataset.ids || '').split(',').forEach(x => { const [t, id] = x.split(':'), r = find(t === 'product' ? 'products' : 'listings', id); if (r) r.dupOk = true; }); save(); toast('Okay, I will not flag those again'); ACT['data-check'](); };
+ACT['dc-merge'] = async el => {
+  const cs = String(el.dataset.ids || '').split(',').map(id => state.customers.find(c => c.id === id)).filter(Boolean); if (cs.length < 2) return;
+  const keep = cs.slice().sort((a, b) => String(b.name).length - String(a.name).length)[0];
+  if (!await confirmBox('Merge these customers?', `${cs.map(c => c.name).join(' and ')} become one record called "${keep.name}". Their sales are moved over.`, 'Merge', false)) return;
+  cs.forEach(c => { if (c === keep) return; ['email', 'phone', 'address', 'notes'].forEach(k => { if (!keep[k] && c[k]) keep[k] = c[k]; }); state.orders.forEach(o => { if (lc(o.customer) === lc(c.name)) o.customer = keep.name; }); state.customers.splice(state.customers.indexOf(c), 1); });
+  save(); logAct('Merged duplicate customers', 'users'); toast('Merged'); ACT['data-check']();
+};
 async function importFile(file) {
   if (!file) return;
   try { await importData(JSON.parse(await file.text())); }
