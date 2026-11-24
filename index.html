@@ -1579,7 +1579,7 @@ function applyLook() {
   if (L.headFont && FONTS.some(f => f[0] === L.headFont)) s.setProperty('--hfont', L.headFont); else s.removeProperty('--hfont');
   const ds = de.dataset; ds.layout = L.layout || 'bottom'; ds.hgrid = L.homeGrid || 'single'; ds.pro = L.pro ? 'on' : 'off'; ds.round = L.round; ds.density = L.density; ds.cs = L.cardStyle; ds.bgs = L.bgStyle; ds.hdr = L.header; ds.nav = L.nav; ds.btn = L.btn; ds.bd = L.border; ds.frame = L.frame; ds.motion = L.motion === false ? 'off' : 'on'; ds.pg = L.pageAnim; ds.hv = L.hover; ds.pr = L.press; ds.bf = L.btnFx; ds.tt = L.titleFx;
   s.setProperty('--g1', /^#[0-9a-f]{6}$/i.test(L.g1) ? L.g1 : '#fbcfe8'); s.setProperty('--g2', /^#[0-9a-f]{6}$/i.test(L.g2) ? L.g2 : '#c4b5fd'); s.setProperty('--ga', (Number(L.gAngle) || 160) + 'deg'); s.setProperty('--imgdim', (Number(L.bgDim) || 0) + '%');
-  if (typeof L.bgImg === 'string' && L.bgImg.indexOf('data:image/') === 0) s.setProperty('--bgimg', 'url("' + L.bgImg + '")'); else s.removeProperty('--bgimg');
+  s.removeProperty('--bgimg');
   try { renderParticles(L); } catch (e) { }
   let st = $('#look-css'); if (!st) { st = document.createElement('style'); st.id = 'look-css'; document.head.appendChild(st); }
   const ord = (Array.isArray(L.homeOrder) ? L.homeOrder : []).filter(x => /^[a-z]+$/.test(x)), qh = (Array.isArray(L.quickHide) ? L.quickHide : []).filter(x => /^[a-z]+$/.test(x));
@@ -1662,7 +1662,7 @@ const PLATFORM_PRESETS = [
 
 const HOME_ORDER = ['today', 'pipeline', 'goals', 'attention', 'lowstock', 'upcoming', 'quick'];
 const QUICKS = [['sale', 'Sale'], ['bulk', 'Bulk order'], ['expense', 'Expense'], ['supply', 'Supply'], ['product', 'Product'], ['listing', 'Listing'], ['task', 'Task'], ['time', 'Time'], ['customer', 'Customer'], ['note', 'Note'], ['income', 'Income'], ['mileage', 'Trip'], ['bill', 'Bill'], ['po', 'Purchase order']];
-const LOOK_DEFAULTS = () => ({ layout: 'bottom', homeGrid: 'single', setup: 'Professional', pro: true, auto: false, darkTheme: 'midnight', accent: '', bg: '', card: '', round: 'default', density: 'compact', size: '100', cardStyle: 'outline', bgStyle: 'solid', header: 'plain', nav: 'labels', btn: 'solid', border: 'thin', frame: 'wide', motion: true, headFont: "'Inter', sans-serif", greeting: '', emoji: '', homeChart: 'line', wholeHome: false, confetti: false, g1: '#fbcfe8', g2: '#c4b5fd', gAngle: '160', bgImg: '', bgDim: '30', particles: 'none', pCount: '16', pSpeed: '1', pEmoji: '', pageAnim: 'none', hover: 'none', press: 'none', tapFx: 'none', btnFx: 'none', titleFx: 'none', celebrate: 'confetti', sOn: false, sPack: 'soft', sVol: '60', sTap: true, sOk: true, sDel: true, sWin: true, homeOrder: HOME_ORDER.slice(), quickHide: ['customer', 'note', 'income', 'mileage'] });
+const LOOK_DEFAULTS = () => ({ layout: 'bottom', homeGrid: 'single', setup: 'Professional', pro: true, auto: false, darkTheme: 'midnight', accent: '', bg: '', card: '', round: 'default', density: 'compact', size: '100', cardStyle: 'outline', bgStyle: 'solid', header: 'plain', nav: 'labels', btn: 'solid', border: 'thin', frame: 'wide', motion: true, headFont: "'Inter', sans-serif", greeting: '', emoji: '', homeChart: 'line', wholeHome: false, confetti: false, g1: '#fbcfe8', g2: '#c4b5fd', gAngle: '160', bgDim: '30', particles: 'none', pCount: '16', pSpeed: '1', pEmoji: '', pageAnim: 'none', hover: 'none', press: 'none', tapFx: 'none', btnFx: 'none', titleFx: 'none', celebrate: 'confetti', sOn: false, sPack: 'soft', sVol: '60', sTap: true, sOk: true, sDel: true, sWin: true, homeOrder: HOME_ORDER.slice(), quickHide: ['customer', 'note', 'income', 'mileage'] });
 const guessWeekStart = () => {
   const l = (navigator.language || 'en-US').toLowerCase();
   return 'sun';
@@ -1671,7 +1671,7 @@ const DEFAULTS = () => ({
   v: 3, setup: false,
   settings: {
     name: '', industry: '', currency: 'USD', theme: 'pro_blue', font: "'Inter', sans-serif", taxRate: 0, lowStock: 5, weekStart: guessWeekStart(),
-    relistDays: 30, autoRenew: true, showPhotos: true, valueBasis: 'est', mileRate: 0.725, mileRateYear: 2026, marginFloor: 10, targetMargin: 30, mileUnit: 'mi', budgets: {}, homeHide: [], quarterly: true,
+    relistDays: 30, autoRenew: true, valueBasis: 'est', mileRate: 0.725, mileRateYear: 2026, marginFloor: 10, targetMargin: 30, mileUnit: 'mi', budgets: {}, homeHide: [], quarterly: true,
     business: { address: '', email: '', phone: '', taxId: '', note: 'Thank you for your business!' },
     channels: [{ id: 'ch1', name: 'In person', pct: 0, fixed: 0, renew: 0, tax: false }, { id: 'ch2', name: 'Online', pct: 0, fixed: 0, renew: 0, tax: false }],
     expenseCats: ['Software & Subscriptions', 'Marketing', 'Packaging', 'Rent & Utilities', 'Equipment', 'Travel', 'Professional Services', 'Other'],
@@ -1694,9 +1694,10 @@ let state = DEFAULTS();
 /* =====================================================================
    4. SAVING  (browser storage + a second copy + daily snapshots + optional linked file)
    ===================================================================== */
-const status = { ls: true, idb: true, persisted: false, file: '', filePerm: 'none', lastIdb: 0, lastFile: 0, err: '' };
+const status = { ls: true, idb: true, persisted: false, file: '', filePerm: 'none', lastIdb: 0, lastFile: 0, err: '', dir: '', dirPerm: 'none', lastDir: 0, dirDay: '', dirDated: 0, dirErr: '' };
 let loadProblem = '';
 let fsHandle = null;
+let dirHandle = null, dirTimer = 0;   /* optional backup FOLDER (Chrome / Edge on a computer) */
 
 function load() {
   let raw = null;
@@ -1812,7 +1813,8 @@ function normalize(src) {
   out.orders.forEach(o => { if (o.unpaid === undefined) o.unpaid = !!(o.bulk && num(o.deposit) > 0 && !closedOrder(o) && oc(o).owed > 0); });
   if (Array.isArray(src.widgets)) out.widgets = src.widgets.filter(w => w && typeof w === 'object' && typeof w.id === 'string' && typeof w.type === 'string').map((w, i, a) => ({ id: a.findIndex(x => x.id === w.id) === i ? w.id : 'w' + Math.random().toString(36).slice(2, 9), type: w.type, d: (w.d && typeof w.d === 'object' && !Array.isArray(w.d)) ? w.d : {} })).map(w => { if (Array.isArray(w.d.items)) w.d.items = w.d.items.filter(x => x && typeof x === 'object' && (w.type !== 'links' || /^https?:\/\//i.test(String(x.u)))); return w; });
   else delete out.widgets;
-  out.products.concat(out.listings).forEach(r => { r.photos = Array.isArray(r.photos) ? r.photos.filter(x => typeof x === 'string' && x) : []; if (!r.photos.includes(r.hero)) r.hero = r.photos[0] || ''; });
+  out.products.concat(out.listings).forEach(r => { delete r.photos; delete r.hero; });
+  if (out.settings) { delete out.settings.showPhotos; if (out.settings.look && typeof out.settings.look === 'object') { delete out.settings.look.bgImg; if (out.settings.look.bgStyle === 'image') out.settings.look.bgStyle = 'solid'; } }
   out.v = 3;
   return out;
 }
@@ -1833,6 +1835,7 @@ function flush() {
   catch (e) { if (status.ls) { status.ls = false; toast('This browser is blocking storage. Your safety copy still works, but please download a backup now (Settings > Your data).'); } }
   clearTimeout(mirrorTimer); mirrorTimer = setTimeout(() => mirror(json), 1500);
   if (fsHandle) { clearTimeout(fileTimer); fileTimer = setTimeout(() => writeLinked(json), 4000); }
+  if (dirHandle) { clearTimeout(dirTimer); dirTimer = setTimeout(() => writeFolder(json), 4000); }
 }
 /* second copy (IndexedDB) + one snapshot per day, keeping the last 14 days */
 async function mirror(json) {
@@ -2437,6 +2440,8 @@ function alerts0() {
     if (days == null || days >= 7) add({ key: 'backup', cat: 'system', icon: 'shield', tone: 'warn', title: days == null ? 'You have never downloaded a backup' : `Last backup was ${days} days ago`, detail: 'Your data lives in this browser. A backup file means you can never lose it.', sig: String(Math.floor((Date.now() - (last || 0)) / 86400000 / 7)), go: ['backup'] });
   }
   if (fsHandle && status.filePerm === 'prompt') add({ key: 'filelink', cat: 'system', icon: 'hard-drive', tone: 'warn', title: 'Reconnect your backup file', detail: 'The browser needs your OK again before it can update ' + status.file + '.', sig: 'p', go: ['backup'] });
+  if (dirHandle && status.dirPerm === 'prompt') add({ key: 'dirlink', cat: 'system', icon: 'hard-drive', tone: 'warn', title: 'Reconnect your backup folder', detail: 'The browser needs your OK again before it can save to ' + status.dir + '.', sig: 'p', go: ['backup'] });
+  if (hasData && isIOS() && !isInstalled()) add({ key: 'ios-tab', cat: 'system', icon: 'shield', tone: 'warn', title: 'Safari can erase your saved data', detail: 'On iPhone, a browser tab can lose its data after about a week unused. Back up, then add this app to your Home Screen.', sig: String(Math.floor(Date.now() / 864e5 / 3)), go: ['backup'] });
   return out;
 }
 const visibleAlerts = () => alerts().filter(a => state.dismissed[a.key] !== a.sig);
@@ -3089,13 +3094,13 @@ V.home = () => {
   }
   const on = state.orders.filter(active), cnt = g => on.filter(o => (GROUPS.find(x => x[0] === g)[2]).includes(o.status)).length, cntS = st => on.filter(o => o.status === st).length;
   const g = state.goals[0], gi = g ? goalInfo(g) : null, att = visibleAlerts().filter(a => a.cat !== 'system');
-  const bk = visibleAlerts().find(a => a.key === 'backup');
+  const bk = safetyAlert();
   const noData = !state.orders.length && !state.expenses.length;
   const lows = [...state.products.filter(active).map(x => ({ x, k: 'product' })), ...state.supplies.filter(active).map(x => ({ x, k: 'supply' }))].filter(i => stockState(i.x) !== 'ok').sort((a, b) => stockQty(a.x) - stockQty(b.x)).slice(0, 4);
   const soon = [...state.events.filter(e => e.date >= t && e.date <= addDays(t, 7)).map(e => ({ d: e.date, text: e.title, sub: e.kind, icon: 'calendar' })), ...state.tasks.filter(x => !x.done && x.due && x.due <= addDays(t, 7)).map(x => ({ d: x.due, text: x.title, sub: x.due < t ? 'Overdue' : 'Task', icon: 'list-checks', bad: x.due < t }))].sort((a, b) => a.d.localeCompare(b.d)).slice(0, 5);
   const when = d => d < t ? 'Overdue' : d === t ? 'Today' : d === addDays(t, 1) ? 'Tomorrow' : fmtDate(d);
   return `<div class="page stack fade home-flex">
-    ${bk ? `<div class="banner">${ic('shield')}<div class="grow"><b class="sm-t" style="display:block">${esc(bk.title)}</b><span class="xs sub">Download a backup so your data can never be lost.</span></div><button class="btn btn-primary btn-sm" data-act="backup-go">Back up</button></div>` : ''}
+    ${bk ? safetyBanner(bk) : ''}
     <div class="card">
       <div class="row between" style="align-items:flex-start;margin-bottom:6px"><span class="eyebrow">Money kept · ${periodName(p)}${p === 'custom' ? ' · ' + esc(periodLabel('custom')) : ''}</span>${badge}</div>
       <h2 class="rev num ${s.profit < 0 ? 'bad-t' : ''}" style="margin-bottom:4px">${money(s.profit, Math.abs(s.profit) >= 10000)}</h2>
@@ -3237,7 +3242,7 @@ function stockFiltered() {
   if (ui.marked) l = l.filter(markMatch);
   if (ui.q) { const q = ui.q.toLowerCase(); l = l.filter(x => [x.name, x.title, x.sku, x.barcode, x.category, x.location, x.tags, supplierName(x.supplierId)].join(' ').toLowerCase().includes(q)); }
   if (ui.cat) l = l.filter(x => x.category === ui.cat);
-  if (ui.filter === 'low') l = l.filter(x => stockState(x) === 'low'); else if (ui.filter === 'out') l = l.filter(x => stockState(x) === 'out'); else if (ui.filter === 'ok') l = l.filter(x => stockState(x) === 'ok'); else if (ui.filter === 'nophoto') l = l.filter(x => !(x.photos || []).length);
+  if (ui.filter === 'low') l = l.filter(x => stockState(x) === 'low'); else if (ui.filter === 'out') l = l.filter(x => stockState(x) === 'out'); else if (ui.filter === 'ok') l = l.filter(x => stockState(x) === 'ok');
   const val = x => unitVal(x, prod), so = ui.sort || 'sku_d';
   const rank = x => ({ out: 0, low: 1, ok: 2 }[stockState(x)]);
   l.sort((a, b) => so === 'sku_d' ? (skuDesc(a.sku, b.sku) || a.name.localeCompare(b.name)) : so === 'sku' ? (skuCmp(a.sku, b.sku) || a.name.localeCompare(b.name)) : so === 'name_d' ? b.name.localeCompare(a.name) : so === 'need' ? rank(a) - rank(b) || a.name.localeCompare(b.name) : so === 'qty_l' ? stockQty(a) - stockQty(b) : so === 'qty_h' ? stockQty(b) - stockQty(a) : so === 'price_h' ? val(b) - val(a) : so === 'price_l' ? val(a) - val(b) : a.name.localeCompare(b.name));
@@ -3262,7 +3267,7 @@ function stockCard(it, prod) {
   const meta = prod ? `${it.sku ? esc(it.sku) + ' · ' : ''}Cost ${money(uc)}${hasEst(it) ? ' · Est. ' + money(it.valEst) : ''}` : `${it.sku ? esc(it.sku) + ' · ' : ''}${money(it.cost)} per ${esc(it.unit || 'unit')}${hasEst(it) ? ' · est. ' + money(it.valEst) : ''}${supplierName(it.supplierId) ? ' · ' + esc(supplierName(it.supplierId)) : ''}`;
   const margin = prod && num(it.price) > 0 ? (num(it.price) - uc) / num(it.price) * 100 : null;
   const q = stockQty(it);
-  return `<div class="card sm item ${selCls(it.id)}" ${selAttr(it.id)}>${selMark(it.id)}${mkBtn(prod ? 'product' : 'supply', it)}${prod ? phThumb('product', it) : ''}
+  return `<div class="card sm item ${selCls(it.id)}" ${selAttr(it.id)}>${selMark(it.id)}${mkBtn(prod ? 'product' : 'supply', it)}
     <button class="grow" style="text-align:left;min-width:0" data-act="edit" data-type="${prod ? 'product' : 'supply'}" data-id="${it.id}">
       <h4 class="trunc">${esc(it.name)}</h4>${markLine(it)}<div class="meta trunc">${meta}</div>
       <div class="row" style="gap:6px;margin-top:4px;flex-wrap:wrap">${!prod && ui.matf === 'all' ? pill(it.kind === 'component' ? 'Component' : 'Supply', 'mute') : ''}${it.category ? pill(it.category) : ''}${margin != null ? pill(pct(margin) + ' margin', marginTone(margin)) : ''}${prod && (it.recipe || []).length ? pill('Uses ' + it.recipe.length + ' suppl' + (it.recipe.length > 1 ? 'ies' : 'y'), 'mute') : ''}${usedIn ? pill('In ' + usedIn + ' product' + (usedIn > 1 ? 's' : ''), 'mute') : ''}${nlive ? pill(nlive + ' live', 'ok', 'store') : ''}${it.location ? pill(it.location, 'mute', 'map-pin') : ''}${onOrderText(it.id) ? pill(onOrderText(it.id), 'brand', 'truck') : ''}</div>
@@ -3288,7 +3293,6 @@ function listingsFiltered() {
   const f = ui.filter;
   if (f === 'action') l = l.filter(x => !x.archived && ((x.status === 'Active' && (renewDue(x) || listingOOS(x) || listingAge(x) >= 30 || (x.pending || []).length)) || plannedDue(x)));
   else if (f === 'renew') l = l.filter(renewDue);
-  else if (f === 'nophoto') l = l.filter(x => !(x.photos || []).length);
   else if (f === 'oos') l = l.filter(listingOOS);
   else if (f === 'old') l = l.filter(x => x.status === 'Active' && listingAge(x) >= 30);
   else if (f === 'disc') l = l.filter(x => (x.discounts || []).some(d => discActive(d) || discUpcoming(d)));
@@ -3302,7 +3306,7 @@ function listingCard(l) {
   const up = (l.discounts || []).filter(d => discUpcoming(d)).length;
   const totals = Object.entries(tot).filter(([, v]) => v > 0).slice(0, 4);
   return `<div class="card sm lcard ${selCls(l.id)}" ${selAttr(l.id)}>
-    <div class="lhead">${selMark(l.id)}${mkBtn('listing', l)}${phThumb('listing', l)}
+    <div class="lhead">${selMark(l.id)}${mkBtn('listing', l)}
       <button class="lmain" data-act="edit" data-type="listing" data-id="${l.id}">
         <h4 class="trunc" style="font-size:14px;font-weight:700">${esc(l.title)}</h4>${markLine(l)}
         <div class="meta trunc" style="font-size:11px;color:var(--sub)">${esc(chans.join(' · ') || 'No platform chosen')}${l.sku ? ' · ' + esc(l.sku) : ''}</div>
@@ -3660,14 +3664,14 @@ function lkSlim(kind) {
 function lkStock(it, prod, st) {
   const q = stockQty(it), t = prod ? 'product' : 'supply', uc = prod ? unitCost(it) : num(it.cost), mg = prod && num(it.price) > 0 ? (num(it.price) - uc) / num(it.price) * 100 : null;
   const bits = [it.sku, prod ? (mg != null ? pct(mg) + ' margin' : '') : (it.kind === 'component' ? 'Component' : 'Supply'), it.category].filter(Boolean).slice(0, 3).map(esc).join(' · '), unit = prod ? 'units' : esc(it.unit || 'units');
-  if (isTileLk(st)) return `<div class="lktile ${selCls(it.id)}" ${selAttr(it.id)}>${selMark(it.id)}${prod ? phThumb('product', it, 'tile') : ''}<button type="button" class="lkmain" data-act="edit" data-type="${t}" data-id="${it.id}"><b class="lkt-name">${esc(it.name)}</b><span class="lkt-q num">${esc(String(q))}<small> ${unit}</small></span>${stockPill(it)}<small class="trunc">${bits}</small></button></div>`;
-  return `<div class="lkrow ${selCls(it.id)}" ${selAttr(it.id)}>${selMark(it.id)}${prod ? phThumb('product', it) : ''}<button type="button" class="lkmain" data-act="edit" data-type="${t}" data-id="${it.id}"><b class="trunc">${esc(it.name)}</b><small class="trunc">${bits || '&nbsp;'}</small></button><div class="lkside"><b class="num">${esc(String(q))}<small> ${unit}</small></b>${stockPill(it)}</div><button type="button" class="icon-btn p lkplus" data-act="restock" data-type="${t}" data-id="${it.id}" aria-label="Adjust stock" title="Adjust stock">${ic('plus')}</button></div>`;
+  if (isTileLk(st)) return `<div class="lktile ${selCls(it.id)}" ${selAttr(it.id)}>${selMark(it.id)}<button type="button" class="lkmain" data-act="edit" data-type="${t}" data-id="${it.id}"><b class="lkt-name">${esc(it.name)}</b><span class="lkt-q num">${esc(String(q))}<small> ${unit}</small></span>${stockPill(it)}<small class="trunc">${bits}</small></button></div>`;
+  return `<div class="lkrow ${selCls(it.id)}" ${selAttr(it.id)}>${selMark(it.id)}<button type="button" class="lkmain" data-act="edit" data-type="${t}" data-id="${it.id}"><b class="trunc">${esc(it.name)}</b><small class="trunc">${bits || '&nbsp;'}</small></button><div class="lkside"><b class="num">${esc(String(q))}<small> ${unit}</small></b>${stockPill(it)}</div><button type="button" class="icon-btn p lkplus" data-act="restock" data-type="${t}" data-id="${it.id}" aria-label="Adjust stock" title="Adjust stock">${ic('plus')}</button></div>`;
 }
 function lkListing(l, st) {
   const lp = listingPrice(l), ch = listingChans(l).join(' · ') || 'No platform', sub = [ch, l.sku].filter(Boolean).map(esc).join(' · ');
   const flags = (renewDue(l) ? pill('Renew due', 'warn') : '') + (listingOOS(l) ? pill('Out of stock', 'bad') : '');
-  if (isTileLk(st)) return `<div class="lktile ${selCls(l.id)}" ${selAttr(l.id)}>${selMark(l.id)}${phThumb('listing', l, 'tile')}<button type="button" class="lkmain" data-act="edit" data-type="listing" data-id="${l.id}"><b class="lkt-name">${esc(l.title)}</b><span class="lkt-q num">${money(lp)}</span>${listingStatusPill(l)}${flags}<small class="trunc">${esc(ch)}</small></button></div>`;
-  return `<div class="lkrow ${selCls(l.id)}" ${selAttr(l.id)}>${selMark(l.id)}${phThumb('listing', l)}<button type="button" class="lkmain" data-act="edit" data-type="listing" data-id="${l.id}"><b class="trunc">${esc(l.title)}</b><small class="trunc">${sub}</small>${flags ? `<span class="row" style="gap:4px;margin-top:3px">${flags}</span>` : ''}</button><div class="lkside"><b class="num">${money(lp)}</b>${listingStatusPill(l)}</div><button type="button" class="icon-btn lkplus" data-act="copy-title" data-id="${l.id}" aria-label="Copy title" title="Copy title">${ic('copy')}</button></div>`;
+  if (isTileLk(st)) return `<div class="lktile ${selCls(l.id)}" ${selAttr(l.id)}>${selMark(l.id)}<button type="button" class="lkmain" data-act="edit" data-type="listing" data-id="${l.id}"><b class="lkt-name">${esc(l.title)}</b><span class="lkt-q num">${money(lp)}</span>${listingStatusPill(l)}${flags}<small class="trunc">${esc(ch)}</small></button></div>`;
+  return `<div class="lkrow ${selCls(l.id)}" ${selAttr(l.id)}>${selMark(l.id)}<button type="button" class="lkmain" data-act="edit" data-type="listing" data-id="${l.id}"><b class="trunc">${esc(l.title)}</b><small class="trunc">${sub}</small>${flags ? `<span class="row" style="gap:4px;margin-top:3px">${flags}</span>` : ''}</button><div class="lkside"><b class="num">${money(lp)}</b>${listingStatusPill(l)}</div><button type="button" class="icon-btn lkplus" data-act="copy-title" data-id="${l.id}" aria-label="Copy title" title="Copy title">${ic('copy')}</button></div>`;
 }
 function lkOrder(o, st) {
   const c = oc(o), title = o.customer || (o.items[0] && o.items[0].name) || 'Sale', amt = money(c.net), i = FLOW.indexOf(o.status), t = today();
@@ -4395,6 +4399,7 @@ V.more = () => {
       ${row('receipt', 'Bills & invoices', billsLine(), 'bills')}
       ${row('line-chart', 'Cash flow forecast', 'Will your money cover what is coming?', 'forecast')}
       ${row('truck', 'Orders & deliveries', 'What you bought from suppliers: track bought, shipped, in transit, delivered', 'purchases')}
+      ${row('file-text', 'Business forms', 'Order, pickup, fulfilled, restock, expense and daily log forms. Print or save as PDF', 'bf')}
       ${row('printer', 'Print labels', 'Item number labels for 4x6 thermal or label sheets: pick items, a template, what shows and layout', 'printlabels')}
       ${row('camera', 'Item numbers & lookup', 'A number for every item, type it to see its page, receive and remove stock', 'barcodes')}
       ${row('users', 'Customers', `${nc} saved · repeat buyers and lifetime value`, 'customers')}
@@ -4556,7 +4561,7 @@ const chanRow = c => `<div class="stack-sm" style="padding:10px 0;border-top:1px
 const removedChans = () => { const a = state.settings.channels.filter(c => c.archived); if (!a.length) return '';
   return `<h4 class="eyebrow" style="margin:14px 0 4px">Removed platforms · kept for past sales</h4>` + a.map(c => { const r = chanRefs(c.name); return `<div class="row between" style="padding:8px 0;border-top:1px solid var(--line)"><div><b class="sm-t">${esc(c.name)}</b><div class="xs sub">${r.orders} sale${r.orders === 1 ? '' : 's'} · ${r.listings} listing${r.listings === 1 ? '' : 's'} · fee ${num(c.pct)}% + ${money(num(c.fixed))}</div></div><button class="link" data-act="restore-chan" data-id="${c.id}">Restore</button></div>`; }).join(''); };
 const listEditor = (key, arr, budget) => `<div>${arr.map((x, i) => `<div class="row" style="margin-bottom:8px"><input class="input sm" data-list="${key}" data-i="${i}" value="${esc(x)}" aria-label="Name">${budget ? `<input class="input sm" style="width:96px" type="number" min="0" step="any" inputmode="decimal" data-budget="${esc(x)}" value="${state.settings.budgets[x] || ''}" placeholder="Budget" aria-label="Monthly budget for ${esc(x)}">` : ''}<button class="icon-btn" data-act="del-list" data-k="${key}" data-i="${i}" aria-label="Remove">${ic('trash')}</button></div>`).join('')}</div><button class="link" data-act="add-list" data-k="${key}">${ic('plus')} Add</button>`;
-const ACC_KW = { data: 'backup restore copy paste export csv erase earlier version file import device', photos: 'photo pictures hero zip thumbnails images', business: 'invoice name address logo tax business', channels: 'platform mercari vinted depop ebay fees', metrics: 'analytics views likes watchers', look: 'appearance theme color colour font layout dark light style', cats: 'category categories budget', lists: 'payment method carrier shipping', tpls: 'description template templates', prefs: 'preferences tax mileage renew listing quarterly' };
+const ACC_KW = { data: 'backup restore copy paste export csv erase earlier version file import device', business: 'invoice name address logo tax business', channels: 'platform mercari vinted depop ebay fees', metrics: 'analytics views likes watchers', look: 'appearance theme color colour font layout dark light style', cats: 'category categories budget', lists: 'payment method carrier shipping', tpls: 'description template templates', prefs: 'preferences tax mileage renew listing quarterly' };
 const accHit = (k, t, q) => !q || (t.replace(/&amp;/g, '&') + ' ' + (ACC_KW[k] || '')).toLowerCase().includes(q);
 const acc = (k, t, ico, body) => `<div class="card acc ${ui.setOpen[k] ? 'open' : ''}" ${accHit(k, t, ui.setQ) ? '' : 'style="display:none"'}><button class="acc-h" data-act="acc" data-k="${k}">${ic(ico)}<b>${t}</b>${ic('chevron-down', 'chev')}</button>${ui.setOpen[k] ? `<div class="acc-b fade">${body}</div>` : ''}</div>`;
 function dataBody() {
@@ -4566,16 +4571,22 @@ function dataBody() {
     ${line(status.ls, 'Saved in this browser', status.ls ? 'Every change is saved instantly.' : 'Browser storage is blocked. Download a backup now.')}
     ${line(status.idb, 'Automatic safety copy', status.idb ? (status.lastIdb ? 'Updated ' + fmtStamp(status.lastIdb) + '. One snapshot a day is kept for 14 days.' : 'A second copy and daily snapshots are kept for 14 days.') : 'Not available in this browser. Use backup files below.')}
     ${line(!!b.last, 'Backup file', b.last ? 'Last saved ' + ago(b.last) + ' (' + fmtDateTime(b.last) + ')' : 'You have not downloaded one yet.')}
+    ${line(status.persisted, 'Protected from clearing', status.persisted ? 'Your browser will not erase this data to free up space.' : 'Not guaranteed. A browser can erase saved data after a week unused (iPhone tabs) or when space runs low.')}
+    ${isIOS() && !isInstalled() ? line(false, 'Running in a browser tab', 'Back up first, then add this app to your Home Screen so Safari does not clear it.') : ''}
+    ${dirHandle ? line(status.dirPerm === 'granted', 'Backup folder: ' + esc(status.dir), status.dirPerm === 'granted' ? (status.lastDir ? 'Saved automatically. Last write ' + fmtStamp(status.lastDir) + '. One copy per day is kept for 30 days.' : 'Saves after every change. One copy per day is kept for 30 days.') : 'Needs your OK again after reopening the app.') : ''}
     ${fsHandle ? line(status.filePerm === 'granted', 'Linked file: ' + esc(status.file), status.filePerm === 'granted' ? (status.lastFile ? 'Updated automatically. Last write ' + fmtStamp(status.lastFile) + '.' : 'Updates automatically after every change.') : 'Needs your OK again after reopening the app.') : ''}
     <div class="stack-sm" style="margin-top:12px">
-      <button class="btn btn-primary block" data-act="export-json">${ic('download')} Download backup file <small>(includes photos)</small></button>
+      <button class="btn btn-primary block" data-act="export-json">${ic('download')} Download backup file</button>
       ${canShare ? `<button class="btn btn-soft block" data-act="share-backup">${ic('share')} Send backup to Files / Drive / email</button>` : ''}
+      ${!status.persisted && navigator.storage && navigator.storage.persist ? `<button class="btn btn-soft block" data-act="persist-ask">${ic('shield')} Ask the browser to protect my data</button>` : ''}
+      ${isIOS() && !isInstalled() ? `<button class="btn btn-soft block" data-act="ios-help">${ic('plus')} Add to Home Screen: how</button>` : ''}
+      ${dirSupported() ? (dirHandle ? (status.dirPerm !== 'granted' ? `<button class="btn btn-soft block" data-act="dir-reconnect">${ic('hard-drive')} Reconnect backup folder</button>` : `<button class="btn btn-soft block" data-act="dir-now">${ic('hard-drive')} Save to the folder now</button>`) + `<button class="btn btn-line block" data-act="dir-unlink">${ic('x')} Stop auto-saving to the folder</button>` : `<button class="btn btn-soft block" data-act="dir-link">${ic('hard-drive')} Auto-save to a folder on this computer</button><p class="hint" style="margin:-2px 0 4px">Pick a new folder (for example inside Documents, Google Drive or Dropbox). It keeps a copy per day for 30 days and the newest copy after every change. Drive or Dropbox will then sync it for you.</p>`) : ''}
       ${fsSupported() ? (fsHandle ? (status.filePerm !== 'granted' ? `<button class="btn btn-soft block" data-act="file-reconnect">${ic('hard-drive')} Reconnect linked file</button>` : '') + `<button class="btn btn-line block" data-act="file-unlink">${ic('x')} Stop auto-saving to the file</button>` : `<button class="btn btn-soft block" data-act="file-link">${ic('hard-drive')} Auto-save to a file on this computer</button><p class="hint" style="margin:-2px 0 4px">Pick a file once (for example in Documents or Google Drive) and it updates itself after every change.</p>`) : `<p class="hint" style="margin:0">Auto-saving to a file is available in Chrome and Edge on a computer. On phones, use the download or share button above.</p>`}
       <button class="btn btn-line block" data-act="snapshots">${ic('history')} Get back an earlier version</button>
       <button class="btn btn-line block" data-act="import-pick">${ic('upload')} Restore from backup file</button>
       <button class="btn btn-soft block" data-act="copy-backup">${ic('copy')} Copy ALL my data as text</button>
       <button class="btn btn-soft block" data-act="paste-restore">${ic('upload')} Restore by pasting text</button>
-      <p class="hint" style="margin:-2px 0 4px">Moving to another phone or computer? Copy here, then open the app there and choose "Restore by pasting text". Photos come along too, at a smaller size. For full-size photos use Download backup file, then Restore from backup file.</p>
+      <p class="hint" style="margin:-2px 0 4px">Moving to another phone or computer? Copy here, then open the app there and choose "Restore by pasting text".</p>
       <button class="btn btn-soft block" data-act="data-check">${ic('check-circle')} Check my data</button>
       <p class="hint" style="margin:-2px 0 4px">Looks for duplicate names, listings with nothing in stock, missing costs and other things worth a look, in plain words.</p>
       <button class="btn btn-primary block" data-act="custom-export">${ic('layers')} Choose what to export</button>
@@ -4619,7 +4630,7 @@ const LOOK_OPTS = {
   size: [['90', 'Small'], ['100', 'Normal'], ['112', 'Large'], ['125', 'Larger'], ['140', 'Huge']],
   cardStyle: [['outline', 'Outline'], ['flat', 'Flat'], ['shadow', 'Shadow'], ['glass', 'Glass'], ['glow', 'Glow'], ['accent', 'Accent edge']],
   border: [['none', 'None'], ['thin', 'Thin'], ['thick', 'Thick']],
-  bgStyle: [['solid', 'Plain'], ['tint', 'Soft tint'], ['sunset', 'Sunset fade'], ['glow', 'Aurora'], ['dots', 'Dots'], ['grid', 'Grid'], ['stripes', 'Stripes'], ['checker', 'Checkers'], ['polka', 'Polka'], ['waves', 'Ripples'], ['zigzag', 'Zigzag'], ['mesh', 'Color mesh'], ['spotlight', 'Spotlight'], ['stars', 'Starry'], ['bubbles', 'Bubbles'], ['paper', 'Paper grain'], ['ruled', 'Notebook'], ['blueprint', 'Blueprint'], ['diamonds', 'Diamonds'], ['plaid', 'Plaid'], ['rings', 'Rings'], ['sunbeams', 'Sunbeams'], ['vignette', 'Vignette'], ['confdots', 'Confetti dots'], ['dusk', 'Dusk fade'], ['gradient', 'My gradient'], ['image', 'My photo'], ['a-aurora', '✨ Moving aurora'], ['a-rainbow', '✨ Rainbow drift'], ['a-drift', '✨ Drifting dots'], ['a-stripes', '✨ Moving stripes'], ['a-pulse', '✨ Breathing glow'], ['a-waves', '✨ Rolling waves'], ['a-sunrise', '✨ Slow sunrise'], ['a-candy', '✨ Candy shift'], ['a-grid', '✨ Moving grid'], ['a-confetti', '✨ Falling confetti'], ['a-twinkle', '✨ Twinkling stars'], ['a-lava', '✨ Lava blobs']],
+  bgStyle: [['solid', 'Plain'], ['tint', 'Soft tint'], ['sunset', 'Sunset fade'], ['glow', 'Aurora'], ['dots', 'Dots'], ['grid', 'Grid'], ['stripes', 'Stripes'], ['checker', 'Checkers'], ['polka', 'Polka'], ['waves', 'Ripples'], ['zigzag', 'Zigzag'], ['mesh', 'Color mesh'], ['spotlight', 'Spotlight'], ['stars', 'Starry'], ['bubbles', 'Bubbles'], ['paper', 'Paper grain'], ['ruled', 'Notebook'], ['blueprint', 'Blueprint'], ['diamonds', 'Diamonds'], ['plaid', 'Plaid'], ['rings', 'Rings'], ['sunbeams', 'Sunbeams'], ['vignette', 'Vignette'], ['confdots', 'Confetti dots'], ['dusk', 'Dusk fade'], ['gradient', 'My gradient'], ['a-aurora', '✨ Moving aurora'], ['a-rainbow', '✨ Rainbow drift'], ['a-drift', '✨ Drifting dots'], ['a-stripes', '✨ Moving stripes'], ['a-pulse', '✨ Breathing glow'], ['a-waves', '✨ Rolling waves'], ['a-sunrise', '✨ Slow sunrise'], ['a-candy', '✨ Candy shift'], ['a-grid', '✨ Moving grid'], ['a-confetti', '✨ Falling confetti'], ['a-twinkle', '✨ Twinkling stars'], ['a-lava', '✨ Lava blobs']],
   particles: [['none', 'Off'], ['snow', '❄️ Snow'], ['petals', '🌸 Petals'], ['hearts', '💖 Hearts'], ['stars', '✨ Twinkles'], ['bubbles', '🫧 Bubbles'], ['leaves', '🍂 Leaves'], ['fireflies', '🟡 Fireflies'], ['confetti', '🎉 Party'], ['coffee', '☕ Cozy'], ['custom', 'My emoji']],
   pCount: [['8', 'A few'], ['16', 'Some'], ['30', 'Lots'], ['50', 'Blizzard']],
   pSpeed: [['1.8', 'Slow'], ['1', 'Normal'], ['.55', 'Fast']],
@@ -4726,7 +4737,6 @@ function homeListHtml(hide) {
 function bgExtras() {
   const L = state.settings.look;
   if (L.bgStyle === 'gradient') return `<div class="card-sub" style="margin:10px 0 0"><div class="row" style="margin-bottom:8px"><span class="grow sm-t b">Gradient start</span><input type="color" class="colorbox" data-look-color="g1" value="${esc(L.g1)}"></div><div class="row"><span class="grow sm-t b">Gradient end</span><input type="color" class="colorbox" data-look-color="g2" value="${esc(L.g2)}"></div>${optRow('Direction', 'gAngle', LOOK_OPTS.gAngle)}</div>`;
-  if (L.bgStyle === 'image') return `<div style="margin-top:10px"><label class="btn btn-soft btn-sm block" style="cursor:pointer">${ic('plus')} ${L.bgImg ? 'Choose a different photo' : 'Choose a photo'}<input type="file" accept="image/*" data-look-img hidden></label>${L.bgImg ? `<button type="button" class="btn btn-line btn-sm block" style="margin-top:8px" data-act="look-img-clear">Remove photo</button>` : ''}<p class="hint">The photo is shrunk and kept only on this device (and in your backups).</p>${optRow('Veil over photo', 'bgDim', LOOK_OPTS.bgDim, 'A veil keeps text easy to read.')}</div>`;
   return '';
 }
 const lookRange = (k, label, min, max) => `<label class="fld"><span>${label}: <b>${esc(String(state.settings.look[k]))}%</b></span><input type="range" min="${min}" max="${max}" step="5" value="${esc(String(state.settings.look[k]))}" data-look-range="${k}" style="width:100%"></label>`;
@@ -4929,9 +4939,8 @@ function appearanceBody(s, hide) {
 V.settings = () => {
   const s = state.settings, b = s.business, hide = new Set(s.homeHide);
   return `<div class="page stack-sm fade">
-    <div class="search" style="margin-bottom:2px">${ic('search')}<input id="set-q" class="input" placeholder="Search settings (backup, photos, fees, theme)" aria-label="Search settings" value="${esc(ui.setQ || '')}" autocomplete="off"></div>
+    <div class="search" style="margin-bottom:2px">${ic('search')}<input id="set-q" class="input" placeholder="Search settings (backup, fees, theme)" aria-label="Search settings" value="${esc(ui.setQ || '')}" autocomplete="off"></div>
     ${acc('data', 'Your data &amp; backups', 'shield', dataBody())}
-    ${acc('photos', 'Photos', 'package', photosBody())}
     ${acc('business', 'Business &amp; invoices', 'store', `<label class="fld"><span>Business name</span><input class="input" data-set="name" value="${esc(s.name)}" maxlength="60"></label>
       <label class="fld"><span>What you do</span><input class="input" data-set="industry" value="${esc(s.industry)}" maxlength="60"></label>
       <label class="fld"><span>Currency</span><select class="select" data-set="currency">${CURRENCIES.map(c => `<option value="${c}" ${c === s.currency ? 'selected' : ''}>${esc(curLabel(c))}</option>`).join('')}</select></label>
@@ -5042,7 +5051,7 @@ function productStats(id) {
   return { units, rev, profit };
 }
 OPEN.product = id => {
-  const p = id ? find('products', id) : null; curPid = id || ''; phDraftStart(p);
+  const p = id ? find('products', id) : null; curPid = id || '';
   const d = p || { name: '', title: '', description: '', sku: nextSku(), barcode: '', category: state.settings.stockCats[0] || '', price: '', cost: '', qty: 1, low: '', location: '', supplierId: '', tags: '', notes: '', recipe: [], batch: 1, tiers: [] };
   const fromPrice = state.settings.valFromPrice !== 'no';
   const st = p ? productStats(p.id) : null, nl = p ? state.listings.filter(l => listingProducts(l).includes(p.id) && active(l)).length : 0;
@@ -5051,7 +5060,6 @@ OPEN.product = id => {
     ${!p ? `<button type="button" class="link" data-act="bulk-products" style="margin:-4px 0 12px">${ic('layers')} Adding lots? Add many at once</button>` : ''}
     ${p && onOrderText(p.id) ? `<div class="notice" style="margin-bottom:12px">${ic('truck')}<span>${esc(onOrderText(p.id))} (${esc(onOrderInfo(p.id).no)}). It is added to your stock when you receive the order.</span></div>` : ''}
     ${p && p.archived ? `<div class="notice warn" style="margin-bottom:12px">${ic('archive')}<span>This product is archived, so its supplies are back in your supply stock.</span></div>` : ''}
-    ${phSection('product', p)}
     ${st && (st.units || nl) ? `<p class="hint" style="margin:0 0 12px">Sold ${st.units} · revenue ${money(st.rev)} · profit before fees ${money(st.profit)}${nl ? ` · ${nl} listing${nl > 1 ? 's' : ''}` : ''}</p>` : ''}
     ${fText('Name *', 'name', d.name, 'required maxlength=\"80\" placeholder=\"Your own name for it\"')}
     <div class=\"grid2\">${fNum('Selling price (est.)', 'price', d.price || '', 'Optional', 'min=\"0\" step=\"any\"')}${fNum('Cost (each)', 'cost', d.cost, 'Leave blank if free', 'min=\"0\" step=\"any\"')}</div>
@@ -5102,11 +5110,9 @@ FORMS.product = async (f, fd, id) => {
   rec.oneOff = rec.low === '' && rec.qty <= 1 && (old ? !!old.oneOff : rec.qty === 1);
   rec.free = !(num(rec.cost) > 0) && !recipe.length;
   if (rec.valEst === '' && state.settings.valFromPrice !== 'no' && rec.price > 0) { rec.valEst = rec.price; rec.valAuto = true; }
-  phApply(rec);
   if (keepDup) { rec.dupOk = true; keepDup.forEach(x => { x.dupOk = true; }); }
   if (id) Object.assign(old, rec);
   else { const np = { id: uid('p'), ...rec }, pd = (!recipe.length && num(np.cost) > 0) ? num(np.cost) : 0; state.products.push(np); if (np.qty > 0) logIn(np, 'product', np.qty, pd > 0 ? pd * np.qty : unitCost(np) * np.qty, 'start', fd.get('recvDate'), { est: !(pd > 0) }); }
-  phCommit();
   done('Product saved', [(id ? 'Updated product ' : 'Added product ') + name, 'tag']);
 };
 
@@ -5219,7 +5225,7 @@ function lpFilter(sel, q) {
   sel.value = cur;
   const c = sel.closest('.line') && $('[data-lpcnt]', sel.closest('.line')); if (c) { c.hidden = !terms.length; c.textContent = n ? n + (n === 1 ? ' match. Open the list below to pick it.' : ' matches. Open the list below to pick one.') : 'No matches. Try another word or SKU.'; }
 }
-const lpInfoHtml = (p, lid) => { if (!p) return ''; const x = lid && state.listings.find(y => y.id === lid); const txt = (x ? `<b>Listing:</b> ${esc(x.title)} · SKU ${esc(x.sku || 'none')}<br>` : '') + `<b>Product:</b> ${esc(p.name)} · SKU ${esc(p.sku || 'none')}`, im = phPickHero(p, x); return im ? `<div class="pprow">${im}<span>${txt}</span></div>` : txt; };
+const lpInfoHtml = (p, lid) => { if (!p) return ''; const x = lid && state.listings.find(y => y.id === lid); const txt = (x ? `<b>Listing:</b> ${esc(x.title)} · SKU ${esc(x.sku || 'none')}<br>` : '') + `<b>Product:</b> ${esc(p.name)} · SKU ${esc(p.sku || 'none')}`; return txt; };
 const lineRow = l => {
   const p = l.productId && find('products', l.productId), custom = !p, free = l.free !== undefined ? !!l.free : !!(p && p.free);
   return `<div class="line"><input class="input sm" data-lpfilter placeholder="Search listings or products by name or SKU…" aria-label="Search listings and products" autocomplete="off" style="margin-bottom:6px"><div class="hint" data-lpcnt style="margin:-2px 0 6px" hidden></div><div class="row" style="margin-bottom:8px"><select class="select sm" data-lpick aria-label="Pick the listing or product you sold">${linePickOpts(p ? p.id : '', l.listingId || '')}</select><select class="select sm" name="lp" style="display:none" tabindex="-1" aria-hidden="true"><option value="">Custom item / service</option>${state.products.filter(x => active(x) || (p && x.id === p.id)).map(x => `<option value="${x.id}" ${p && x.id === p.id ? 'selected' : ''}>${esc(pLabel(x))} (${x.qty} in stock)</option>`).join('')}</select><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove item">${ic('x')}</button></div>
@@ -5335,7 +5341,7 @@ OPEN.orderDetail = id => {
   openSheet(`${orderNo(o)} ${statusPill(o.status)}${o.bulk ? ' ' + pill('Bulk', 'brand') : ''}${o.archived ? ' ' + pill('Archived', 'mute') : ''}${markTag(o) ? ' ' + markTag(o) : ''}`, `<div class="sheet-body stack-sm">
     <p class="sm-t sub">${fmtDateLong(o.date)}${o.customer ? ' · <b style="color:var(--text)">' + esc(o.customer) + '</b>' : ''}${o.channel ? ' · ' + esc(o.channel) : ''}${o.payment ? ' · paid by ' + esc(o.payment) : ''}${o.ref ? ' · #' + esc(o.ref) : ''}</p>
     ${STATUS_HELP[o.status] ? `<div class="notice warn">${ic('info')}<span>${esc(STATUS_HELP[o.status])}.</span></div>` : ''}
-    <div class="card sm">${o.items.map(l => `<div class="kv"><span class="pprow">${phPickHero(l.productId && find('products', l.productId), l.listingId && find('listings', l.listingId))}<span>${l.qty}× ${esc(lineName(l))}${l.returned ? ` <span class="warn-t xs">(${l.returned} returned)</span>` : ''}</span></span><span class="num">${money(l.qty * l.price)}</span></div>`).join('')}</div>
+    <div class="card sm">${o.items.map(l => `<div class="kv"><span class="pprow"><span>${l.qty}× ${esc(lineName(l))}${l.returned ? ` <span class="warn-t xs">(${l.returned} returned)</span>` : ''}</span></span><span class="num">${money(l.qty * l.price)}</span></div>`).join('')}</div>
     <div class="card sm">${kv('Items', c.sub)}${c.disc ? kv('Discount' + (c.discPct ? ' (' + pct(c.discPct) + ' off)' : ''), c.disc, '', 1) : ''}${c.discTooBig ? `<p class="hint bad-t"><b>The discount (${money(c.rawDisc)}) is more than the items (${money(c.sub)}), so it was capped.</b> If you meant a percent, tap Edit and change $ off to % off.</p>` : ''}${num(o.shipCharged) ? kv('Shipping buyer paid (goes toward your postage)', num(o.shipCharged)) : ''}${c.tax ? kv('Sales tax collected (not income)', c.tax) : ''}${(c.post || c.shipPaid) ? kv(c.shipPaid === 0 ? 'Free shipping: you paid the postage' : c.shipPaid >= c.post ? 'Extra shipping (not counted as profit)' : 'Postage you covered beyond what the buyer paid', c.shipPaid === 0 ? c.post : Math.abs(c.shipPaid - c.post)) : ''}${o.cur && fxOf(o) !== 1 ? `<p class="hint">Sold in ${esc(o.cur)} at 1 ${esc(o.cur)} = ${money(fxOf(o))}. Totals here are converted.</p>` : ''}${c.refund ? kv('Refunded', c.refund, '', 1) : ''}${kv('Fees' + (o.feesManual ? '' : ' (auto)'), c.fees, '', 1)}<div class="kv b"><span>You receive after fees</span><span class="num">${money(c.payout)}</span></div>${c.shipUsed ? kv('Shipping that covers your postage', c.shipUsed) : ''}${kv('Postage', c.post, '', 1)}${c.reimb ? kv('Claim paid back to you', c.reimb) : ''}
       ${c.hasFinal ? kv('Estimated amount made (not used)', c.calcMade) : ''}<div class="kv b sec"><span>${c.hasFinal ? 'Money you made (actual)' : 'Money you made'} <span class="xs sub">before cost of goods</span></span><span class="num ${c.made < 0 ? 'bad-t' : 'ok-t'}">${c.made < 0 ? '− ' : ''}${money(Math.abs(c.made))}</span></div>
       ${(o.supplies || []).map(u => kv(esc(u.qty + '× ' + u.name) + ' <span class="xs sub">(supply used)</span>', num(u.qty) * num(u.cost), '', 1)).join('')}${kv('Cost of goods' + (c.supCost ? ' (incl. supplies)' : ''), c.cogs, '', 1)}<div class="kv total sec"><span>Profit after cost of goods</span><span class="num ${c.profit < 0 ? 'bad-t' : 'ok-t'}">${c.profit < 0 ? '− ' : ''}${money(Math.abs(c.profit))}</span></div>${c.margin != null ? `<p class="hint">${pct(c.margin)} margin after cost of goods · cost of goods is what the materials or stock cost you. It is shown separately so you can see what you made with and without it.</p>` : ''}</div>
@@ -5696,13 +5702,12 @@ function listingProductField(d) {
     <div class="fld"><span class="lbl">More products in this listing <small style="text-transform:none;letter-spacing:0;font-weight:600">optional · bundles &amp; lots</small></span><div id="bundle-rows">${(d.bundle || []).map(bundleRow).join('')}</div><button type="button" class="link" data-act="bundle-add">${ic('plus')} Add products to this listing</button><p class="hint">For a lot or bundle sold as one listing. The first product above is the main one. Each product still has its own stock, which you reduce when you record the sale.</p></div>`;
 }
 OPEN.listing = id => {
-  const l = id ? find('listings', id) : null; phDraftStart(l);
+  const l = id ? find('listings', id) : null;
   const d = l ? clone(l) : { title: '', description: '', productId: '', bundle: [], channels: [], sku: nextListingSku(), price: '', status: 'Active', listedDate: today(), relistDate: '', urls: {}, discounts: [], tags: '', notes: '' };
   const chans = activeChans().map(c => c.name); (d.channels || []).forEach(c => { if (!chans.includes(c)) chans.push(c); });
   const p = d.productId ? find('products', d.productId) : null;
   openSheet(l ? 'Edit listing' : 'New listing', formWrap('listing', id, `
     ${!state.products.filter(active).length && !l ? `<p class="hint" style="margin:0 0 12px">Tip: add a product first (Inventory &rsaquo; Products) and its name fills in here as the title. Its estimated price shows as a hint.</p>` : `<p class="hint" style="margin:0 0 12px">Step 3 of 3: a listing is what buyers see, on one or more platforms.</p>`}
-    ${phSection('listing', l)}
     ${fsec(1, 'Product', 'What are you selling? Pick it and the title and description fill in for you.', `
     ${listingProductField(d)}
     `)}
@@ -5740,7 +5745,6 @@ OPEN.listing = id => {
     ${fArea('Notes', 'notes', d.notes)}
     `)}`, foot('listing', id, 'Save', id ? `<button type="button" class="btn btn-soft ibtn" data-act="analytics" data-id="${id}" aria-label="Analytics" title="Analytics">${ic('bar-chart')}</button>` : '')));
   formLive($('form[data-form=listing]'));
-  phProdPrev($('form[data-form=listing]'));
 };
 /* ask which platform a listing sold on; resolves to the platform name, or null if cancelled */
 function askSoldPlatform(title, chans) {
@@ -5779,9 +5783,7 @@ FORMS.listing = async (f, fd, id) => {
     if (!prev || prev.status !== 'Sold') { const c = await askSoldPlatform(rec.title, rec.channels); if (c === null) return; applySold(rec, c); }
     else rec.relistDate = '';
   }
-  phApply(rec);
   if (id) Object.assign(find('listings', id), rec); else { state.counters.listing++; state.listings.push({ id: uid('l'), createdDate: today(), snaps: [], ...rec }); }
-  phCommit();
   done(autoPlanned ? `Saved as Planned: it is listed for ${fmtDate(rec.listedDate)}, a future date` : 'Listing saved', [`${id ? 'Updated' : 'New'} listing ${rec.title}${rec.channels.length ? ' on ' + rec.channels.join(', ') : ''}`, 'store']);
 };
 
@@ -6821,7 +6823,7 @@ const ACT = {
   'look-preset': el => {
     if (window.LofiUI) { LofiUI.clearAll && LofiUI.clearAll(true); LofiUI.clearScene && LofiUI.clearScene(); }
     const p = LOOK_PRESETS[Number(el.dataset.i)]; if (!p) return; const o = state.settings.look;
-    state.settings.look = { ...LOOK_DEFAULTS(), homeOrder: o.homeOrder, quickHide: o.quickHide, greeting: o.greeting, emoji: o.emoji, size: o.size, motion: o.motion, homeChart: o.homeChart, wholeHome: o.wholeHome, g1: o.g1, g2: o.g2, bgImg: o.bgImg, bgDim: o.bgDim, ...p.look, ...keepLayout(o), setup: p.n };
+    state.settings.look = { ...LOOK_DEFAULTS(), homeOrder: o.homeOrder, quickHide: o.quickHide, greeting: o.greeting, emoji: o.emoji, size: o.size, motion: o.motion, homeChart: o.homeChart, wholeHome: o.wholeHome, g1: o.g1, g2: o.g2, bgDim: o.bgDim, ...p.look, ...keepLayout(o), setup: p.n };
     state.settings.theme = p.theme; state.settings.font = p.font; applyTheme(p.theme, p.font); save(); render(); toast(p.n + ' look applied');
   },
   'look-random': () => {
@@ -6844,7 +6846,6 @@ const ACT = {
     state.settings.look = LOOK_DEFAULTS(); state.settings.theme = 'pro_blue'; state.settings.font = "'Inter', sans-serif";
     applyTheme('pro_blue', "'Inter', sans-serif"); save(); render(); toast('Professional look restored');
   },
-  'look-img-clear': () => { state.settings.look.bgImg = ''; state.settings.look.bgStyle = 'solid'; applyLook(); save(); render(); },
   'snd-test': el => playSound(el.dataset.ev, true),
   'fx-random': () => {
     if (window.LofiUI && LofiUI.clearParts) LofiUI.clearParts();
@@ -7082,12 +7083,12 @@ const ACT = {
   /* data safety */
   'backup-go': () => { ui.setOpen.data = true; go('more', 'settings'); },
   'export-json': async () => {
-    const bk = await phBackupBlob(); phDownload(bk.blob, `grimms-business-backup-${today()}.json`);
-    state.backup.last = Date.now(); save(); snapshotNow('Backup downloaded'); render(); toast(bk.n ? `Backup downloaded with ${bk.n} photo${bk.n === 1 ? '' : 's'}. Keep it somewhere safe` : 'Backup downloaded. Keep it somewhere safe, like email or Drive');
+    saveBlob(backupBlob(), `grimms-business-backup-${today()}.json`);
+    state.backup.last = Date.now(); save(); snapshotNow('Backup downloaded'); render(); toast('Backup downloaded. Keep it somewhere safe, like email or Drive');
   },
   'share-backup': async () => {
     try {
-      const file = new File([(await phBackupBlob()).blob], `grimms-business-backup-${today()}.json`, { type: 'application/json' });
+      const file = new File([backupBlob()], `grimms-business-backup-${today()}.json`, { type: 'application/json' });
       await navigator.share({ files: [file], title: 'Business backup' });
       state.backup.last = Date.now(); save(); render(); toast('Backup sent');
     } catch (e) { if (e && e.name !== 'AbortError') toast('Sharing is not available here. Use "Download backup file"'); }
@@ -7117,15 +7118,15 @@ const ACT = {
   'export-report': () => exportReport(),
   'import-pick': () => $('#file-import').click(),
   'copy-backup': async () => {
-    const hasPh = phAny(); let text = '', info = { n: 0, note: '' }, ok = false;
-    const mk = async () => { if (hasPh) { toast('Getting your photos ready…'); info = await phCopyText(); text = info.text; } else text = JSON.stringify(state); return text; };
+    let text = JSON.stringify(state), ok = false;
+    const mk = async () => text;
     try { if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) { await navigator.clipboard.write([new ClipboardItem({ 'text/plain': mk().then(t => new Blob([t], { type: 'text/plain' })) })]); ok = true; } } catch (e) { ok = false; }
     if (!text) await mk();
     if (!ok) { try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { } }
     if (!ok) { try { const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length); ok = document.execCommand('copy'); ta.remove(); } catch (e) { ok = false; } }
-    const msg = hasPh ? (info.note === 'hero' ? `All your data is copied with ${info.n} main photo${info.n === 1 ? '' : 's'} (too many photos to fit them all). For every photo, use Download backup file` : `All your data is copied (${(text.length / 1048576).toFixed(1)} MB) with ${info.n} photo${info.n === 1 ? '' : 's'}, at a smaller size. Paste it into "Restore by pasting text" on your other device`) : 'All your data is copied. Paste it into "Restore by pasting text" on your other device';
+    const msg = 'All your data is copied. Paste it into "Restore by pasting text" on your other device';
     if (ok) { state.backup.last = Date.now(); save(); render(); toast(msg); }
-    else { openSheet('Copy your data', `<div class="sheet-body"><p class="hint" style="margin:0 0 10px">Your browser blocked automatic copying. Tap inside the box, select all, and copy.${hasPh ? ' ' + esc(msg.split('. ')[0]) + '.' : ''}</p><textarea class="textarea" id="copy-box" readonly style="min-height:220px;font-size:12px;font-family:monospace"></textarea></div><div class="sheet-foot"><button class="btn btn-primary" data-act="close-sheet">Done</button></div>`, { noFocus: true }); const b = $('#copy-box'); b.value = text; b.focus(); b.select(); }
+    else { openSheet('Copy your data', `<div class="sheet-body"><p class="hint" style="margin:0 0 10px">Your browser blocked automatic copying. Tap inside the box, select all, and copy.</p><textarea class="textarea" id="copy-box" readonly style="min-height:220px;font-size:12px;font-family:monospace"></textarea></div><div class="sheet-foot"><button class="btn btn-primary" data-act="close-sheet">Done</button></div>`, { noFocus: true }); const b = $('#copy-box'); b.value = text; b.focus(); b.select(); }
   },
   'paste-restore': () => {
     openSheet('Restore by pasting text', `<div class="sheet-body"><p class="hint" style="margin:0 0 10px">On your other device, choose <b>Copy ALL my data as text</b> (Settings › Your data). Then paste it here.</p><textarea class="textarea" id="paste-box" placeholder="Paste your copied data here" style="min-height:220px;font-size:12px;font-family:monospace" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea></div><div class="sheet-foot"><button class="btn btn-line" data-act="close-sheet">Cancel</button><button class="btn btn-primary" data-act="paste-restore-go">Restore</button></div>`, { noFocus: true });
@@ -7601,12 +7602,11 @@ async function importData(data) {
   if (data && typeof data === 'object' && data.partialExport) return mergePartial(data);
   try {
     if (!data || typeof data !== 'object' || Array.isArray(data) || !(Array.isArray(data.orders) || data.settings)) throw new Error('bad');
-    const pd = data.photoData; delete data.photoData;
+    delete data.photoData;
     const fresh = normalize(data);
     if (state.setup && (state.orders.length || state.products.length || state.expenses.length || state.listings.length) && !await confirmBox('Replace your data?', 'Your current data on this device will be replaced by the backup. A safety copy of it is kept first.', 'Restore backup', true)) return false;
     await snapshotNow('Before restoring a backup');
-    PH.failed = 0; const np = await phRestore(pd);
-    state = fresh; state.setup = true; save(); flush(); enterApp(); toast(PH.failed ? `Restored, but ${PH.failed} photo${PH.failed === 1 ? '' : 's'} could not be saved (device storage may be full)` : np ? `Restored with ${np} photo${np === 1 ? '' : 's'}` : 'Backup restored');
+    state = fresh; state.setup = true; save(); flush(); enterApp(); toast('Backup restored');
     return true;
   } catch (e) { toast('That is not a valid backup'); return false; }
 }
@@ -7628,7 +7628,7 @@ ACT['custom-export'] = () => {
     ${opt('snaps', true, 'Analytics history on listings (views, likes, offers)')}
     ${opt('skip', false, 'Leave out archived, sold and expired items')}
     ${opt('settings', false, 'My settings (fees, platforms, categories)')}
-    <p class="hint" style="margin-top:4px">Photos are never included.</p></div>
+    </div>
     <div class="sheet-foot"><button class="btn btn-line" data-act="cx-dl">${ic('download')} Download file</button><button class="btn btn-primary" data-act="cx-copy">${ic('copy')} Copy as text</button></div>`);
 };
 ACT['cx-preset'] = el => { const set = CX_PRESETS[el.dataset.v] || []; $$('[data-cx]', $('#modal')).forEach(c => { c.checked = set.includes(c.value); }); const st = $('[data-cxo=settings]', $('#modal')); if (st) st.checked = el.dataset.v === 'all'; };
@@ -7644,10 +7644,10 @@ function cxBuild() {
     S.supplies.filter(x => pick.supplies.has(x.id)).forEach(x => { if (x.supplierId) pick.suppliers.add(x.supplierId); });
   }
   if (on('sales') && (pick.products.size || pick.listings.size)) S.orders.forEach(o => { if (live(o) && (o.items || []).some(i => pick.products.has(i.productId) || (i.listingId && pick.listings.has(i.listingId)))) pick.orders.add(o.id); });
-  const clean = r => { const c = { ...r }; delete c.photos; delete c.hero; if (!on('snaps')) delete c.snaps; return c; };
+  const clean = r => { const c = { ...r }; if (!on('snaps')) delete c.snaps; return c; };
   const out = { _about: `Partial export from Grimms Business Tracker, ${today()}. Records link by id: listing.productId and listing.bundle[] point to products, product.recipe[].supplyId to materials, supplierId to suppliers, order.items[].productId and listingId to products and listings.`, partialExport: true, exportedAt: new Date().toISOString(), v: S.v }, parts = [];
   CX.forEach(([k, l]) => { if (pick[k].size) { out[k] = (S[k] || []).filter(r => pick[k].has(r.id)).map(clean); parts.push(pick[k].size + ' ' + l.toLowerCase()); } });
-  if (on('settings')) { const st = JSON.parse(JSON.stringify(S.settings || {})); if (st.look) delete st.look.bgImg; if (on('anon') && st.business) ['address', 'email', 'phone', 'taxId'].forEach(k => { st.business[k] = ''; }); out.settings = st; parts.push('settings'); }
+  if (on('settings')) { const st = JSON.parse(JSON.stringify(S.settings || {})); if (on('anon') && st.business) ['address', 'email', 'phone', 'taxId'].forEach(k => { st.business[k] = ''; }); out.settings = st; parts.push('settings'); }
   if (on('anon')) {
     const label = new Map(), baseOf = n => String(n || '').replace(/\(.*?\)/g, '').trim(), alias = new Map(); let seq = 0;
     const reg = n => { const raw = String(n || '').trim(); if (!raw) return ''; const b = baseOf(raw).toLowerCase() || raw.toLowerCase(); if (!label.has(b)) label.set(b, 'Customer ' + (++seq)); const L = label.get(b); alias.set(raw.toLowerCase(), L); alias.set(b, L); const m = /\((.*?)\)/.exec(raw); if (m && m[1].trim()) alias.set(m[1].trim().toLowerCase(), L); return L; };
@@ -7663,7 +7663,7 @@ function cxBuild() {
   return { out, parts };
 }
 ACT['cx-copy'] = async () => { const r = cxBuild(); if (!r) return; const t = JSON.stringify(r.out); await copyText(t, r.parts.join(', ') + ' (' + Math.max(1, Math.round(t.length / 1024)) + ' KB)'); };
-ACT['cx-dl'] = () => { const r = cxBuild(); if (!r) return; const t = JSON.stringify(r.out, null, 1); phDownload(new Blob([t], { type: 'application/json' }), `grimms-partial-export-${today()}.json`); toast('Downloaded ' + r.parts.join(', ') + ' (' + Math.max(1, Math.round(t.length / 1024)) + ' KB)'); };
+ACT['cx-dl'] = () => { const r = cxBuild(); if (!r) return; const t = JSON.stringify(r.out, null, 1); saveBlob(new Blob([t], { type: 'application/json' }), `grimms-partial-export-${today()}.json`); toast('Downloaded ' + r.parts.join(', ') + ' (' + Math.max(1, Math.round(t.length / 1024)) + ' KB)'); };
 /* a partial export is added to what you have (matched by id), nothing is deleted or replaced wholesale */
 async function mergePartial(data) {
   if (data.anonymized) { toast('That copy has buyer details hidden, so it cannot be loaded back in. Make a copy with that box turned off.'); return false; }
@@ -8491,7 +8491,7 @@ document.addEventListener('submit', e => {
 /* quality of life: Ctrl/Cmd+S saves the open form, "/" jumps to search, numbers select on focus */
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { const f = $('#modal form[data-form]'); if ($('#dialog').classList.contains('on')) return; if (f) { e.preventDefault(); if (f.requestSubmit) f.requestSubmit(); } return; }
-  if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) { const a = document.activeElement; if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return; if ($('#modal.on') || $('#dialog.on') || $('.phlb')) return; const q = $('#scroll [data-bind=q]') || $('[data-bind=q]'); if (q) { e.preventDefault(); q.focus(); q.select(); } }
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) { const a = document.activeElement; if (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable)) return; if ($('#modal.on') || $('#dialog.on')) return; const q = $('#scroll [data-bind=q]') || $('[data-bind=q]'); if (q) { e.preventDefault(); q.focus(); q.select(); } }
 });
 document.addEventListener('focusin', e => { const t = e.target; if (t && t.tagName === 'INPUT' && t.type === 'number' && !t.readOnly && !t.disabled) setTimeout(() => { try { if (document.activeElement === t) t.select(); } catch (x) { } }, 0); });
 document.addEventListener('input', e => {
@@ -8548,13 +8548,6 @@ document.addEventListener('change', async e => {
   }
   if (d.biz) { state.settings.business[d.biz] = t.value.trim(); save(); toast('Saved'); return; }
   if (d.lookColor) { state.settings.look[d.lookColor] = t.value; applyTheme(state.settings.theme, state.settings.font); save(); render(); return; }
-  if (d.lookImg !== undefined) {
-    const f = t.files && t.files[0]; if (!f) return;
-    const img = new Image(), url = URL.createObjectURL(f);
-    img.onload = () => { const m = 1000, k = Math.min(1, m / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); state.settings.look.bgImg = c.toDataURL('image/jpeg', .72); state.settings.look.bgStyle = 'image'; applyLook(); save(); render(); toast('Photo background set'); };
-    img.onerror = () => { URL.revokeObjectURL(url); toast('That file could not be read as a picture'); };
-    img.src = url; return;
-  }
   if (d.lookSel) { state.settings.look[d.lookSel] = t.value; applyTheme(state.settings.theme, state.settings.font); save(); render(); return; }
   if (d.lookText) { state.settings.look[d.lookText] = t.value.trim(); save(); render(); return; }
   if (d.lookToggle) { state.settings.look[d.lookToggle] = t.checked; applyTheme(state.settings.theme, state.settings.font); save(); render(); return; }
@@ -8629,7 +8622,7 @@ setInterval(() => { const c = $('#clock'); if (c && state.activeShift) c.textCon
 document.addEventListener('click', e => {
   const t = e.target.closest && e.target.closest('[data-lofi-setup]'); if (!t) return;
   const o = state.settings.look, D = LOOK_DEFAULTS();
-  state.settings.look = { ...D, homeOrder: o.homeOrder, quickHide: o.quickHide, greeting: o.greeting, emoji: o.emoji, size: o.size, motion: o.motion, homeChart: o.homeChart, wholeHome: o.wholeHome, g1: o.g1, g2: o.g2, bgImg: o.bgImg, bgDim: o.bgDim, ...keepLayout(o), setup: t.dataset.setup || '' };
+  state.settings.look = { ...D, homeOrder: o.homeOrder, quickHide: o.quickHide, greeting: o.greeting, emoji: o.emoji, size: o.size, motion: o.motion, homeChart: o.homeChart, wholeHome: o.wholeHome, g1: o.g1, g2: o.g2, bgDim: o.bgDim, ...keepLayout(o), setup: t.dataset.setup || '' };
   state.settings.theme = 'midnight'; state.settings.font = FONTS[0][0]; applyTheme('midnight', FONTS[0][0]);
 }, true);
 document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('[data-lofi-setup]'); if (t) toast((t.dataset.setup || 'Setup') + ' applied'); });
@@ -8776,229 +8769,99 @@ function genSample() {
    16. START
    ===================================================================== */
 /* =====================================================================
-   PHOTOS
-   Kept in their own browser storage (IndexedDB "grimms-photos"), never inside the main data, so they cannot slow
-   it down or hit the 5 MB limit. The backup file carries every photo inside it. Nothing here ever deletes a photo
-   unless you remove it yourself or choose "Delete unused photos".
+   DATA SAFETY GUARD
+   Your data lives in this browser, so this keeps it from being lost:
+   - asks the browser to protect it from automatic clearing
+   - warns when it is at risk (iPhone browser tab, no recent backup)
+   - one-tap "Back up now" (share sheet on phones, download on computers)
+   - optional automatic saving to a FOLDER you pick (Chrome / Edge on a computer).
+     Google Drive or Dropbox can sync that folder for you.
    ===================================================================== */
-const PH = { db: null, urls: new Map(), draft: null, failed: 0 };
-const phOpenDb = () => PH.db ? Promise.resolve(PH.db) : new Promise((res, rej) => { try { const r = indexedDB.open('grimms-photos', 1); r.onupgradeneeded = () => { r.result.createObjectStore('p', { keyPath: 'id' }); }; r.onsuccess = () => { PH.db = r.result; res(r.result); }; r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error('blocked')); } catch (e) { rej(e); } });
-const phTx = (mode, fn) => phOpenDb().then(db => new Promise((res, rej) => { const t = db.transaction('p', mode), q = fn(t.objectStore('p')); let out; if (q) q.onsuccess = () => { out = q.result; }; t.oncomplete = () => res(out); t.onerror = t.onabort = () => rej(t.error); }));
-const phPut = r => phTx('readwrite', s => s.put(r)), phGet = id => phTx('readonly', s => s.get(id)), phDel = id => phTx('readwrite', s => s.delete(id)), phAll = () => phTx('readonly', s => s.getAll());
-const phBlob = r => new Blob([r.buf], { type: r.type || 'image/jpeg' });
-const phNewId = () => 'ph' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-const phOn = () => false;   /* photos are switched off */
-const phHero = r => r && Array.isArray(r.photos) && r.photos.includes(r.hero) ? r.hero : '';
-const phRefs = () => { const s = new Set(); state.products.concat(state.listings).forEach(r => (r.photos || []).forEach(i => s.add(i))); return s; };
-const phSlug = s => String(s || 'photo').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'photo';
-const phTouch = () => !!(window.matchMedia && matchMedia('(pointer:coarse)').matches);
-const phB64 = b => new Promise(res => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1] || ''); fr.readAsDataURL(b); });
-async function phUrl(id) { if (PH.urls.has(id)) return PH.urls.get(id); const r = await phGet(id).catch(() => null); if (!r) return null; const u = URL.createObjectURL(phBlob(r)); PH.urls.set(id, u); return u; }
-function phCompress(file, max, q) { max = max || 2000; q = q || .9; return new Promise((res, rej) => { const url = URL.createObjectURL(file), img = new Image(); img.onload = () => { const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight)), w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k)), c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(img, 0, 0, w, h); URL.revokeObjectURL(url); c.toBlob(b => b ? res({ blob: b, w, h }) : rej(new Error('enc')), 'image/jpeg', q); }; img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('read')); }; img.src = url; }); }
+function saveBlob(blob, name) { const a = document.createElement('a'), u = URL.createObjectURL(blob); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); }
+function backupBlob() { return new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }); }
+function canShareFiles() { try { return !!(navigator.canShare && typeof File === 'function' && navigator.canShare({ files: [new File(['{}'], 'x.json', { type: 'application/json' })] })); } catch (e) { return false; } }
+function isIOS() { return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+function isInstalled() { return navigator.standalone === true || !!(window.matchMedia && matchMedia('(display-mode: standalone)').matches); }
+function dirSupported() { return typeof window.showDirectoryPicker === 'function'; }
 
-/* ----- thumbnails: only ever the hero shot ----- */
-function phThumb(kind, r, v) { const h = phHero(r); if (!phOn()) return ''; if (!h) return v === 'tile' && phAny() ? `<div class="phth tile ph0" aria-hidden="true">${ic('camera')}</div>` : ''; return `<button type="button" class="phth${v ? ' ' + v : ''}" data-act="ph-view" data-type="${kind}" data-id="${r.id}" aria-label="Photos of ${esc(r.name || r.title)}"><img data-ph="${h}" alt="" decoding="async">${r.photos.length > 1 ? `<span class="phcnt">${r.photos.length}</span>` : ''}</button>`; }
+/* ----- backup folder: newest copy after every change, one dated copy per day, last 30 days kept ----- */
+const BK_NAME = /^grimms-business-backup-\d{4}-\d{2}-\d{2}\.json$/;
+async function putFile(dir, name, text) { const fh = await dir.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(text); await w.close(); }
+async function pruneFolder() {
+  if (!dirHandle) return;
+  const names = []; for await (const [n, h] of dirHandle.entries()) { if (h.kind === 'file' && BK_NAME.test(n)) names.push(n); }
+  names.sort().reverse(); for (const n of names.slice(30)) { try { await dirHandle.removeEntry(n); } catch (e) { } }
+}
+async function writeFolder(json, force) {
+  if (!dirHandle) return false;
+  try {
+    const perm = await dirHandle.queryPermission({ mode: 'readwrite' });
+    if (perm !== 'granted') { status.dirPerm = perm; return false; }
+    json = json || JSON.stringify(state);
+    await putFile(dirHandle, 'grimms-business-latest.json', json);
+    const day = today(), now = Date.now();
+    if (force || status.dirDay !== day || now - status.dirDated > 15 * 60000) {
+      await putFile(dirHandle, `grimms-business-backup-${day}.json`, json); status.dirDated = now;
+      if (status.dirDay !== day) { status.dirDay = day; pruneFolder().catch(() => { }); }
+    }
+    status.dirPerm = 'granted'; status.lastDir = now; status.dirErr = ''; state.backup.last = now;
+    return true;
+  } catch (e) { status.dirErr = 'Could not write to the folder'; return false; }
+}
+async function loadDirHandle() {
+  try { const h = await idbGet('dirHandle'); if (h) { dirHandle = h; status.dir = h.name || 'folder'; status.dirPerm = await h.queryPermission({ mode: 'readwrite' }); } } catch (e) { /* not available */ }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && dirHandle) writeFolder(JSON.stringify(state)); });
 
-/* small, non-clickable hero preview used in pickers and order lines (safe inside forms) */
-function phMini(r, alt) { if (!phOn()) return ''; const h = phHero(r); return h ? `<span class="phmini zoom" data-phall="${esc((r.photos || []).join(','))}" data-phat="${h}" role="img" aria-label="Photo. Tap to enlarge."><img data-ph="${h}" alt="" decoding="async"></span>` : ''; }
-const phPickHero = (p, l) => { const a = l && phHero(l) ? l : p; return phMini(a); };
-function phProdPrev(f) { const box = f && $('[data-ppprev]', f); if (!box) return; const sel = $('[name=productId]', f), p = sel && sel.value && find('products', sel.value), m = p ? phMini(p) : ''; box.innerHTML = m ? `<div class="pprow">${m}<span class="xs sub">Hero photo of ${esc(p.name)}</span></div>` : ''; box.hidden = !m; }
-
-/* ----- the photo box inside the product and listing forms ----- */
-function phDraftStart(r) { if (PH.draft) { const refs = phRefs(), D0 = PH.draft; const held = typeof draftHeldPhotos === 'function' ? draftHeldPhotos() : new Set(); D0.ids.filter(i => !D0.orig.includes(i) && !refs.has(i) && !held.has(i)).forEach(i => phDel(i).catch(() => { })); } const ids = r && Array.isArray(r.photos) ? r.photos.slice() : []; PH.draft = { ids, orig: ids.slice(), hero: r ? phHero(r) : '' }; }
-const phTitle = () => { const f = $('#modal form[data-form]'), i = f && ($('[name=name]', f) || $('[name=title]', f)); return (i && i.value.trim()) || ''; };
-function phSecInner(kind) {
-  const D = PH.draft; if (!D) return '';
-  const tiles = D.ids.map((id, i) => `<div class="pht ${id === D.hero ? 'hero' : ''}"><img data-ph="${id}" alt=""><span class="phbadge">${id === D.hero ? ic('star') + ' Hero' : ''}</span><div class="phtop"><button type="button" data-act="ph-rot" data-i="${i}" title="Rotate" aria-label="Rotate">${ic('refresh')}</button>${i > 0 ? `<button type="button" data-act="ph-ml" data-i="${i}" title="Move earlier" aria-label="Move earlier">${ic('chevron-left')}</button>` : ''}${i < D.ids.length - 1 ? `<button type="button" data-act="ph-mr" data-i="${i}" title="Move later" aria-label="Move later">${ic('chevron-right')}</button>` : ''}</div><div class="phbtns"><button type="button" data-act="ph-hero" data-i="${i}" title="Make this the hero shot" aria-label="Make hero">${ic('star')}</button><button type="button" data-act="ph-save" data-i="${i}" title="Save to your phone or computer" aria-label="Save">${ic('download')}</button><button type="button" data-act="ph-rm" data-i="${i}" title="Remove" aria-label="Remove">${ic('trash')}</button></div></div>`).join('');
-  const f = $('#modal form[data-form]'), pid = kind === 'listing' && f && $('[name=productId]', f), pr = pid && pid.value && find('products', pid.value), canUse = pr && (pr.photos || []).some(i => !D.ids.includes(i));
-  return `<span class="lbl">Photos <small style="text-transform:none;letter-spacing:0;font-weight:600">for <b class="phfor">${esc(phTitle() || 'this item')}</b></small></span>
-    <p class="phhint">Tap ★ to choose the hero shot. It is the only picture shown in your lists. ${D.ids.length ? '' : 'Add as many as you like.'}${phTouch() ? '' : ' You can also paste or drag pictures in.'}</p>
-    ${D.ids.length ? `<div class="phgrid">${tiles}</div>` : ''}
-    <div class="row" style="gap:8px;flex-wrap:wrap"><label class="btn btn-soft btn-sm" style="cursor:pointer">${ic('plus')} Add photos<input type="file" accept="image/*" multiple hidden data-phfile></label>${phTouch() ? `<label class="btn btn-soft btn-sm" style="cursor:pointer">${ic('camera')} Take photo<input type="file" accept="image/*" capture="environment" hidden data-phfile></label>` : ''}${D.ids.length ? `<button type="button" class="btn btn-line btn-sm" data-act="ph-saveall">${ic('download')} Save all</button>` : ''}${canUse ? `<button type="button" class="btn btn-line btn-sm" data-act="ph-useprod">Use the product's photos</button>` : ''}</div>`;
+/* ----- the banner on Home ----- */
+function safetyAlert() {
+  const vis = visibleAlerts();
+  for (const k of ['dirlink', 'filelink', 'backup', 'ios-tab']) { const a = vis.find(x => x.key === k); if (a) return a; }
+  return null;
 }
-const phSection = () => '';   /* no photo box in forms */
-function phRefresh() { const s = $('#ph-sec'); if (!s) return; s.innerHTML = phSecInner(s.dataset.kind); const f = s.closest('form'); if (f) f.dataset.dirty = '1'; try { clearTimeout(draftTimer); draftTimer = setTimeout(draftSave, 500); } catch (e) { } }
-function phApply(rec) { const D = PH.draft; if (!D) return; rec.photos = D.ids.slice(); rec.hero = D.ids.includes(D.hero) ? D.hero : (D.ids[0] || ''); }
-function phCommit() { const D = PH.draft; if (!D) return; PH.draft = null; const gone = D.orig.filter(i => !D.ids.includes(i)), refs = phRefs(); gone.filter(i => !refs.has(i)).forEach(i => { phDel(i).catch(() => { }); const u = PH.urls.get(i); if (u) { URL.revokeObjectURL(u); PH.urls.delete(i); } }); }
-
-/* ----- saving photos back to the phone or computer ----- */
-const phDownload = (blob, name) => { const a = document.createElement('a'), u = URL.createObjectURL(blob); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); };
-const phCrcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
-const phCrc = u => { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = phCrcT[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
-function phZip(entries) {
-  const enc = new TextEncoder(), parts = [], cd = []; let off = 0, cds = 0;
-  for (const e of entries) {
-    const nm = enc.encode(e.name), crc = phCrc(e.data), sz = e.data.length, lh = new DataView(new ArrayBuffer(30)), ch = new DataView(new ArrayBuffer(46));
-    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(12, 0x21, true); lh.setUint32(14, crc, true); lh.setUint32(18, sz, true); lh.setUint32(22, sz, true); lh.setUint16(26, nm.length, true);
-    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(14, 0x21, true); ch.setUint32(16, crc, true); ch.setUint32(20, sz, true); ch.setUint32(24, sz, true); ch.setUint16(28, nm.length, true); ch.setUint32(42, off, true);
-    parts.push(lh.buffer, nm, e.data); cd.push(ch.buffer, nm); off += 30 + nm.length + sz; cds += 46 + nm.length;
-  }
-  const end = new DataView(new ArrayBuffer(22)); end.setUint32(0, 0x06054b50, true); end.setUint16(8, entries.length, true); end.setUint16(10, entries.length, true); end.setUint32(12, cds, true); end.setUint32(16, off, true);
-  return new Blob(parts.concat(cd, [end.buffer]), { type: 'application/zip' });
-}
-/* items: [{id, name}]. On a phone this opens the share sheet (choose "Save Image" to put them in Photos); on a computer it downloads. */
-async function phSaveFiles(items, zipName) {
-  const recs = (await Promise.all(items.map(x => phGet(x.id).catch(() => null)))), files = [];
-  recs.forEach((r, i) => { if (r) files.push({ name: items[i].name, r }); });
-  if (!files.length) return toast('Those photos are not on this device. Restore a backup file that includes photos');
-  const fl = files.map(x => new File([phBlob(x.r)], x.name, { type: x.r.type || 'image/jpeg' }));
-  if (phTouch() && navigator.canShare && navigator.canShare({ files: fl })) { try { await navigator.share({ files: fl }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
-  if (fl.length === 1) return phDownload(fl[0], fl[0].name);
-  phDownload(phZip(files.map(x => ({ name: x.name, data: new Uint8Array(x.r.buf) }))), zipName || 'photos.zip'); toast('Saved as a zip of ' + fl.length + ' photos');
-}
-const phNames = (title, ids, hero) => ids.map((id, i) => ({ id, name: `${phSlug(title)} - ${i + 1}${id === hero ? ' (hero)' : ''}.jpg` }));
-
-/* ----- backup and restore (photos travel inside the backup file) ----- */
-async function phBackupBlob() {
-  const recs = [], head = JSON.stringify(state, null, 2), parts = [head.slice(0, head.lastIndexOf('}')).replace(/\s+$/, ''), ',\n"photoData": ['];
-  for (let i = 0; i < recs.length; i++) { const r = recs[i]; parts.push((i ? ',\n' : '\n') + JSON.stringify({ id: r.id, type: r.type, name: r.name, t: r.t, w: r.w, h: r.h, data: await phB64(phBlob(r)) })); }
-  parts.push('\n]\n}'); return { blob: new Blob(parts, { type: 'application/json' }), n: recs.length };
-}
-async function phRestore(arr) {
-  return 0; let n = 0;
-  PH.urls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); PH.urls.clear();
-  for (const x of arr) { if (!x || typeof x.id !== 'string' || typeof x.data !== 'string') continue; try { const b = atob(x.data), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); await phPut({ id: x.id, type: x.type || 'image/jpeg', buf: u.buffer, name: x.name || '', t: x.t || Date.now(), w: x.w, h: x.h }); n++; } catch (e) { PH.failed = (PH.failed || 0) + 1; } }
-  return n;
-}
-/* photo-carrying text for "Copy ALL my data": photos are shrunk so the text stays pasteable */
-async function phCopyText() {
-  const recs = [], refs = phRefs(), heroes = new Set(state.products.concat(state.listings).map(phHero).filter(Boolean));
-  const build = async (list, max, q) => { const out = []; for (const r of list) { try { const c = await phCompress(phBlob(r), max, q); out.push({ id: r.id, type: 'image/jpeg', name: r.name || '', t: r.t, w: c.w, h: c.h, data: await phB64(c.blob) }); } catch (e) { } } return out; };
-  let note = '', pd = await build(recs.filter(r => refs.has(r.id)), 640, .6), text = JSON.stringify({ ...state, photoData: pd });
-  if (text.length > 12e6) { pd = await build(recs.filter(r => heroes.has(r.id)), 640, .6); text = JSON.stringify({ ...state, photoData: pd }); note = 'hero'; }
-  return { text, n: pd.length, note };
-}
-const phAny = () => false;
-
-/* ----- settings ----- */
-function photosBody() {
-  return `<p class="hint" style="margin:0 0 12px">Photos are turned off. They are not shown, added, or included in backups, so they no longer add to your data.</p>
-    <div class="notice" id="ph-stats" style="margin-bottom:12px"><span>Counting saved photos…</span></div>
-    <button class="btn btn-line block" data-act="ph-delall">Delete all saved photos from this device</button>
-    <p class="hint">This frees the space they use. It cannot be undone, so download a backup file first if you want to keep them.</p>`;
-}
-async function phStats() {
-  const el = $('#ph-stats'); if (!el) return;
-  try { const recs = (await phAll()) || [], refs = phRefs(), have = new Set(recs.map(r => r.id)), size = recs.reduce((a, r) => a + (r.buf ? r.buf.byteLength : 0), 0), unused = recs.filter(r => !refs.has(r.id)).length, missing = [...refs].filter(i => !have.has(i)).length;
-    let kept = ''; try { if (navigator.storage && navigator.storage.persisted) kept = (await navigator.storage.persisted()) ? ' Storage is protected from automatic clearing.' : ' Your browser may clear storage if the device runs very low on space, so keep a backup file too.'; } catch (e) { }
-    el.innerHTML = `<span>${recs.length} photo${recs.length === 1 ? '' : 's'} · ${(size / 1048576).toFixed(1)} MB on this device${unused ? ` · ${unused} not used by any item` : ''}${missing ? ` · <b>${missing} used by items but missing here</b> (restore a backup file with photos)` : ''}.${recs.length ? ` A backup file with them will be about ${Math.max(0.1, size * 4 / 3 / 1048576).toFixed(1)} MB.` : ''}${recs.length && !state.backup.last ? ' <b>You have not downloaded a backup yet, so these photos exist only on this device.</b>' : ''}${kept}</span>`;
-  } catch (e) { el.innerHTML = '<span>Photo storage is not available in this browser.</span>'; }
+function safetyBanner(a) {
+  const B = {
+    backup: ['safe-now', 'Back up now', canShareFiles() ? 'One tap, then save it to Files, Drive or email.' : (dirHandle && status.dirPerm === 'granted' ? 'One tap saves a copy to your backup folder.' : 'One tap downloads a copy you can keep safe.')],
+    dirlink: ['dir-reconnect', 'Reconnect', a.detail],
+    filelink: ['file-reconnect', 'Reconnect', a.detail],
+    'ios-tab': ['ios-help', 'Show me how', a.detail]
+  }[a.key];
+  return `<div class="banner" style="flex-wrap:wrap">${ic('shield')}<div class="grow" style="min-width:180px"><b class="sm-t" style="display:block">${esc(a.title)}</b><span class="xs sub">${esc(B[2])}</span></div><div style="display:flex;gap:6px;margin-left:auto;flex:none"><button class="btn btn-primary btn-sm" data-act="${B[0]}">${B[1]}</button><button class="btn btn-line btn-sm" data-act="safe-later" data-k="${esc(a.key)}" data-s="${esc(a.sig)}">Later</button></div></div>`;
 }
 
 /* ----- actions ----- */
 Object.assign(ACT, {
-  'ph-delall': async () => {
-    if (!await confirmBox('Delete all saved photos?', 'Every photo is removed from this device and from your products and listings. This cannot be undone.', 'Delete all')) return;
-    try { await phTx('readwrite', st => st.clear()); } catch (e) { }
-    PH.urls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); PH.urls.clear();
-    state.products.concat(state.listings).forEach(r => { r.photos = []; r.hero = ''; }); save(); toast('All photos deleted'); const el = $('#ph-stats'); if (el) el.innerHTML = '<span>0 photos on this device.</span>'; render();
+  'safe-now': async () => {
+    if (dirHandle && await writeFolder(JSON.stringify(state), true)) { save(); render(); return toast('Saved to your backup folder'); }
+    if (canShareFiles()) return ACT['share-backup']();
+    return ACT['export-json']();
   },
-  'ph-ml': el => { const D = PH.draft, i = +el.dataset.i; if (!D || i < 1 || !D.ids[i]) return; [D.ids[i - 1], D.ids[i]] = [D.ids[i], D.ids[i - 1]]; phRefresh(); },
-  'ph-mr': el => { const D = PH.draft, i = +el.dataset.i; if (!D || i >= D.ids.length - 1 || !D.ids[i]) return; [D.ids[i + 1], D.ids[i]] = [D.ids[i], D.ids[i + 1]]; phRefresh(); },
-  'ph-rot': async el => {
-    const D = PH.draft, id = D && D.ids[+el.dataset.i]; if (!id) return;
+  'safe-later': el => { state.dismissed[el.dataset.k] = el.dataset.s; save(); render(); toast('OK. I will remind you again in a few days'); },
+  'persist-ask': async () => {
+    let p = false; try { p = !!(await navigator.storage.persist()); } catch (e) { }
+    status.persisted = p; render();
+    toast(p ? 'Done. Your browser will keep this data unless you clear it yourself' : 'The browser said no. Back up regularly, or add the app to your Home Screen');
+  },
+  'ios-help': () => {
+    openSheet('Keep your data safe on iPhone', `<div class="sheet-body"><p class="hint" style="margin:0 0 12px">Safari can erase what a website saved after about a week without use. An app added to your Home Screen is not cleared that way. The Home Screen app keeps its own separate storage, so move your data over with a backup file:</p>
+      <ol class="faq-steps"><li>Tap <b>Back up now</b> below and save the file (Files or iCloud Drive is perfect).</li><li>In Safari, tap the <b>Share</b> button, then <b>Add to Home Screen</b>.</li><li>Open the app from its new icon.</li><li>Go to Settings &rsaquo; Your data and choose <b>Restore from backup file</b>.</li></ol></div>
+      <div class="sheet-foot"><button class="btn btn-primary" data-act="safe-now">${ic('download')} Back up now</button></div>`);
+  },
+  'dir-link': async () => {
     try {
-      const r = await phGet(id); if (!r) return toast('That photo is not on this device');
-      const url = URL.createObjectURL(phBlob(r)), img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = url; });
-      const c = document.createElement('canvas'); c.width = img.naturalHeight; c.height = img.naturalWidth; const x = c.getContext('2d'); x.translate(c.width, 0); x.rotate(Math.PI / 2); x.drawImage(img, 0, 0); URL.revokeObjectURL(url);
-      const blob = await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('enc')), 'image/jpeg', .9));
-      await phPut({ ...r, type: 'image/jpeg', buf: await blob.arrayBuffer(), w: c.width, h: c.height });
-      const u = PH.urls.get(id); if (u) { URL.revokeObjectURL(u); PH.urls.delete(id); } phRefresh();
-    } catch (e) { toast('Could not rotate that photo'); }
+      const h = await window.showDirectoryPicker({ id: 'grimms-backup', mode: 'readwrite' });
+      dirHandle = h; status.dir = h.name || 'folder'; status.dirPerm = 'granted'; status.dirDay = ''; await idbSet('dirHandle', h);
+      const ok = await writeFolder(JSON.stringify(state), true); save(); render();
+      toast(ok ? 'Linked. It now saves to that folder after every change' : 'Linked, but the first save failed. Try again');
+    } catch (e) { if (e && e.name !== 'AbortError') toast('Could not use that folder. Pick a new folder inside Documents or Drive'); }
   },
-  'ph-hero': el => { const D = PH.draft; if (!D) return; D.hero = D.ids[+el.dataset.i] || D.hero; phRefresh(); },
-  'ph-rm': async el => { const D = PH.draft, i = +el.dataset.i; if (!D || !D.ids[i]) return; if (!await confirmBox('Remove this photo?', 'It is taken off this item when you press Save, and deleted from this device. Use the download button first if you want a copy.', 'Remove', true)) return; const id = D.ids.splice(i, 1)[0]; if (D.hero === id) D.hero = D.ids[0] || ''; phRefresh(); },
-  'ph-save': el => { const D = PH.draft, i = +el.dataset.i; if (!D || !D.ids[i]) return; const all = phNames(phTitle(), D.ids, D.hero); phSaveFiles([all[i]]); },
-  'ph-saveall': () => { const D = PH.draft; if (D) phSaveFiles(phNames(phTitle(), D.ids, D.hero), phSlug(phTitle()) + ' photos.zip'); },
-  'ph-useprod': () => { const D = PH.draft, f = $('#modal form[data-form]'), pid = f && $('[name=productId]', f), pr = pid && find('products', pid.value); if (!D || !pr) return; (pr.photos || []).forEach(i => { if (!D.ids.includes(i)) D.ids.push(i); }); if (!D.hero) D.hero = phHero(pr) || D.ids[0] || ''; phRefresh(); },
-  'ph-view': el => {
-    const kind = el.dataset.type, r = find(COLL[kind], el.dataset.id); if (!r) return; const title = r.name || r.title, hero = phHero(r), names = phNames(title, r.photos || [], hero);
-    openSheet(esc(title), `<div class="sheet-body"><p class="hint" style="margin:0 0 8px">${kind === 'product' ? 'Product' : 'Listing'}${r.sku ? ' · ' + esc(r.sku) : ''} · ${names.length} photo${names.length === 1 ? '' : 's'}</p>
-      <div class="phgrid big">${names.map((n, i) => `<div class="pht ${n.id === hero ? 'hero' : ''}"><img data-ph="${n.id}" alt=""><span class="phbadge">${n.id === hero ? ic('star') + ' Hero' : ''}</span><div class="phbtns"><button type="button" data-act="ph-save1" data-t="${kind}" data-id="${r.id}" data-i="${i}" title="Save to your phone or computer" aria-label="Save">${ic('download')}</button></div></div>`).join('')}</div></div>
-      <div class="sheet-foot"><button type="button" class="btn btn-line" data-act="ph-saveall2" data-t="${kind}" data-id="${r.id}">${ic('download')} Save all</button><button type="button" class="btn btn-primary" data-act="edit" data-type="${kind}" data-id="${r.id}">Edit photos</button></div>`, { noFocus: true });
+  'dir-reconnect': async () => {
+    try { const p = await dirHandle.requestPermission({ mode: 'readwrite' }); status.dirPerm = p; if (p === 'granted') { await writeFolder(JSON.stringify(state), true); toast('Reconnected'); } } catch (e) { toast('Could not reconnect. Try picking the folder again'); }
+    render();
   },
-  'ph-save1': el => { const r = find(COLL[el.dataset.t], el.dataset.id); if (!r) return; phSaveFiles([phNames(r.name || r.title, r.photos || [], phHero(r))[+el.dataset.i]]); },
-  'ph-saveall2': el => { const r = find(COLL[el.dataset.t], el.dataset.id); if (r) phSaveFiles(phNames(r.name || r.title, r.photos || [], phHero(r)), phSlug(r.name || r.title) + ' photos.zip'); },
-  'ph-zipall': async () => {
-    const recs = (await phAll().catch(() => [])) || []; if (!recs.length) return toast('There are no photos on this device yet');
-    const by = new Map(recs.map(r => [r.id, r])), used = new Set(), seen = new Set(), entries = [];
-    const add = (folder, title, r) => (r.photos || []).forEach((id, i) => { const rec = by.get(id); if (!rec) return; used.add(id); let base = `${folder}/${phSlug(title)}`; if (seen.has(base + r.id)) return; seen.add(base + r.id); let p = base, n = 2; while (seen.has('p:' + p)) p = base + ' (' + n++ + ')'; seen.add('p:' + p); entries.push({ name: `${p}/${phSlug(title)} - ${i + 1}${id === phHero(r) ? ' (hero)' : ''}.jpg`, data: new Uint8Array(rec.buf) }); });
-    state.products.forEach(p => add('Products', p.name, p)); state.listings.forEach(l => add('Listings', l.title, l));
-    recs.filter(r => !used.has(r.id)).forEach((r, i) => entries.push({ name: `Unused/photo ${i + 1}.jpg`, data: new Uint8Array(r.buf) }));
-    const blob = phZip(entries), name = `grimms-photos-${today()}.zip`;
-    if (phTouch() && navigator.canShare) { const f = new File([blob], name, { type: 'application/zip' }); if (navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f] }); return; } catch (e) { if (e && e.name === 'AbortError') return; } } }
-    phDownload(blob, name); toast('Saved ' + entries.length + ' photos in a zip');
-  },
-  'ph-unused': async () => {
-    const recs = (await phAll().catch(() => [])) || [], refs = phRefs(), un = recs.filter(r => !refs.has(r.id));
-    if (!un.length) return toast('Every photo is used by a product or listing');
-    if (!await confirmBox('Delete unused photos?', `${un.length} photo${un.length === 1 ? ' is' : 's are'} not attached to any product or listing. Deleting them cannot be undone. Use Save all photos first if you want copies.`, 'Delete', true)) return;
-    for (const r of un) { await phDel(r.id).catch(() => { }); const u = PH.urls.get(r.id); if (u) { URL.revokeObjectURL(u); PH.urls.delete(r.id); } }
-    toast(un.length + ' unused photo' + (un.length === 1 ? '' : 's') + ' deleted'); const el = $('#ph-stats'); if (el) { delete el.dataset.done; phStats(); }
-  },
+  'dir-now': async () => { const ok = await writeFolder(JSON.stringify(state), true); save(); render(); toast(ok ? 'Saved to your backup folder' : 'Could not save to the folder'); },
+  'dir-unlink': async () => { dirHandle = null; status.dir = ''; status.dirPerm = 'none'; try { await idbSet('dirHandle', null); } catch (e) { } render(); toast('Stopped auto-saving to the folder. Your saved files stay where they are'); }
 });
-async function phAddFiles(files) {
-  files = (files || []).filter(f => f && /^image\//.test(f.type || 'image/'));
-  return; let n = 0;
-  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (x) { }
-  for (const f of files) { try { const c = await phCompress(f), id = phNewId(); await phPut({ id, type: 'image/jpeg', buf: await c.blob.arrayBuffer(), name: f.name || '', t: Date.now(), w: c.w, h: c.h }); if (!PH.draft) return; PH.draft.ids.push(id); if (!PH.draft.hero) PH.draft.hero = id; n++; } catch (x) { toast('One file could not be read as a photo'); } }
-  phRefresh(); if (n) toast(n + ' photo' + (n === 1 ? '' : 's') + ' added. Press Save to keep ' + (n === 1 ? 'it' : 'them'));
-}
-/* paste or drag pictures straight into an open product / listing form (computers) */
-document.addEventListener('paste', e => { if (!$('#ph-sec') || !e.clipboardData) return; const fs = [...e.clipboardData.files].filter(f => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); phAddFiles(fs); } });
-document.addEventListener('dragover', e => { if ($('#ph-sec') && e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); $('#ph-sec').classList.add('drop'); } });
-document.addEventListener('dragleave', e => { const s = $('#ph-sec'); if (s && !e.relatedTarget) s.classList.remove('drop'); });
-document.addEventListener('drop', e => { const s = $('#ph-sec'); if (!s) return; s.classList.remove('drop'); const fs = e.dataTransfer ? [...e.dataTransfer.files].filter(f => /^image\//.test(f.type)) : []; if (fs.length) { e.preventDefault(); phAddFiles(fs); } });
-document.addEventListener('change', async e => {
-  const t = e.target; if (!t || !t.matches) return;
-  if (t.matches('input[data-phshow]')) { state.settings.showPhotos = t.checked; save(); render(); return; }
-  if (t.matches('input[data-phfile]')) { const files = [...t.files]; t.value = ''; phAddFiles(files); }
-  if (t.matches('[name=productId]') && $('#ph-sec')) phRefresh();
-  if (t.matches('[name=productId][data-listprod]')) phProdPrev(t.closest('form'));
-}, true);
-document.addEventListener('input', e => { const t = e.target; if (t && t.matches && t.matches('[name=name],[name=title]') && $('#ph-sec')) { const b = $('#ph-sec .phfor'); if (b) b.textContent = phTitle() || 'this item'; } });
-(() => { const st = document.createElement('style'); st.textContent = `
-.phsec{margin:4px 0 16px}.phhint{font-size:12px;color:var(--sub);margin:0 0 6px;line-height:1.4}.phfor{font-weight:800;color:var(--text);font-family:inherit}.phsec .lbl{display:block;font-weight:700;font-size:13px;margin-bottom:2px}
-.phth{flex:none;width:46px;height:46px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--p-soft);padding:0;cursor:pointer;align-self:center}
-.lcard .lhead>.phth{align-self:flex-start}.lkrow>.phth{width:38px;height:38px;border-radius:8px}
-.lktile>.phth.tile{display:block;width:100%;height:auto;aspect-ratio:4/3;border-radius:10px;margin-bottom:8px}
-.phmini.zoom{cursor:zoom-in}.phmini{flex:none;width:40px;height:40px;border-radius:9px;overflow:hidden;border:1px solid var(--line);background:var(--p-soft);display:inline-block;position:relative}.phmini img{width:100%;height:100%;object-fit:cover;display:block}.phmini img.miss{display:none}.pprow{display:flex;align-items:center;gap:10px;min-width:0}.pprow>span:not(.phmini){min-width:0}
-.phth{position:relative}.phth.ph0{display:grid!important;place-items:center;color:var(--sub);cursor:default}.phth.ph0 .ic{width:26px;height:26px;opacity:.45}
-.phtop{position:absolute;right:4px;top:4px;display:flex;flex-direction:column;gap:3px}.phtop button{width:26px;height:26px;border-radius:8px;border:0;background:#fffe;color:#222;display:grid;place-items:center;cursor:pointer;padding:0}.phtop .ic{width:14px;height:14px}.phcnt{position:absolute;right:3px;bottom:3px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#000a;color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;line-height:1}
-.phsec.drop{outline:2px dashed var(--p);outline-offset:4px;border-radius:12px}
-.phlb{position:fixed;inset:0;z-index:99999;background:#000e;display:flex;align-items:center;justify-content:center;touch-action:pan-y}
-.phlb img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
-.phlb button{position:absolute;width:44px;height:44px;border-radius:50%;border:0;background:#fff3;color:#fff;display:grid;place-items:center;cursor:pointer}.phlb .ic{width:22px;height:22px}
-.phlb .lx{top:14px;right:14px}.phlb .lp{left:12px;top:50%;margin-top:-22px}.phlb .ln{right:12px;top:50%;margin-top:-22px}.phlb .lc{position:absolute;bottom:16px;left:0;right:0;text-align:center;color:#fff;font-size:13px;font-weight:700}
-.phgrid.big .pht img{cursor:zoom-in}
-.phth img,.pht img{width:100%;height:100%;object-fit:cover;display:block}
-.phth img.miss,.pht img.miss{display:none}.phth.miss::after,.pht.miss::after{content:'?';display:grid;place-items:center;width:100%;height:100%;color:var(--sub);font-weight:800}
-.phgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:8px 0}.phgrid.big{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
-.pht{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;border:2px solid var(--line);background:var(--p-soft)}.pht.hero{border-color:var(--p)}
-.phbadge{position:absolute;left:5px;top:5px;background:var(--p);color:var(--on-p,#fff);border-radius:999px;font-size:10px;font-weight:800;padding:2px 7px;display:inline-flex;gap:3px;align-items:center}.phbadge:empty{display:none}.phbadge .ic{width:11px;height:11px}
-.phbtns{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-around;gap:2px;padding:4px;background:linear-gradient(transparent,#0009)}
-.phbtns button{width:32px;height:32px;border-radius:8px;border:0;background:#fffe;color:#222;display:grid;place-items:center;cursor:pointer}.phbtns .ic{width:16px;height:16px}
-.pht.hero .phbtns [data-act=ph-hero]{background:var(--p);color:var(--on-p,#fff)}`; document.head.appendChild(st); })();
-/* full-screen viewer: tap a big photo, swipe or use the arrows / arrow keys, Escape to close */
-const PHLB = { ids: [], i: 0, x: null };
-function phLbShow() { const el = $('.phlb'); if (!el) return; const id = PHLB.ids[PHLB.i], im = $('img', el); im.removeAttribute('src'); phUrl(id).then(u => { if (u && $('.phlb') && PHLB.ids[PHLB.i] === id) im.src = u; }); $('.lc', el).textContent = (PHLB.i + 1) + ' of ' + PHLB.ids.length; $('.lp', el).style.display = $('.ln', el).style.display = PHLB.ids.length > 1 ? '' : 'none'; }
-function phLbMove(d) { if (PHLB.ids.length < 2) return; PHLB.i = (PHLB.i + d + PHLB.ids.length) % PHLB.ids.length; phLbShow(); }
-function phLbClose() { const el = $('.phlb'); if (el) el.remove(); navSoon(); }
-function phLbOpen(ids, i) { phLbClose(); PHLB.ids = ids; PHLB.i = Math.max(0, i); const el = document.createElement('div'); el.className = 'phlb'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Photo viewer'); el.innerHTML = `<img alt=""><button type="button" class="lx" aria-label="Close">${ic('x')}</button><button type="button" class="lp" aria-label="Previous">${ic('chevron-left')}</button><button type="button" class="ln" aria-label="Next">${ic('chevron-right')}</button><div class="lc"></div>`; document.body.appendChild(el); phLbShow(); }
-document.addEventListener('click', e => {
-  const el = e.target.closest && e.target.closest('.phlb'); if (el) { if (e.target.closest('.lx') || e.target === el) phLbClose(); else if (e.target.closest('.lp')) phLbMove(-1); else if (e.target.closest('.ln')) phLbMove(1); return; }
-  const mini = e.target.closest && e.target.closest('.phmini.zoom');
-  if (mini && !mini.parentElement.closest('[data-act],button,a,summary,[data-lf]')) { const ids = (mini.dataset.phall || '').split(',').filter(Boolean); if (ids.length) { e.preventDefault(); e.stopPropagation(); phLbOpen(ids, Math.max(0, ids.indexOf(mini.dataset.phat))); return; } }
-  const im = e.target.closest && e.target.closest('.phgrid.big .pht img'); if (im) { const g = im.closest('.phgrid'), ids = $$('.pht img', g).map(x => x.dataset.ph).filter(Boolean); phLbOpen(ids, ids.indexOf(im.dataset.ph)); }
-}, true);
-document.addEventListener('keydown', e => { if (!$('.phlb')) return; if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); phLbClose(); } else if (e.key === 'ArrowLeft') phLbMove(-1); else if (e.key === 'ArrowRight') phLbMove(1); }, true);
-document.addEventListener('touchstart', e => { if ($('.phlb') && e.touches.length === 1) PHLB.x = e.touches[0].clientX; }, { passive: true });
-document.addEventListener('touchend', e => { if (PHLB.x == null || !$('.phlb')) return; const dx = e.changedTouches[0].clientX - PHLB.x; PHLB.x = null; if (Math.abs(dx) > 50) phLbMove(dx < 0 ? 1 : -1); }, { passive: true });
-let phQ = 0;
-function phHydrate() { phQ = 0; $$('img[data-ph]').forEach(img => { const id = img.dataset.ph; if (img.dataset.phd === id) return; img.dataset.phd = id; phUrl(id).then(u => { if (u) img.src = u; else { img.classList.add('miss'); if (img.parentElement) img.parentElement.classList.add('miss'); } }); }); const pf = $('#ph-sec .phfor'); if (pf && phTitle() && pf.textContent !== phTitle()) pf.textContent = phTitle(); const s = $('#ph-stats'); if (s && !s.dataset.done) { s.dataset.done = '1'; phStats(); } }
-new MutationObserver(() => { if (!phQ) phQ = requestAnimationFrame(phHydrate); }).observe(document.body, { childList: true, subtree: true });
-try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
-
 
 /* =====================================================================
    PHONE BACK BUTTON, SAVED DRAFTS, SWIPE-DOWN SHEETS, OFFLINE NOTICE
@@ -9015,7 +8878,7 @@ function navCloseExtra(m) {
   m.classList.remove('on'); m.innerHTML = ''; return true;
 }
 const navTopExtra = () => { const all = $$(NAV_EXTRA); return all.find(e => e.id === 'ts-dlg') || all[all.length - 1] || null; };
-const navLayers = () => (($('#dialog') && $('#dialog').classList.contains('on')) ? 1 : 0) + ($('.phlb') ? 1 : 0) + (($('#modal') && $('#modal').classList.contains('on')) ? 1 : 0) + $$(NAV_EXTRA).length;
+const navLayers = () => (($('#dialog') && $('#dialog').classList.contains('on')) ? 1 : 0) + (($('#modal') && $('#modal').classList.contains('on')) ? 1 : 0) + $$(NAV_EXTRA).length;
 const navNeed = () => navLayers() + (ui.tab !== 'home' ? 1 : 0) + (ui.sub ? 1 : 0);
 function navSoon() { clearTimeout(navTimer); navTimer = setTimeout(navSyncNow, 40); }
 function navSyncNow() {
@@ -9034,7 +8897,6 @@ window.addEventListener('popstate', e => {
   const dlg = $('#dialog'), modal = $('#modal'), ex = navTopExtra();
   if (ex && ex.id === 'ts-dlg') navCloseExtra(ex);
   else if (dlg && dlg.classList.contains('on')) closeDialog();
-  else if ($('.phlb')) phLbClose();
   else if (ex) navCloseExtra(ex);
   else if (modal && modal.classList.contains('on')) { Promise.resolve(ACT['close-sheet']()).then(navSoon, navSoon); return; }
   else if (ui.sub) go(ui.tab);
@@ -9053,21 +8915,13 @@ const DRAFT_ROWS = [['.line', 'line-add'], ['.sup-line', 'sup-add'], ['.rec-row'
 const draftKey = t => 'gbt-draft-' + t;
 const draftForm = () => { const f = $('#modal form[data-form]'); return f && !f.dataset.id && DRAFT_TYPES.includes(f.dataset.form) ? f : null; };
 const draftCtl = f => $$('input,select,textarea', f).filter(c => c.name && c.type !== 'file' && c.type !== 'password' && c.type !== 'hidden' && c.type !== 'submit' && !c.hasAttribute('data-selfilter') && !c.hasAttribute('data-lpfilter') && !c.hasAttribute('data-pickfilter') && c.name !== 'tplpick');
-function draftPhotoIds(t) { try { const d = JSON.parse(localStorage.getItem(draftKey(t)) || 'null'); return d && d.ph && Array.isArray(d.ph.ids) ? d.ph.ids : []; } catch (e) { return []; } }
-/* photo ids held by a saved draft, so they are not cleaned up as "unused" while the draft is waiting */
-const draftHeldPhotos = () => { const s = new Set(); ['product', 'listing'].forEach(t => draftPhotoIds(t).forEach(i => s.add(i))); return s; };
-function draftClear(t) {
-  const ids = draftPhotoIds(t);
-  try { localStorage.removeItem(draftKey(t)); } catch (e) { }
-  if (ids.length) { try { const refs = phRefs(), held = draftHeldPhotos(); ids.filter(i => !refs.has(i) && !held.has(i)).forEach(i => { phDel(i).catch(() => { }); const u = PH.urls.get(i); if (u) { URL.revokeObjectURL(u); PH.urls.delete(i); } }); } catch (e) { } }
-}
+function draftClear(t) { try { localStorage.removeItem(draftKey(t)); } catch (e) { } }
 function draftSave() {
   const f = draftForm(); if (!f || !f.dataset.dirty) return;
   try {
     const idx = {}, v = draftCtl(f).map(c => { const i = idx[c.name] = (idx[c.name] ?? -1) + 1; return { n: c.name, i, x: (c.type === 'checkbox' || c.type === 'radio') ? '' : c.value, c: !!c.checked }; });
     const rows = {}; DRAFT_ROWS.forEach(r => { rows[r[0]] = $$(r[0], f).length; });
-    const D = PH.draft && $('#ph-sec', f) ? PH.draft : null, ph = D && D.ids.length ? { ids: D.ids.slice(), hero: D.hero } : null;
-    localStorage.setItem(draftKey(f.dataset.form), JSON.stringify({ t: Date.now(), rows, v, ...(ph ? { ph } : {}) }));
+    localStorage.setItem(draftKey(f.dataset.form), JSON.stringify({ t: Date.now(), rows, v }));
   } catch (e) { }
 }
 let draftTimer = 0;
@@ -9077,7 +8931,7 @@ function draftOffer() {
   const f = draftForm(); if (!f) return;
   let d = null; try { d = JSON.parse(localStorage.getItem(draftKey(f.dataset.form)) || 'null'); } catch (e) { }
   if (!d || !d.v || Date.now() - d.t > 14 * 864e5) return;
-  if (!d.v.some(e => (e.x && e.n !== 'date' && !/^(osku|sku)$/.test(e.n)) || e.c) && !(d.ph && d.ph.ids && d.ph.ids.length)) return;
+  if (!d.v.some(e => (e.x && e.n !== 'date' && !/^(osku|sku)$/.test(e.n)) || e.c)) return;
   const when = new Date(d.t), lab = when.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' at ' + when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   const host = $('.sheet-body', f) || f;
   host.insertAdjacentHTML('afterbegin', `<div class="notice warn" data-draft style="margin-bottom:12px;align-items:center;flex-wrap:wrap;gap:6px 12px"><span class="grow">You have an unsaved draft from ${esc(lab)}.</span><button type="button" class="link" data-act="draft-restore">Restore it</button><button type="button" class="link" data-act="draft-discard">Throw it away</button></div>`);
@@ -9097,21 +8951,13 @@ function draftRestore(f) {
   $$('.line', f).forEach(row => { const pk = $('[data-lpick]', row), lp = $('[name=lp]', row), ll = $('[name=ll]', row); if (!pk || !lp || !lp.value) return; const v = ll && ll.value ? `L|${ll.value}|${lp.value}` : `P||${lp.value}`; if ([...pk.options].some(o => o.value === v)) pk.value = v; });
   f.dataset.dirty = '1'; try { formLive(f); } catch (e) { }
   const b = $('[data-draft]', f); if (b) b.remove();
-  if (d.ph && Array.isArray(d.ph.ids) && d.ph.ids.length && PH.draft && $('#ph-sec', f)) {
-    Promise.all(d.ph.ids.map(i => phGet(i).then(r => r ? i : null).catch(() => null))).then(ok => {
-      const ids = ok.filter(Boolean); if (!PH.draft || !f.isConnected) return;
-      ids.forEach(i => { if (!PH.draft.ids.includes(i)) PH.draft.ids.push(i); });
-      PH.draft.hero = PH.draft.ids.includes(d.ph.hero) ? d.ph.hero : (PH.draft.hero || PH.draft.ids[0] || '');
-      phRefresh(); if (ids.length < d.ph.ids.length) toast('Draft restored. Some photos could not be found');
-    });
-  }
   toast('Draft restored. Check it, then save');
 }
 Object.assign(ACT, {
   'draft-restore': el => { const f = formOf(el); if (f) draftRestore(f); },
   'draft-discard': el => { const f = formOf(el); if (!f) return; draftClear(f.dataset.form); const b = $('[data-draft]', f); if (b) b.remove(); },
 });
-/* drafts older than 14 days are ignored, so tidy them (and their photos) away */
+/* drafts older than 14 days are ignored, so tidy them away */
 setTimeout(() => { try { DRAFT_TYPES.forEach(t => { const d = JSON.parse(localStorage.getItem(draftKey(t)) || 'null'); if (d && (!d.t || Date.now() - d.t > 14 * 864e5)) draftClear(t); }); } catch (e) { } }, 4000);
 /* ----- swipe a pop-up down by its title bar to close it (phones) ----- */
 (() => {
@@ -9144,7 +8990,9 @@ $$('[data-ic]').forEach(el => { el.outerHTML = ic(el.dataset.ic); });
 load();
 applyTheme(state.settings.theme, state.settings.font);
 initSetup();
-loadLinkedHandle().then(() => { if (state.setup && ui.sub === 'settings') render(); });
+Promise.all([loadLinkedHandle(), loadDirHandle()]).then(() => { if (dirHandle && status.dirPerm === 'granted') writeFolder(JSON.stringify(state)); if (state.setup && (ui.sub === 'settings' || ui.tab === 'home')) render(); });
+/* one-time tidy: remove the old photo database, the app no longer stores pictures */
+try { indexedDB.deleteDatabase('grimms-photos'); } catch (e) { }
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(p => { status.persisted = p; }); } catch (e) { }
 /* if this browser lost its main copy but the safety copy is still there, offer it back */
 (async function recover() {
@@ -14899,7 +14747,7 @@ G.TITLES.fb = 'Form builder';
 G.V.fb = () => '<div class="page stack-sm fade" id="fb-host"></div>';
 function inject() {
   if (G.ui.sub === 'fb') { const h = $('#fb-host'); if (h && !h.dataset.ready) { h.dataset.ready = '1'; paint(); } }
-  const anchor = $('#scroll .list-row[data-sub="forms"]');
+  const anchor = null;
   if (anchor && !$('#scroll .list-row[data-sub="fb"]')) {
     const b = document.createElement('button'); b.className = 'list-row'; b.dataset.act = 'sub'; b.dataset.sub = 'fb';
     b.innerHTML = `<span class="ico">${ic('file-text')}</span><span class="grow"><b style="display:block;font-size:14px">Form builder</b><span class="xs sub">Design forms with real fields, then collect records. Can add products to Inventory</span></span>${ic('chevron-right', 'chev')}`;
@@ -15783,5 +15631,183 @@ new MutationObserver(inject).observe($('#scroll'), { childList: true }); inject(
 })();
 
 </script>
+
+<!-- =====================================================================
+  BUSINESS FORMS ADD-ON for Grimms Business Tracker
+  More > Business forms: ready-made professional forms (new order, pickup scheduled, fulfilled,
+  picked up, restock, expense, plus daily logs of what was listed / entered / ordered).
+  Everything the app fills in (items, fees, costs, profit, listings) can be edited on the form
+  before you print, save as PDF or keep a copy. Saved in settings.forms.docs.
+===================================================================== -->
+<style>
+#bf-host .bf-chips{display:flex;gap:6px;flex-wrap:wrap}
+#bf-host .bf-chips .chip{min-height:38px}
+#bf-host .bf-chips .chip.on{background:var(--p);border-color:var(--p);color:var(--on-p,#fff)}
+#bf-host .bf-card{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;padding:14px}
+#bf-host .bf-ico{width:42px;height:42px;border-radius:12px;background:var(--p-soft);display:flex;align-items:center;justify-content:center;font-size:21px;flex:none}
+#bf-host .bf-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:640px){#bf-host .bf-grid{grid-template-columns:1fr 1fr}}
+#bf-host .fld{display:block;margin:0}
+#bf-host .fld>span{display:block;font-size:12px;font-weight:700;margin-bottom:5px}
+#bf-host input.input,#bf-host select.select,#bf-host textarea.input{display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;min-height:46px;font-size:16px;-webkit-appearance:none;appearance:none}
+#bf-host textarea.input{min-height:76px}
+#bf-host .bf-chk{display:flex;align-items:center;gap:10px;min-height:46px;padding:0 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);font-size:15px}
+#bf-host .bf-chk input{width:22px;height:22px;flex:none}
+#bf-host .bf-box{padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+#bf-host .bf-rc{padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg,transparent);margin-top:10px}
+#bf-host .bf-rg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#bf-host .bf-rg .w{grid-column:1/-1}
+#bf-host .bf-acts{display:flex;gap:8px;flex-wrap:wrap}
+#bf-host .bf-acts .btn{flex:1 1 150px;min-height:48px}
+#bf-host .bf-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.bf-doc{background:#fff;color:#1b2430;border:1px solid var(--line);border-radius:6px;padding:18px 14px;font:13px/1.45 Arial,Helvetica,sans-serif;min-width:0}
+.bf-doc h2{margin:0;font-size:18px;letter-spacing:.02em}.bf-doc .bf-co{font-size:12px;color:#5b6675}
+.bf-doc .bf-hd{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:3px solid #1b2430;padding-bottom:10px;margin-bottom:14px}
+.bf-doc .bf-no{text-align:right;font-size:12px;color:#5b6675}
+.bf-doc table{width:100%;border-collapse:collapse;margin:0 0 14px}
+.bf-doc th{background:#eef1f5;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.bf-doc th,.bf-doc td{border:1px solid #c9d0da;padding:6px 8px;vertical-align:top;word-break:break-word}
+.bf-doc td.k{width:40%;background:#f7f8fa;font-weight:700;font-size:12px}
+.bf-doc tr.t td{background:#eef1f5;font-weight:700}
+.bf-doc .bf-sig{display:flex;gap:20px;margin-top:34px}.bf-doc .bf-sig div{flex:1;border-top:1px solid #1b2430;padding-top:4px;font-size:11px;color:#5b6675}
+.bf-doc .bf-ft{margin-top:14px;font-size:10.5px;color:#7a8594}
+</style>
+<script>
+(() => {
+'use strict';
+const G = window.GBT; if (!G || !G.V || !G.ic) return;
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ic = G.ic, S = () => G.state, P2 = n => String(n).padStart(2, '0');
+const dkey = d => d.getFullYear() + '-' + P2(d.getMonth() + 1) + '-' + P2(d.getDate()), today = () => dkey(new Date());
+const toast = m => { const t = $('#toast'); if (!t) return; t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); };
+const money = n => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: S().settings.currency || 'USD' }).format(+n || 0); } catch (e) { return (+n || 0).toFixed(2); } };
+const num = v => { const x = parseFloat(String(v ?? '').replace(/[^0-9.\-]/g, '')); return isFinite(x) ? x : 0; };
+const fd = k => { if (!k) return ''; const d = new Date(k + 'T00:00:00'); return isNaN(d) ? k : d.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }); };
+const docs = () => { const st = S().settings; if (!st.forms || typeof st.forms !== 'object' || Array.isArray(st.forms)) st.forms = {}; if (!Array.isArray(st.forms.docs)) st.forms.docs = []; return st.forms.docs; };
+const ono = o => String(o.sku || '').trim() || 'ORD-' + String(o.no || 0).padStart(3, '0');
+const calc = o => { try { return G.oc(o); } catch (e) { return {}; } };
+const r2 = n => String(Math.round((+n || 0) * 100) / 100);
+const orows = o => (o.items || []).map(l => [l.name || '', String(l.qty || 0), money(l.price), money((+l.qty || 0) * (+l.price || 0))]);
+const bizName = () => { const s = S().settings; return s.name || (s.business && s.business.name) || 'My business'; };
+const PAY = () => ['Cash', 'Card', 'Bank transfer', 'PayPal', 'Platform payout', 'Other'];
+
+/* t: x text, l long, d date, tm time, n number, m money, p percent, s select, c checkbox */
+const F = (id, label, t, o) => ({ id, label, t: t || 'x', o });
+const ORDER_FILL = o => { const c = calc(o); return { order: ono(o), customer: o.customer || '', channel: o.channel || '', odate: o.date || '', tracking: o.tracking || '', pdate: o.pickup || '', sub: r2(c.sub), disc: r2(c.disc), shipc: r2(c.shipPaid), total: r2(c.buyerTotal), fees: r2(c.fees), post: r2(c.post), cogs: r2(c.cogs), profit: r2(c.profit), margin: r2(c.margin) }; };
+const MONEY = [F('sub', 'Items subtotal', 'm'), F('disc', 'Discount', 'm'), F('shipc', 'Shipping charged to buyer', 'm'), F('total', 'Order total (buyer pays)', 'm'), F('fees', 'Platform fees', 'm'), F('post', 'Postage cost', 'm'), F('cogs', 'Cost of items', 'm'), F('profit', 'Net profit', 'm'), F('margin', 'Profit margin', 'p')];
+const ITEMS = [['Item', 1], ['Qty'], ['Price'], ['Amount']];
+const DEFS = [
+  { k: 'neworder', cat: 'Orders', ico: '🧾', name: 'New order form', desc: 'A new customer order: who, what, how they pay, plus fees, cost and profit.', pick: 'o', cols: ITEMS, tot: [1, 3],
+    f: () => [F('order', 'Order no.'), F('odate', 'Order date', 'd'), F('customer', 'Customer'), F('contact', 'Phone or email'), F('channel', 'Sold through'), F('pay', 'Payment method', 's', PAY())].concat(MONEY, [F('notes', 'Notes', 'l')]), init: () => ({ odate: today() }) },
+  { k: 'pickupsched', cat: 'Orders', ico: '📅', name: 'Pickup scheduled', desc: 'Book a pickup time for an order.', pick: 'o', pu: 1, cols: ITEMS, tot: [1],
+    f: () => [F('order', 'Order no.'), F('customer', 'Customer'), F('contact', 'Phone or email'), F('pdate', 'Pickup date', 'd'), F('ptime', 'Pickup time', 'tm'), F('who', 'Picked up by (carrier or person)'), F('where', 'Pickup location'), F('notes', 'Instructions', 'l')], init: () => ({ pdate: today() }) },
+  { k: 'fulfilled', cat: 'Orders', ico: '📦', name: 'Order fulfilled', desc: 'Confirm an order was packed and shipped, with checklist and profit.', pick: 'o', cols: ITEMS, tot: [1, 3], status: ['Fulfilled'],
+    f: () => [F('order', 'Order no.'), F('customer', 'Customer'), F('fdate', 'Fulfilled on', 'd'), F('by', 'Packed by'), F('carrier', 'Carrier', 's', S().settings.carriers || []), F('tracking', 'Tracking number'), F('c1', 'Items match the order', 'c'), F('c2', 'Packed safely', 'c'), F('c3', 'Label attached', 'c')].concat(MONEY.filter(f => ['total', 'fees', 'post', 'cogs', 'profit', 'margin'].includes(f.id)), [F('notes', 'Notes', 'l')]), init: () => ({ fdate: today(), c1: 1 }) },
+  { k: 'pickedup', cat: 'Orders', ico: '🤝', name: 'Order picked up', desc: 'Proof that the customer or courier collected the order.', pick: 'o', cols: ITEMS, tot: [1, 3], status: ['Customer Received'], sig: 1,
+    f: () => [F('order', 'Order no.'), F('customer', 'Customer'), F('pdate', 'Picked up on', 'd'), F('ptime', 'Time', 'tm'), F('who', 'Collected by (name)'), F('idc', 'ID checked', 'c'), F('cond', 'Items received in good condition', 'c'), F('total', 'Order total', 'm'), F('notes', 'Notes', 'l')], init: () => ({ pdate: today(), ptime: P2(new Date().getHours()) + ':' + P2(new Date().getMinutes()) }) },
+  { k: 'restock', cat: 'Stock', ico: '🔄', name: 'Restock request', desc: 'Ask for more of a product or supply, with supplier and total cost.', pick: 'i',
+    f: () => [F('item', 'Item'), F('have', 'In stock now', 'n'), F('need', 'Quantity to order', 'n'), F('supplier', 'Supplier'), F('cost', 'Cost per unit', 'm'), F('est', 'Estimated total', 'm'), F('by', 'Needed by', 'd'), F('why', 'Reason', 's', ['Low stock', 'Sold out', 'New season', 'Large order', 'Other']), F('app', 'Approved by')], init: () => ({ by: today() }), calc: v => { if (v.need !== '' && v.cost !== '') v.est = r2(num(v.need) * num(v.cost)); } },
+  { k: 'expense', cat: 'Money', ico: '💳', name: 'Expense form', desc: 'Record a business expense with category, tax and receipt.', sig: 1,
+    f: () => [F('desc', 'Description'), F('edate', 'Date', 'd'), F('vendor', 'Vendor'), F('amt', 'Amount before tax', 'm'), F('taxr', 'Tax rate', 'p'), F('amtt', 'Total with tax', 'm'), F('cat', 'Category', 's', S().settings.expenseCats || []), F('pay', 'Paid with', 's', PAY()), F('rec', 'Receipt attached', 'c'), F('ded', 'Tax deductible', 'c'), F('notes', 'Notes', 'l')], init: () => ({ edate: today() }), calc: v => { if (v.amt !== '' && v.amt != null) v.amtt = r2(num(v.amt) * (1 + num(v.taxr) / 100)); } },
+  { k: 'listed', cat: 'Daily logs', ico: '🏷️', name: 'Items listed today', desc: 'Every listing marked as listed on the day, with price, cost and estimated profit. Edit anything.', day: 1, sig: 1, cols: [['SKU'], ['Title', 1], ['Platforms', 1], ['Price'], ['Cost'], ['Est. profit']], tot: [3, 4, 5],
+    f: () => [F('by', 'Prepared by'), F('notes', 'Notes', 'l')], none: 'No listings are marked as listed on this day.',
+    gen: d => S().listings.filter(l => l.listedDate === d && !l.archived).map(l => { const p = S().products.find(x => x.id === l.productId), pr = G.listingPrice ? G.listingPrice(l) : num(l.price), co = p ? G.unitCost(p) : 0; return [l.sku || '', l.title || '', (l.channels || []).join(', '), money(pr), p ? money(co) : '', p ? money(pr - co) : '']; }) },
+  { k: 'entered', cat: 'Daily logs', ico: '🗂️', name: 'Products entered today', desc: 'What was added or changed in products and stock that day, from the activity log. Edit or add rows.', day: 1, sig: 1, cols: [['Time'], ['What was recorded', 1]],
+    f: () => [F('by', 'Prepared by'), F('notes', 'Notes', 'l')], none: 'Nothing was recorded for products on this day.',
+    gen: d => (S().activity || []).filter(a => dkey(new Date(a.t)) === d && /product|stock|supply/i.test(a.text)).map(a => [new Date(a.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }), a.text]).reverse() },
+  { k: 'ordersday', cat: 'Daily logs', ico: '📋', name: 'Orders received today', desc: 'Every order dated that day with sales, fees, cost and profit. Edit anything.', day: 1, sig: 1, cols: [['Order'], ['Customer', 1], ['Platform'], ['Status'], ['Sales'], ['Fees'], ['Cost'], ['Profit']], tot: [4, 5, 6, 7],
+    f: () => [F('by', 'Prepared by'), F('notes', 'Notes', 'l')], none: 'No orders are dated this day.',
+    gen: d => S().orders.filter(o => o.date === d && !o.archived).map(o => { const c = calc(o); return [ono(o), o.customer || '', o.channel || '', o.status || '', money(c.net), money(c.fees), money(c.cogs), money(c.profit)]; }) }
+];
+const CATS = ['All', 'Orders', 'Stock', 'Money', 'Daily logs'];
+const V = { tab: 'forms', cat: 'All', key: null, vals: {}, rows: [], date: today(), view: null, oid: '' };
+const def = k => DEFS.find(d => d.k === k);
+
+/* ---------- the document ---------- */
+function docHtml(d, vals, date, rows, no) {
+  const val = f => { const v = vals[f.id]; if (f.t === 'c') return v ? '☑ Yes' : '☐ No'; if (f.t === 'd') return fd(v); if (v === '' || v == null) return ''; if (f.t === 'm') return money(num(v)); if (f.t === 'p') return num(v) + '%'; return esc(v).replace(/\n/g, '<br>'); };
+  const fields = d.f();
+  let tbl = '';
+  if (d.cols) {
+    const tot = d.tot ? d.cols.map((c, j) => d.tot.includes(j) ? (/qty/i.test(c[0]) ? String(rows.reduce((a, r) => a + num(r[j]), 0)) : money(rows.reduce((a, r) => a + num(r[j]), 0))) : (j === 0 ? 'Total' : '')) : null;
+    tbl = `<div class="bf-scroll"><table><tr>${d.cols.map(c => `<th>${esc(c[0])}</th>`).join('')}</tr>${rows.length ? rows.map(r => `<tr>${d.cols.map((c, j) => `<td>${esc(r[j] ?? '')}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${d.cols.length}">${esc(d.none || 'No items listed.')}</td></tr>`}${tot && rows.length ? `<tr class="t">${tot.map(x => `<td>${esc(x)}</td>`).join('')}</tr>` : ''}</table></div>`;
+  }
+  return `<div class="bf-doc"><div class="bf-hd"><div><h2>${esc(d.name.toUpperCase())}</h2><div class="bf-co">${esc(bizName())}</div></div><div class="bf-no"><b>${esc(no)}</b><br>${d.day ? esc(fd(date)) : 'Printed ' + esc(fd(today()))}</div></div>`
+    + `<table>${fields.map(f => `<tr><td class="k">${esc(f.label)}</td><td>${val(f) || '&nbsp;'}</td></tr>`).join('')}</table>` + tbl
+    + (d.sig || d.status ? `<div class="bf-sig"><div>Signature</div><div>Printed name</div><div>Date</div></div>` : '') + `<div class="bf-ft">Created with ${esc(bizName())} · ${esc(no)}</div></div>`;
+}
+const nextNo = (date) => 'FRM-' + (date || today()).replace(/-/g, '') + '-' + P2(docs().filter(x => x.date === (date || today())).length + 1);
+const preview = () => { const d = def(V.key); if (d.calc) d.calc(V.vals); return docHtml(d, V.vals, V.date, V.rows, nextNo(V.date)); };
+
+/* ---------- screens ---------- */
+const fld = (f, v) => f.t === 'c' ? `<label class="bf-chk"><input type="checkbox" data-bf-f="${f.id}"${v ? ' checked' : ''}> <span>${esc(f.label)}</span></label>`
+  : `<label class="fld"><span>${esc(f.label)}</span>` + (f.t === 'l' ? `<textarea class="input" rows="3" data-bf-f="${f.id}">${esc(v ?? '')}</textarea>` : f.t === 's' ? `<select class="select" data-bf-f="${f.id}">${[''].concat(typeof f.o === 'function' ? f.o() : (f.o || [])).map(o => `<option${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>` : `<input class="input" data-bf-f="${f.id}" type="${{ d: 'date', n: 'number', m: 'number', p: 'number', tm: 'time' }[f.t] || 'text'}"${/[nmp]/.test(f.t) ? ' step="any" inputmode="decimal"' : ''} value="${esc(v ?? '')}">`) + '</label>';
+const rowsEditor = d => `<div class="bf-box"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><b>${d.day ? 'Filled in from your app' : 'Items'}</b>${d.gen ? '<button class="link" data-bf="regen">Refresh from app</button>' : ''}</div><p class="hint" style="margin:4px 0 0">Change any box if something is wrong. Totals update by themselves.</p>${V.rows.map((r, i) => `<div class="bf-rc"><div class="bf-rg">${d.cols.map((c, j) => `<label class="fld${c[1] ? ' w' : ''}"><span>${esc(c[0])}</span><input class="input" data-bf-r="${i}" data-bf-c="${j}" value="${esc(r[j] ?? '')}"></label>`).join('')}</div><button class="link" style="margin-top:8px" data-bf="delrow" data-v="${i}">Remove row</button></div>`).join('')}<button class="btn btn-line" style="width:100%;margin-top:10px;min-height:46px" data-bf="addrow">+ Add a row</button></div>`;
+function paint() {
+  const h = $('#bf-host'); if (!h) return;
+  const top = `<div class="bf-chips"><button class="chip${V.tab === 'forms' ? ' on' : ''}" data-bf="tab" data-v="forms">Forms</button><button class="chip${V.tab === 'saved' ? ' on' : ''}" data-bf="tab" data-v="saved">Saved (${docs().length})</button></div>`;
+  if (V.view) { const x = docs().find(z => z.id === V.view); if (!x) { V.view = null; return paint(); } h.innerHTML = `<button class="link" data-bf="back">${ic('chevron-left')} Back</button><div class="bf-acts"><button class="btn btn-primary" data-bf="print-saved">Print / Save PDF</button></div>${x.html}`; return; }
+  if (V.key) {
+    const d = def(V.key), o = S().orders.filter(z => !z.archived).slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const picker = d.pick === 'o' ? `<label class="fld"><span>Fill in from an order</span><select class="select" data-bf-pick="o"><option value="">Choose an order…</option>${o.map(z => `<option value="${z.id}"${V.oid === z.id ? ' selected' : ''}>${esc(ono(z) + ' · ' + (z.customer || 'No name'))}</option>`).join('')}</select></label>` : d.pick === 'i' ? `<label class="fld"><span>Fill in from a product or supply</span><select class="select" data-bf-pick="i"><option value="">Choose an item…</option>${S().products.filter(z => !z.archived).map(z => `<option value="p:${z.id}">${esc(z.name)}</option>`).join('')}${S().supplies.filter(z => !z.archived).map(z => `<option value="s:${z.id}">${esc(z.name)} (supply)</option>`).join('')}</select></label>` : '';
+    const opts = (d.status ? `<label class="bf-chk"><input type="checkbox" id="bf-st"> <span>Also mark the order “${esc(d.status[0])}” when I save</span></label>` : '') + (d.pu ? `<label class="bf-chk"><input type="checkbox" id="bf-pu"> <span>Also set this pickup date on the order</span></label>` : '');
+    h.innerHTML = `<button class="link" data-bf="back">${ic('chevron-left')} All forms</button><h3 style="margin:6px 0 0">${esc(d.ico + ' ' + d.name)}</h3><p class="hint" style="margin:0">${esc(d.desc)}</p>${picker}${d.day ? `<label class="fld"><span>Day</span><input class="input" type="date" data-bf-date value="${esc(V.date)}"></label>` : ''}<div class="bf-grid">${d.f().map(f => fld(f, V.vals[f.id])).join('')}</div>${d.cols ? rowsEditor(d) : ''}${opts}<div class="bf-acts"><button class="btn btn-primary" data-bf="print">Print / Save PDF</button><button class="btn btn-soft" data-bf="save">Save a copy</button></div><p class="eyebrow" style="margin:6px 0 0">Preview</p><div id="bf-pv">${preview()}</div>`;
+    return;
+  }
+  const list = DEFS.filter(d => V.cat === 'All' || d.cat === V.cat);
+  h.innerHTML = V.tab === 'saved'
+    ? top + (docs().length ? docs().slice().reverse().map(x => `<div class="card bf-card"><span class="bf-ico">${esc(x.ico)}</span><span style="flex:1;min-width:0"><b>${esc(x.name)}</b><div class="xs sub">${esc(x.no)} · ${esc(fd(x.date))}</div><div class="bf-acts" style="margin-top:6px"><button class="link" data-bf="open" data-v="${x.id}">View / print</button><button class="link" data-bf="del" data-v="${x.id}">Delete</button></div></span></div>`).join('') : '<p class="hint">No saved forms yet. Fill one in and tap Save a copy.</p>')
+    : top + `<div class="bf-chips">${CATS.map(c => `<button class="chip${V.cat === c ? ' on' : ''}" data-bf="cat" data-v="${c}">${c}</button>`).join('')}</div>` + list.map(d => `<button class="card bf-card" data-bf="new" data-v="${d.k}"><span class="bf-ico">${d.ico}</span><span style="flex:1;min-width:0"><b>${esc(d.name)}</b><div class="xs sub">${esc(d.desc)}</div></span>${ic('chevron-right', 'chev')}</button>`).join('');
+}
+function printHtml(html) {
+  const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;left:-9999px;width:800px;height:600px'; document.body.appendChild(f);
+  f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><title>Form</title><style>@page{margin:1.5cm}body{margin:0}.bf-doc{font:13px/1.45 Arial,sans-serif;color:#1b2430}.bf-doc h2{margin:0;font-size:20px}.bf-co,.bf-no{font-size:12px;color:#5b6675}.bf-no{text-align:right}.bf-hd{display:flex;justify-content:space-between;border-bottom:3px solid #1b2430;padding-bottom:10px;margin-bottom:14px}table{width:100%;border-collapse:collapse;margin-bottom:14px}th{background:#eef1f5;text-align:left;font-size:11px;text-transform:uppercase}th,td{border:1px solid #c9d0da;padding:6px 8px;vertical-align:top}td.k{width:34%;background:#f7f8fa;font-weight:700;font-size:12px}tr.t td{background:#eef1f5;font-weight:700}.bf-sig{display:flex;gap:28px;margin-top:40px}.bf-sig div{flex:1;border-top:1px solid #1b2430;padding-top:4px;font-size:11px;color:#5b6675}.bf-ft{margin-top:14px;font-size:10.5px;color:#7a8594}</style></head><body>${html}</body></html>`;
+  f.onload = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toast('Printing is not available here'); } setTimeout(() => f.remove(), 60000); };
+}
+function pick(v) {
+  const d = def(V.key); if (!v) return;
+  if (d.pick === 'o') { const o = S().orders.find(z => z.id === v); if (!o) return; const m = ORDER_FILL(o), ids = d.f().map(f => f.id); ids.forEach(id => { if (m[id] !== undefined && m[id] !== '' && !(id === 'pdate' && d.k === 'pickedup')) V.vals[id] = m[id]; }); V.oid = o.id; V.rows = orows(o); const c = (S().customers || []).find(z => z.name === o.customer); if (c) V.vals.contact = V.vals.contact || c.phone || c.email || ''; }
+  else { const [k, id] = v.split(':'), it = (k === 'p' ? S().products : S().supplies).find(z => z.id === id); if (!it) return; const sp = (S().suppliers || []).find(z => z.id === it.supplierId); Object.assign(V.vals, { item: it.name, have: it.qty ?? '', cost: it.cost ?? '', supplier: sp ? sp.name : V.vals.supplier || '' }); }
+  paint();
+}
+function save() {
+  const d = def(V.key), no = nextNo(V.date); if (d.calc) d.calc(V.vals);
+  docs().push({ id: 'bf' + Math.random().toString(36).slice(2, 10), key: d.k, ico: d.ico, name: d.name, no, date: d.day ? V.date : today(), vals: { ...V.vals }, html: docHtml(d, V.vals, V.date, V.rows, no), at: Date.now() });
+  const o = V.oid && S().orders.find(z => z.id === V.oid); let extra = '';
+  if (o && d.status && $('#bf-st') && $('#bf-st').checked) { try { G.putOrder(G.setOrderStatus({ ...o }, d.status[0])); extra = ' and order marked ' + d.status[0]; } catch (e) { } }
+  if (o && d.pu && $('#bf-pu') && $('#bf-pu').checked && V.vals.pdate) { try { G.putOrder({ ...o, pickup: V.vals.pdate }); extra = ' and pickup date set'; } catch (e) { } }
+  try { G.save(); } catch (e) { } toast('Saved ' + no + extra); V.key = null; V.tab = 'saved'; V.oid = ''; paint();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('#bf-host [data-bf]'); if (!b) return; const a = b.dataset.bf, v = b.dataset.v;
+  if (a === 'tab') { V.tab = v; V.view = null; V.key = null; paint(); } else if (a === 'cat') { V.cat = v; paint(); }
+  else if (a === 'new') { const d = def(v); V.key = v; V.vals = d.init ? d.init() : {}; V.oid = ''; V.date = today(); V.rows = d.gen ? d.gen(V.date) : []; paint(); }
+  else if (a === 'back') { if (V.view) V.view = null; else V.key = null; paint(); }
+  else if (a === 'regen') { V.rows = def(V.key).gen(V.date); paint(); toast('Refreshed from your app'); }
+  else if (a === 'addrow') { V.rows.push(def(V.key).cols.map(() => '')); paint(); }
+  else if (a === 'delrow') { V.rows.splice(+v, 1); paint(); }
+  else if (a === 'print') printHtml(preview());
+  else if (a === 'save') save();
+  else if (a === 'open') { V.view = v; paint(); }
+  else if (a === 'print-saved') { const x = docs().find(z => z.id === V.view); if (x) printHtml(x.html); }
+  else if (a === 'del') { const i = docs().findIndex(z => z.id === v); if (i > -1 && confirm('Delete this saved form?')) { docs().splice(i, 1); try { G.save(); } catch (er) { } paint(); } }
+});
+const pv = () => { const p = $('#bf-pv'); if (p) p.innerHTML = preview(); };
+document.addEventListener('input', e => { const t = e.target; if (!t.closest || !t.closest('#bf-host') || !V.key) return;
+  if (t.dataset.bfF) { V.vals[t.dataset.bfF] = t.type === 'checkbox' ? t.checked : t.value; const d = def(V.key); if (d.calc) { d.calc(V.vals); d.f().forEach(f => { const el = $('#bf-host [data-bf-f="' + f.id + '"]'); if (el && el !== t && V.vals[f.id] != null && f.t !== 'c') el.value = V.vals[f.id]; }); } pv(); }
+  else if (t.dataset.bfR !== undefined) { V.rows[+t.dataset.bfR][+t.dataset.bfC] = t.value; pv(); }
+  else if (t.dataset.bfDate !== undefined) { V.date = t.value || today(); const d = def(V.key); if (d.gen) { V.rows = d.gen(V.date); paint(); } else pv(); } });
+document.addEventListener('change', e => { const t = e.target; if (!t.closest || !t.closest('#bf-host') || !V.key) return; if (t.dataset.bfPick) pick(t.value); else if (t.type === 'checkbox' || t.tagName === 'SELECT' || t.type === 'date' || t.type === 'time') { if (t.dataset.bfF) { V.vals[t.dataset.bfF] = t.type === 'checkbox' ? t.checked : t.value; pv(); } } });
+
+/* ---------- plug into the app (More > Business forms is a built-in row) ---------- */
+G.TITLES.bf = 'Business forms';
+G.V.bf = () => '<div class="page stack-sm fade" id="bf-host"></div>';
+function inject() { if (G.ui.sub === 'bf') { const h = $('#bf-host'); if (h && !h.dataset.ready) { h.dataset.ready = '1'; V.key = null; V.view = null; paint(); } } }
+new MutationObserver(inject).observe($('#scroll'), { childList: true });
+inject();
+})();
+</script>
+
 </body>
 </html>
