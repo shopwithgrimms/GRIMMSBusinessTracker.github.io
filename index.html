@@ -885,6 +885,7 @@ html[data-motion=off] *{animation:none!important;transition:none!important}
 .mkk-pick .mk-opt .ic{width:21px;height:21px}
 .mkk-pick .mk-col{width:30px;height:30px;border-width:2px}
 .mkk-pick .eyebrow{margin:10px 0 6px}
+.mkk-auto{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:0 0 14px;cursor:pointer}.mkk-auto input{margin-top:3px;width:18px;height:18px;accent-color:var(--p);flex:none}
 .pendbox{border:1px dashed var(--warn);border-radius:14px;padding:8px 12px;margin:0 0 12px;text-align:left;background:color-mix(in srgb,var(--warn) 7%,transparent)}
 .pendbox .ic{width:14px;height:14px;vertical-align:-2px;margin-right:4px;color:var(--warn)}
 .mktag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:2px 9px 2px 7px;border-radius:999px;background:color-mix(in srgb,currentColor 13%,transparent);max-width:100%}
@@ -2212,6 +2213,7 @@ function setOrderStatus(o, st) {
   n.stepDates = { ...(o.stepDates || {}) };
   if (FLOW.includes(st) && !n.stepDates[st]) n.stepDates[st] = (st === 'Payment Processing' || st === 'Order Received') && n.date ? n.date : today();
   if (st === 'Refunded to Customer' && num(n.refund) * fxOf(n) < oc(n).gross) n.refund = r2(oc({ ...n, refund: 0 }).gross / fxOf(n));
+  if (state.settings.autoMark) autoMarkOrder(n, st);
   return n;
 }
 
@@ -2748,6 +2750,14 @@ const MARK_COLS = [['#d97706', 'Amber'], ['#ea580c', 'Orange'], ['#fb923c', 'Tan
 const MARK_DEFAULT_KEY = [{ id: 'k-star', s: 'star', c: '#d97706', t: 'Important' }, { id: 'k-alert', s: 'excl', c: '#dc2626', t: 'Needs attention!' }, { id: 'k-eye', s: 'bell', c: '#2563eb', t: 'Keep an eye on it' }, { id: 'k-fav', s: 'heart', c: '#d97793', t: 'Favorite' }, { id: 'k-follow', s: 'flag', c: '#7c3aed', t: 'Follow up' }];
 /* one marker per step of the order journey, in order, each with its own icon and colour */
 const SHIP_MARKS = [['Payment Processing', 'credit-card', '#d97706'], ['Order Received', 'inbox', '#2563eb'], ['In Preparation', 'clipboard-list', '#7c3aed'], ['Packaged', 'package', '#a16207'], ['Shipped', 'truck', '#0891b2'], ['Out for Delivery', 'route', '#0d9488'], ['Delivered', 'house', '#059669'], ['Customer Received', 'user-check', '#16a34a'], ['Awaiting Feedback', 'message-square', '#c026d3'], ['Awaiting Fulfillment', 'hourglass', '#ea580c'], ['Fulfilled', 'badge-check', '#15803d']];
+/* Option (Marker key > Auto-mark): when a sale's step changes, give it the marker named after that step.
+   A marker you picked yourself (anything that is not a step marker) is left alone. */
+function autoMarkOrder(o, st) {
+  const k = markKey().find(e => String(e.t || '').trim().toLowerCase() === String(st).toLowerCase()); if (!k) return;
+  const cur = isMarked(o) ? markInfo(o) : null;
+  if (cur && !(String(cur.id).startsWith('k-ship') || ALL_STATUSES.some(x => x.toLowerCase() === String(cur.t || '').trim().toLowerCase()))) return;
+  o.mark = { k: k.id, s: k.s, c: k.c, t: k.t };
+}
 const markSym = v => MARK_SYMS.some(k => k[0] === v) ? v : 'star';
 const markCol = v => /^#[0-9a-f]{6}$/i.test(v || '') ? v : MARK_COLS[0][0];
 const markKey = () => { const k = state.settings.markKey; return Array.isArray(k) && k.length ? k : MARK_DEFAULT_KEY; };
@@ -2788,12 +2798,13 @@ async function markMenu(el) {
   save(); refreshList();
 }
 async function markKeyEditor() {
-  let K = markKey().map(k => ({ ...k })), open = -1;
+  let K = markKey().map(k => ({ ...k })), open = -1, auto = !!state.settings.autoMark;
+  const addShip = () => { const have = new Set(K.map(k => String(k.t || '').trim().toLowerCase())); let n = 0; SHIP_MARKS.forEach(([t, sy, c], j) => { if (have.has(t.toLowerCase())) return; K.push({ id: 'k-ship' + j, s: sy, c, t }); n++; }); return n; };
   const body = () => K.map((k, i) => `<div class="mkk">
     <div class="mkk-top"><button type="button" class="mk-opt ${MARK_FILL.has(k.s) ? 'fillsym' : ''}" data-kopen="${i}" style="color:${markCol(k.c)}" aria-label="Change symbol and colour">${ic(markSym(k.s))}</button><input class="input sm" data-klabel="${i}" value="${esc(k.t)}" maxlength="40" placeholder="What does this mean?"><button type="button" class="icon-btn" data-kdel="${i}" aria-label="Remove this marker">${ic('trash')}</button></div>
     ${open === i ? `<div class="mkk-pick">${MARK_GROUPS.map(([gn, list]) => `<p class="eyebrow">${gn}</p><div class="mk-grid">${list.map(([v, n]) => `<button type="button" class="mk-opt ${v === k.s ? 'on' : ''} ${MARK_FILL.has(v) ? 'fillsym' : ''}" data-ksym="${i}|${v}" style="color:${markCol(k.c)}" title="${n}" aria-label="${n}">${ic(v)}</button>`).join('')}</div>`).join('')}
       <p class="eyebrow">Colours</p><div class="mk-grid">${MARK_COLS.map(([v, n]) => `<button type="button" class="mk-col ${v.toLowerCase() === markCol(k.c).toLowerCase() ? 'on' : ''}" data-kcol="${i}|${v}" style="background:${v}" title="${n}" aria-label="${n}"></button>`).join('')}<label class="mk-col mk-custom" title="Pick any colour"><input type="color" data-kcust="${i}" value="${markCol(k.c)}"><span>+</span></label></div></div>` : ''}</div>`).join('');
-  const html = `<div class="sheet-head"><h3>Marker key</h3></div><p class="hint" style="margin:-6px 0 12px">Decide what each marker means. When you pick one, its meaning shows as a tag on the item. Tap a symbol to change its look.</p><div id="mkk-body" class="mkk-body">${body()}</div><div class="row" style="gap:8px 16px;margin:10px 0 14px;flex-wrap:wrap"><button type="button" class="link" data-kadd>${ic('plus')} Add a marker</button><button type="button" class="link" data-kships>${ic('truck')} Add shipping steps</button><button type="button" class="link" data-kreset>Reset to defaults</button></div><div class="sheet-foot" style="padding-top:0"><button type="button" class="btn btn-line" data-dlg="no">Cancel</button><button type="button" class="btn btn-primary" data-dlg="save">Save</button></div>`;
+  const html = `<div class="sheet-head"><h3>Marker key</h3></div><p class="hint" style="margin:-6px 0 12px">Decide what each marker means. When you pick one, its meaning shows as a tag on the item. Tap a symbol to change its look.</p><div id="mkk-body" class="mkk-body">${body()}</div><div class="row" style="gap:8px 16px;margin:10px 0 14px;flex-wrap:wrap"><button type="button" class="link" data-kadd>${ic('plus')} Add a marker</button><button type="button" class="link" data-kships>${ic('truck')} Add shipping steps</button><button type="button" class="link" data-kreset>Reset to defaults</button></div><label class="mkk-auto"><input type="checkbox" data-kauto ${auto ? 'checked' : ''}><span><b>Auto-mark my sales</b><br><span class="xs sub">When I change a sale's step, give it that step's marker. I can still change it by hand any time. A marker I picked myself is never replaced.</span></span></label><div class="sheet-foot" style="padding-top:0"><button type="button" class="btn btn-line" data-dlg="no">Cancel</button><button type="button" class="btn btn-primary" data-dlg="save">Save</button></div>`;
   const v = await dialog(html, d => {
     const paint = () => { $('#mkk-body', d).innerHTML = body(); };
     d.addEventListener('click', e => {
@@ -2803,13 +2814,14 @@ async function markKeyEditor() {
       else if ((a = q('[data-kcol]'))) { const [i, v2] = a.dataset.kcol.split('|'); K[+i].c = v2; paint(); }
       else if ((a = q('[data-kdel]'))) { if (K.length <= 1) { toast('Keep at least one marker'); return; } K.splice(+a.dataset.kdel, 1); open = -1; paint(); }
       else if (q('[data-kadd]')) { K.push({ id: 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), s: 'star', c: MARK_COLS[0][0], t: '' }); open = K.length - 1; paint(); }
-      else if (q('[data-kships]')) { const have = new Set(K.map(k => String(k.t || '').trim().toLowerCase())); let n = 0; SHIP_MARKS.forEach(([t, sy, c], j) => { if (have.has(t.toLowerCase())) return; K.push({ id: 'k-ship' + j, s: sy, c, t }); n++; }); open = -1; paint(); toast(n ? 'Added ' + n + ' shipping step' + (n > 1 ? 's' : '') : 'Shipping steps are already in your key'); }
+      else if (q('[data-kships]')) { const n = addShip(); open = -1; paint(); toast(n ? 'Added ' + n + ' shipping step' + (n > 1 ? 's' : '') : 'Shipping steps are already in your key'); }
       else if (q('[data-kreset]')) { K = MARK_DEFAULT_KEY.map(k => ({ ...k })); open = -1; paint(); }
     });
     d.addEventListener('input', e => { const t = e.target; if (t.dataset && t.dataset.klabel != null) K[+t.dataset.klabel].t = t.value; });
-    d.addEventListener('change', e => { const t = e.target; if (t.dataset && t.dataset.kcust != null) { K[+t.dataset.kcust].c = t.value; paint(); } });
+    d.addEventListener('change', e => { const t = e.target; if (t.dataset && t.dataset.kcust != null) { K[+t.dataset.kcust].c = t.value; paint(); } else if (t.dataset && t.dataset.kauto != null) { auto = t.checked; if (auto) { const n = addShip(); if (n) { open = -1; paint(); toast('Added ' + n + ' shipping step' + (n > 1 ? 's' : '') + ' to your key'); } } } });
   });
   if (v !== 'save') return;
+  state.settings.autoMark = auto;
   state.settings.markKey = K.map(k => ({ id: k.id, s: markSym(k.s), c: markCol(k.c), t: String(k.t || '').trim().slice(0, 40) }));
   save(); refreshList();
 }
