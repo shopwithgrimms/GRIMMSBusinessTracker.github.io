@@ -5234,6 +5234,21 @@ const listingOpts = (pid, sel, channel) => {
   const ls = state.listings.filter(l => listingProducts(l).includes(pid) && (active(l) || l.id === sel));
   return `<option value="">${ls.length ? 'Which listing sold? (optional)' : 'No listing'}</option>` + ls.map(l => `<option value="${l.id}" ${l.id === sel ? 'selected' : ''}>${esc(l.title)} · ${esc(listingChans(l).join('/') || 'no platform')}</option>`).join('');
 };
+/* Price for a sale line: a volume tier wins if one applies; otherwise the price of the listing that sold (with its live discount), then the product price. */
+const linePrice = (p, lid, qty) => {
+  const tier = (p.tiers || []).some(x => num(x.minQty) > 0 && qty >= num(x.minQty) && x.price !== '' && num(x.price) >= 0), l = lid && state.listings.find(x => x.id === lid);
+  if (!tier && l && listingProducts(l).includes(p.id) && num(l.price) > 0) return listingLinePrice(l, p);
+  return tierPrice(p, qty);
+};
+/* A listing's price for one product on a sale line. A single-product listing is just its (discounted) price.
+   A bundle listing has ONE price for everything, so split it across its products by their estimated prices
+   (equal split if none are set). The lines then add up to the listing price instead of snapping back to old product prices. */
+const listingLinePrice = (l, p) => {
+  const ps = listingProducts(l).map(id => state.products.find(x => x.id === id)).filter(Boolean), lp = listingPrice(l);
+  if (ps.length <= 1) return lp;
+  const tot = sum(ps, x => num(x.price));
+  return r2(tot > 0 ? lp * num(p.price) / tot : lp / ps.length);
+};
 const pickListing = (pid, channel) => { const ls = state.listings.filter(l => listingProducts(l).includes(pid) && active(l) && l.status !== 'Sold'); return (ls.find(l => listingChans(l).includes(channel) && l.status === 'Active') || ls.find(l => l.status === 'Active') || ls[0] || {}).id || ''; };
 /* Supplies used on a sale */
 const supOpts = sel => `<option value="">Pick a supply…</option>` + state.supplies.filter(x => x.kind !== 'component' && (active(x) || x.id === sel)).sort((a, b) => String(a.name).localeCompare(String(b.name))).map(x => `<option value="${x.id}" ${x.id === sel ? 'selected' : ''}>${esc((x.sku ? x.sku + ' · ' : '') + x.name)} (${avail(x)}${x.unit ? ' ' + esc(x.unit) : ''} free)</option>`).join('');
@@ -5998,11 +6013,12 @@ function formLive0(f, target) {
       const row = target.closest('.line'), p = find('products', target.value), nm = $('[name=ln]', row), ll = $('[name=ll]', row), qty = Math.max(1, Math.round(num($('[name=lq]', row).value)));
       nm.hidden = !!p; ll.hidden = !p;
       { const lf = $('[name=lf]', row); if (lf) lf.checked = !!(p && p.free); }
-      if (p) { const pr = $('[name=lc]', row); pr.value = tierPrice(p, qty); pr.dataset.auto = 1; $('[name=lk]', row).value = r2(unitCost(p)); ll.innerHTML = listingOpts(p.id, pickListing(p.id, $('[name=channel]', f).value)); ll.value = pickListing(p.id, $('[name=channel]', f).value); } else { nm.value = ''; ll.innerHTML = ''; }
+      if (p) { const pr = $('[name=lc]', row), lid = pickListing(p.id, $('[name=channel]', f).value); pr.value = linePrice(p, lid, qty); pr.dataset.auto = 1; $('[name=lk]', row).value = r2(unitCost(p)); ll.innerHTML = listingOpts(p.id, lid); ll.value = lid; } else { nm.value = ''; ll.innerHTML = ''; }
     }
     if (target && target.name === 'su') { const row = target.closest('.sup-line'), sp = state.supplies.find(x => x.id === target.value); if (sp && row) { $('[name=sk]', row).value = num(sp.cost) ? r2(num(sp.cost)) : ''; if (!(num($('[name=sq]', row).value) > 0)) $('[name=sq]', row).value = 1; } }
+    if (target && target.name === 'll') { const row = target.closest('.line'), p = find('products', $('[name=lp]', row).value), pr = $('[name=lc]', row); if (p && pr.dataset.auto) pr.value = linePrice(p, target.value, Math.max(1, Math.round(num($('[name=lq]', row).value)))); }
     if (target && target.name === 'lc') delete target.dataset.auto;
-    if (target && target.name === 'lq') { const row = target.closest('.line'), p = find('products', $('[name=lp]', row).value), pr = $('[name=lc]', row); if (p && pr.dataset.auto) pr.value = tierPrice(p, Math.max(1, Math.round(num(target.value)))); }
+    if (target && target.name === 'lq') { const row = target.closest('.line'), p = find('products', $('[name=lp]', row).value), pr = $('[name=lc]', row); if (p && pr.dataset.auto) pr.value = linePrice(p, ($('[name=ll]', row) || {}).value, Math.max(1, Math.round(num(target.value)))); }
     const old = f.dataset.id ? find('orders', f.dataset.id) : null, back = stockEffect(old), o = readOrder(f, old), c = oc(o), sback = supEffect(old);
     $$('.sup-line', f).forEach(row => { const sp = state.supplies.find(x => x.id === $('[name=su]', row).value), w = $('[data-supwarn]', row), q = num($('[name=sq]', row).value); if (w) w.textContent = sp && q > avail(sp) + (sback[sp.id] || 0) + 1e-9 ? `Only ${Math.max(0, r2(avail(sp) + (sback[sp.id] || 0)))} free in stock` : ''; });
     $$('.line', f).forEach(row => {
@@ -6875,7 +6891,7 @@ const ACT = {
     const ids = await pickProducts('Add several products', ps);
     if (!ids || !f.isConnected) return;
     const ch = ($('[name=channel]', f) || {}).value;
-    ids.forEach(id => { const p = find('products', id); if (p) $('#lines', f).insertAdjacentHTML('beforeend', lineRow({ productId: p.id, name: p.name, qty: 1, price: tierPrice(p, 1), cost: r2(unitCost(p)), listingId: pickListing(p.id, ch) })); });
+    ids.forEach(id => { const p = find('products', id); if (p) { const lid = pickListing(p.id, ch); $('#lines', f).insertAdjacentHTML('beforeend', lineRow({ productId: p.id, name: p.name, qty: 1, price: linePrice(p, lid, 1), cost: r2(unitCost(p)), listingId: lid })); } });
     formLive(f);
   },
   'rec-add': el => { const f = formOf(el), ss = state.supplies.filter(active), s = ss.find(x => freeFor(x.id, curPid) > 0) || ss[0]; if (!s) return toast('Add a component or supply first (Inventory)'); $('#rec-rows', f).insertAdjacentHTML('beforeend', recRow({ supplyId: s.id, qty: 1 })); formLive(f); },
@@ -6999,9 +7015,9 @@ const ACT = {
     const ps = listingProducts(l).map(id => find('products', id)).filter(p => p && !p.archived);
     if (!ps.length) return toast('This listing has no product linked yet');
     const chans = activeChans().map(c => c.name), ch = listingChans(l).find(c => chans.includes(c)) || '';
-    const items = ps.map(p => ({ productId: p.id, name: p.name, qty: 1, price: ps.length === 1 ? listingPrice(l) : tierPrice(p, 1), cost: r2(unitCost(p)), listingId: l.id }));
+    const items = ps.map(p => ({ productId: p.id, name: p.name, qty: 1, price: linePrice(p, l.id, 1), cost: r2(unitCost(p)), listingId: l.id }));
     OPEN.order(null, { items, channel: ch });
-    if (ps.length > 1) toast('Bundle: check the price on each item');
+    if (ps.length > 1) toast('Bundle: the listing price is split across the items. Check each one');
   },
   'advance-quick': el => {
     const o = find('orders', el.dataset.id); if (!o) return;
