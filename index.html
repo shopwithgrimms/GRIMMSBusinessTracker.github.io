@@ -2217,6 +2217,19 @@ function setOrderStatus(o, st) {
   return n;
 }
 
+/* Clearing the date of the step an order is currently on sends it back to the previous step. */
+function clearStepDate(o, step) {
+  const sd = { ...(o.stepDates || {}) }; delete sd[step];
+  const n = { ...o, stepDates: sd };
+  const i = FLOW.indexOf(step);
+  if (o.status === step && i > 0) {
+    let prev = FLOW[i - 1];
+    for (let j = i - 1; j >= 0; j--) if (sd[FLOW[j]]) { prev = FLOW[j]; break; }
+    n.status = prev;
+    if (state.settings.autoMark) autoMarkOrder(n, prev);
+  }
+  return n;
+}
 /* ----- customers (worked out from sales, plus anything you save about them) ----- */
 function customerStats(name) {
   const k = lc(name), os = live().filter(o => lc(o.customer) === k), ed = os.filter(isEarned);
@@ -5372,6 +5385,9 @@ function readOrder0(f, existing) {
   const oskuRaw = tidy(fd.get('osku')), oskuOwn = existing ? autoOrderNo(existing.no) : '', oskuTaken = existing && state.orders.some(x => x.id !== existing.id && orderNo(x).toLowerCase() === oskuOwn.toLowerCase());
   const oskuVal = oskuRaw || (existing ? (oskuTaken ? nextOrderSku(existing.id) : oskuOwn) : nextOrderSku());
   const o = { ...(existing || {}), sku: existing && oskuVal === oskuOwn ? '' : oskuVal, acct: fd.get('acct') || '', date: fd.get('date'), customer: tidy(fd.get('customer')), channel: fd.get('channel') || '', items, supplies, bulk, bulkPct: bulk ? Math.max(0, Math.min(100, num(fd.get('bulkPct')))) : 0, po: tidy(fd.get('po')), terms: fd.get('terms') || '', deposit: Math.max(0, num(fd.get('deposit'))), discount: fd.get('discMode') === 'pct' ? 0 : Math.max(0, num(fd.get('discount'))), discPct: fd.get('discMode') === 'pct' ? Math.max(0, Math.min(100, num(fd.get('discount')))) : 0, shipCharged: num(fd.get('shipCharged')), tax: Math.max(0, num(fd.get('tax'))), cur: tidy(fd.get('cur')).toUpperCase().slice(0, 3), fx: tidy(fd.get('cur')) && num(fd.get('fx')) > 0 ? num(fd.get('fx')) : '', postage: num(fd.get('postage')), feesManual: manual, finalProfit: String(fd.get('finalProfit') ?? '').trim() === '' ? '' : num(fd.get('finalProfit')), status: fd.get('status'), payment: fd.get('payment') || '', carrier: fd.get('carrier') || '', shipBy: fd.get('shipBy') || '', pickup: fd.get('pickup') || '', tracking: tidy(fd.get('tracking')), ref: tidy(fd.get('ref')), notes: tidy(fd.get('notes')), refund: existing ? existing.refund : 0, reimb: existing ? existing.reimb : 0, stepDates: (() => { const sd = {}; FLOW.forEach((st, i) => { const v = fd.get('sd_' + i); if (v) sd[st] = v; }); return sd; })() };
+  if (existing && existing.status === o.status && FLOW.includes(o.status) && (existing.stepDates || {})[o.status] && !o.stepDates[o.status]) {
+    const b = clearStepDate({ ...o, stepDates: { ...o.stepDates } }, o.status); o.status = b.status; if (b.mark) o.mark = b.mark;
+  }
   if (!o.feeSnap || o.feeSnap.ch !== o.channel) o.feeSnap = feeSnapOf(o.channel);
   o.fees = manual ? num(feeRaw) : autoFees(o);
   return o;
@@ -7049,8 +7065,8 @@ const ACT = {
   },
   'clear-step-date': el => {
     const o = find('orders', el.dataset.id); if (!o) return;
-    const sd = { ...(o.stepDates || {}) }; delete sd[el.dataset.step];
-    putOrder({ ...o, stepDates: sd }); save(); render(); OPEN.orderDetail(o.id); toast(el.dataset.step + ' date cleared');
+    const n = clearStepDate(o, el.dataset.step), back = n.status !== o.status;
+    putOrder(n); save(); render(); OPEN.orderDetail(o.id); toast(back ? el.dataset.step + ' date cleared. Back to ' + n.status : el.dataset.step + ' date cleared');
   },
   'advance-quick': el => {
     const o = find('orders', el.dataset.id); if (!o) return;
@@ -8643,7 +8659,7 @@ document.addEventListener('change', async e => {
   if (d.bind === 'ch') { ui.ch = t.value; ui.limit = 60; refreshList(); return; }
   if (d.bind === 'sort') { ui.sort = t.value; rememberSort(sortKey(), t.value); refreshList(); return; }
   if (t.id === 'csv-file') { const file = t.files[0], f = t.closest('form'); if (file) { $('[name=text]', f).value = await file.text(); formLive(f); } return; }
-  if (d.orderDate) { const o = find('orders', d.orderDate); if (!o) return; const sd = { ...(o.stepDates || {}) }; if (t.value) sd[d.step] = t.value; else delete sd[d.step]; putOrder({ ...o, stepDates: sd }); save(); OPEN.orderDetail(o.id); return; }
+  if (d.orderDate) { const o = find('orders', d.orderDate); if (!o) return; if (t.value) { putOrder({ ...o, stepDates: { ...(o.stepDates || {}), [d.step]: t.value } }); } else { const n = clearStepDate(o, d.step); putOrder(n); if (n.status !== o.status) { save(); render(); OPEN.orderDetail(o.id); toast('Back to ' + n.status); return; } } save(); OPEN.orderDetail(o.id); return; }
   if (d.orderStatus) { const o = find('orders', d.orderStatus); putOrder(setOrderStatus(o, t.value)); save(); render(); OPEN.orderDetail(o.id); return; }
   if (t.name === 'tplpick') { await applyTplPick(t); return; }
   if (d.autolist !== undefined) { state.settings.autoListPlanned = t.checked; save(); render(); return; }
