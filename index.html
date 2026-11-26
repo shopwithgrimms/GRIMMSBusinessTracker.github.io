@@ -611,23 +611,6 @@ html[data-layout=top] #screen-app>#nav button span{display:inline!important}
   html[data-hgrid=two]:is([data-frame=wide],[data-frame=full],[data-frame=tablet]) .home-flex{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
   html[data-hgrid=two]:is([data-frame=wide],[data-frame=full],[data-frame=tablet]) .home-flex>:is(.banner,.grid2,[data-w=widgets],[data-w=quick]),html[data-hgrid=two]:is([data-frame=wide],[data-frame=full],[data-frame=tablet]) .home-flex>.card:not([data-w]){grid-column:1/-1}
 }
-/* ---------- DESKTOP SOFTWARE MODE: sidebar / rail / top tabs on a computer fill the whole window ---------- */
-.nav-h{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--sub);opacity:.75;padding:14px 12px 4px}
-.nav-h:first-child{padding-top:2px}
-@media(min-width:900px){
-  html:is([data-layout=sidebar],[data-layout=rail],[data-layout=top]) body{padding:0!important;display:block!important;min-height:100dvh}
-  html:is([data-layout=sidebar],[data-layout=rail],[data-layout=top]) .frame{max-width:none!important;width:100%!important;height:100dvh!important;border:0!important;border-radius:0!important;box-shadow:none!important}
-  html:is([data-layout=sidebar],[data-layout=rail],[data-layout=top]) .page,
-  html[data-frame=full] .page{max-width:none!important;margin:0!important;padding:22px 32px 40px}
-  html[data-layout=sidebar] #screen-app.on{grid-template-columns:240px minmax(0,1fr)!important}
-  html[data-layout=sidebar] #screen-app>#nav{padding:14px 10px!important}
-  html[data-layout=sidebar] #screen-app>#nav button{flex-direction:row!important;justify-content:flex-start!important;gap:10px;padding:8px 12px!important;font-size:13px!important;font-weight:600;border-radius:6px!important;text-align:left}
-  html[data-layout=sidebar] #screen-app>#nav button span{display:inline!important}
-  html[data-layout=sidebar] #screen-app>#nav button.on::before{left:-10px}
-  html:is([data-layout=sidebar],[data-layout=rail],[data-layout=top]) .home-flex{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));align-items:start;gap:16px}
-  html:is([data-layout=sidebar],[data-layout=rail],[data-layout=top]) .home-flex>:is(.banner,.grid2,[data-w=widgets],[data-w=quick]),
-  html:is([data-layout=sidebar],[data-layout=rail],[data-layout=top]) .home-flex>.card:not([data-w]){grid-column:1/-1}
-}
 /* layout picker previews */
 .wf{background:var(--bg)}
 .wf-r{position:absolute;display:block}
@@ -1712,7 +1695,7 @@ const PLATFORM_PRESETS = [
 
 const HOME_ORDER = ['today', 'pipeline', 'goals', 'attention', 'lowstock', 'upcoming', 'quick'];
 const QUICKS = [['sale', 'Sale'], ['bulk', 'Bulk order'], ['expense', 'Expense'], ['supply', 'Supply'], ['product', 'Product'], ['listing', 'Listing'], ['task', 'Task'], ['time', 'Time'], ['customer', 'Customer'], ['note', 'Note'], ['income', 'Income'], ['mileage', 'Trip'], ['bill', 'Bill'], ['po', 'Purchase order']];
-const LOOK_DEFAULTS = () => ({ navMigrated: true, layout: 'bottom', homeGrid: 'single', setup: 'Professional', pro: true, auto: false, darkTheme: 'midnight', accent: '', bg: '', card: '', round: 'default', density: 'compact', size: '100', cardStyle: 'outline', bgStyle: 'solid', header: 'plain', nav: 'labels', btn: 'solid', border: 'thin', frame: 'wide', motion: true, headFont: "'Inter', sans-serif", greeting: '', emoji: '', homeChart: 'line', wholeHome: false, confetti: false, g1: '#fbcfe8', g2: '#c4b5fd', gAngle: '160', bgDim: '30', particles: 'none', pCount: '16', pSpeed: '1', pEmoji: '', pageAnim: 'none', hover: 'none', press: 'none', tapFx: 'none', btnFx: 'none', titleFx: 'none', celebrate: 'confetti', sOn: false, sPack: 'soft', sVol: '60', sTap: true, sOk: true, sDel: true, sWin: true, homeOrder: HOME_ORDER.slice(), quickHide: ['customer', 'note', 'income', 'mileage'] });
+const LOOK_DEFAULTS = () => ({ layout: 'bottom', homeGrid: 'single', setup: 'Professional', pro: true, auto: false, darkTheme: 'midnight', accent: '', bg: '', card: '', round: 'default', density: 'compact', size: '100', cardStyle: 'outline', bgStyle: 'solid', header: 'plain', nav: 'labels', btn: 'solid', border: 'thin', frame: 'wide', motion: true, headFont: "'Inter', sans-serif", greeting: '', emoji: '', homeChart: 'line', wholeHome: false, confetti: false, g1: '#fbcfe8', g2: '#c4b5fd', gAngle: '160', bgDim: '30', particles: 'none', pCount: '16', pSpeed: '1', pEmoji: '', pageAnim: 'none', hover: 'none', press: 'none', tapFx: 'none', btnFx: 'none', titleFx: 'none', celebrate: 'confetti', sOn: false, sPack: 'soft', sVol: '60', sTap: true, sOk: true, sDel: true, sWin: true, homeOrder: HOME_ORDER.slice(), quickHide: ['customer', 'note', 'income', 'mileage'] });
 const guessWeekStart = () => {
   const l = (navigator.language || 'en-US').toLowerCase();
   return 'sun';
@@ -1785,7 +1768,7 @@ function normalize(src) {
   { /* look settings: older backups simply get the defaults */
     const sl = (src.settings || {}).look, L = { ...LOOK_DEFAULTS(), ...(sl && typeof sl === 'object' && !Array.isArray(sl) ? sl : {}) };
     if (!Array.isArray(L.quickHide)) L.quickHide = LOOK_DEFAULTS().quickHide;
-    if (!L.navMigrated) { if (!(sl && sl.layout)) { L.layout = 'bottom'; L.homeGrid = 'single'; } L.navMigrated = true; }
+    if (!L.navMigrated) { L.layout = 'bottom'; L.homeGrid = 'single'; L.navMigrated = true; }
     const ho = Array.isArray(L.homeOrder) ? L.homeOrder.filter((x, i, a) => HOME_ORDER.includes(x) && a.indexOf(x) === i) : [];
     if (!ho.includes('today')) ho.unshift('today');
     HOME_ORDER.forEach(x => { if (!ho.includes(x)) ho.push(x); });
@@ -2772,7 +2755,7 @@ const MARK_COLL = { product: 'products', supply: 'supplies', listing: 'listings'
 const MARK_GROUPS = [
   ['Shipping steps', [['credit-card', 'Payment processing'], ['inbox', 'Order received'], ['clipboard-list', 'In preparation'], ['package', 'Packaged'], ['truck', 'Shipped'], ['route', 'Out for delivery'], ['house', 'Delivered'], ['user-check', 'Customer received'], ['message-square', 'Awaiting feedback'], ['hourglass', 'Awaiting fulfillment'], ['badge-check', 'Fulfilled'], ['package-check', 'Packed and checked'], ['plane', 'Shipping overseas'], ['send', 'Sent'], ['navigation', 'On the way']]],
   ['Problems and returns', [['x-circle', 'Cancelled'], ['ban', 'Payment failed'], ['undo', 'Return or refund'], ['package-x', 'Lost or damaged'], ['alert-triangle', 'Warning'], ['alert-circle', 'Alert'], ['excl', 'Exclamation point'], ['help-circle', 'Question']]],
-  ['General', [['star', 'Star'], ['heart', 'Heart'], ['flag', 'Flag'], ['bookmark', 'Bookmark'], ['pin', 'Pin'], ['zap', 'Bolt'], ['flame', 'Hot'], ['gem', 'Gem'], ['bell', 'Bell'], ['eye', 'Eye'], ['clock', 'Clock'], ['thumbs-up', 'Thumbs up'], ['thumbs-down', 'Thumbs down'], ['smile', 'Happy customer'], ['sparkles', 'Sparkles'], ['crown', 'VIP'], ['gift', 'Gift'], ['megaphone', 'Announce'], ['lightbulb', 'Idea'], ['wrench', 'Fix or repair'], ['palette', 'Custom or design'], ['shopping-cart', 'Cart'], ['tag', 'Tag'], ['phone', 'Call'], ['mail', 'Email'], ['camera', 'Photo'], ['dollar', 'Money'], ['banknote', 'Cash'], ['coins', 'Coins'], ['receipt', 'Receipt'], ['calendar', 'Date'], ['lock', 'Locked'], ['target', 'Goal'], ['users', 'Group'], ['store', 'Store'], ['box', 'Box'], ['printer', 'Print label']]],
+  ['General', [['star', 'Star'], ['heart', 'Heart'], ['flag', 'Flag'], ['bookmark', 'Bookmark'], ['pin', 'Pin'], ['zap', 'Bolt'], ['flame', 'Hot'], ['gem', 'Gem'], ['bell', 'Bell'], ['eye', 'Eye'], ['clock', 'Clock'], ['thumbs-up', 'Thumbs up'], ['thumbs-down', 'Thumbs down'], ['smile', 'Happy customer'], ['sparkles', 'Sparkles'], ['crown', 'VIP'], ['gift', 'Gift'], ['megaphone', 'Announce'], ['lightbulb', 'Idea'], ['wrench', 'Fix or repair'], ['palette', 'Custom or design'], ['shopping-cart', 'Cart'], ['tag', 'Tag'], ['phone', 'Call'], ['mail', 'Email'], ['dollar', 'Money'], ['banknote', 'Cash'], ['coins', 'Coins'], ['receipt', 'Receipt'], ['calendar', 'Date'], ['lock', 'Locked'], ['target', 'Goal'], ['users', 'Group'], ['store', 'Store'], ['box', 'Box'], ['printer', 'Print label']]],
 ];
 const MARK_SYMS = MARK_GROUPS.flatMap(g => g[1]);
 const MARK_FILL = new Set(['star', 'heart', 'flag', 'bookmark', 'pin', 'zap', 'flame', 'gem', 'bell']);
@@ -3044,29 +3027,13 @@ function renderHeader() {
   const add = addType();
   const planPage = v === 'plan' && ui.seg.plan !== 'time';
   const left = ui.sub && v !== 'plan' ? `<button class="icon-btn" data-act="back" aria-label="Back">${ic('arrow-left')}</button>` : planPage ? `<button class="icon-btn" data-act="seg" data-k="plan" data-v="time" aria-label="Back to Plan">${ic('arrow-left')}</button>` : '';
-  const title = v === 'plan' ? (ui.seg.plan === 'tasks' ? 'All tasks' : ui.seg.plan === 'calendar' ? 'Calendar & key dates' : TITLES.plan) : TITLES[v];
+  const title = v === 'plan' ? (ui.seg.plan === 'tasks' ? 'All tasks' : ui.seg.plan === 'calendar' ? 'Calendar & key dates' : TITLES.plan) : v === 'more' ? moreName() : TITLES[v];
   const extra = v === 'activity' ? `<button class="link" data-act="clear-log">Clear</button>` : '';
   return `<div class="hdr"><div class="row" style="gap:10px;min-width:0">${left}<h1 class="trunc">${title}</h1></div><div class="row" style="gap:8px">${extra}${add ? `<button class="btn btn-primary btn-sm" data-act="add" data-type="${add[0]}" aria-label="Add ${esc(add[1])}">${ic('plus')}<span class="addl"> ${add[1]}</span></button>` : ''}${v === 'stock' ? pgSetBtn(ui.seg.stock) : PG_SET_NAMES[v] ? pgSetBtn(v) : ''}${helpBtn()}${bellBtn(v)}</div></div>`;
 }
-const SIDE_GROUPS = [
-  ['Main', [['home','house','Home','tab'],['sales','receipt','Sales','tab'],['stock','package','Inventory','tab'],['money','wallet','Money','tab'],['plan','list-checks','Plan','plan']]],
-  ['Business', [['goals','target','Goals'],['taxes','landmark','Taxes'],['bills','receipt','Bills & invoices'],['forecast','line-chart','Cash flow forecast'],['purchases','truck','Orders & deliveries']]],
-  ['Tools', [['assistant','star','Assistant'],['bf','file-text','Business forms'],['printlabels','printer','Print labels'],['barcodes','camera','Item numbers']]],
-  ['People & notes', [['customers','users','Customers'],['suppliers','contact','Suppliers'],['mileage','car','Mileage'],['notes','sticky-note','Notes']]],
-  ['App', [['activity','history','Activity'],['faq','info','Help & FAQ'],['settings','settings','Settings']]]
-];
-const deskSide = () => window.matchMedia('(min-width:900px)').matches && state.settings.look && state.settings.look.layout === 'sidebar';
-let _deskPrev = null; window.addEventListener('resize', () => { const d = deskSide(); if (_deskPrev !== null && d !== _deskPrev && typeof render === 'function') { try { render(); } catch (e) { } } _deskPrev = d; });
-function renderSideNav() {
-  const cur = ui.sub === 'inbox' ? ((ui.ret && (ui.ret.sub || ui.ret.tab)) || 'home') : (ui.sub || ui.tab);
-  return SIDE_GROUPS.map(g => `<div class="nav-h">${g[0]}</div>` + g[1].map(i => {
-    const act = i[3] === 'plan' ? 'data-act="plan-home"' : i[3] === 'tab' ? `data-act="tab" data-tab="${i[0]}"` : `data-act="sub" data-sub="${i[0]}"`;
-    return `<button class="${cur === i[0] ? 'on' : ''}" ${act} aria-label="${i[2]}">${ic(i[1])}<span>${i[2]}</span></button>`;
-  }).join('')).join('');
-}
+const moreName = () => { const l = (state.settings.look || {}).layout; return l && l !== 'bottom' ? 'All other pages' : 'More'; };
 function renderNav() {
-  if (deskSide()) return renderSideNav();
-  const items = [['home', 'house', 'Home'], ['sales', 'receipt', 'Sales'], ['stock', 'package', 'Inventory'], ['money', 'wallet', 'Money'], ['plan', 'list-checks', 'Plan'], ['more', 'more-horizontal', 'More']];
+  const items = [['home', 'house', 'Home'], ['sales', 'receipt', 'Sales'], ['stock', 'package', 'Inventory'], ['money', 'wallet', 'Money'], ['plan', 'list-checks', 'Plan'], ['more', 'more-horizontal', moreName()]];
   const sub = ui.sub === 'inbox' ? (ui.ret && ui.ret.sub) : ui.sub;
   const cur = ui.sub === 'inbox' ? ((ui.ret && (ui.ret.sub ? (sub === 'plan' ? 'plan' : 'more') : ui.ret.tab)) || 'home') : ui.sub ? (ui.sub === 'plan' ? 'plan' : 'more') : ui.tab;
   return items.map(i => `<button class="${cur === i[0] ? 'on' : ''}" ${i[0] === 'plan' ? 'data-act="plan-home"' : `data-act="tab" data-tab="${i[0]}"`} aria-label="${i[2]}">${ic(i[1])}<span>${i[2]}</span></button>`).join('');
@@ -4495,14 +4462,14 @@ V.more = () => {
       <button class="list-row" data-act="bell"><span class="ico">${ic('inbox')}</span><span class="grow"><b style="display:block;font-size:14px">Inbox</b><span class="xs sub">${na ? na + ' alert' + (na > 1 ? 's' : '') + ' waiting' : 'All caught up'}</span></span>${ic('chevron-right', 'chev')}</button>
       ${row('star', 'Business Assistant', 'Ask about anything in your business, plan and book meetings', 'assistant')}
     ${row('list-checks', 'Plan', `Your day, due tasks and shift tracking${open ? ' · ' + open + ' open' : ''}`, 'plan')}
+      ${row('file-text', 'Business forms', 'Order, pickup, restock, expense and daily log forms. See which orders need one, save to folders, edit any time', 'bf')}
       ${row('target', 'Goals', 'Revenue, profit and order targets', 'goals')}
       ${row('landmark', 'Taxes', 'What to set aside, sales tax and payments', 'taxes')}
       ${row('receipt', 'Bills & invoices', billsLine(), 'bills')}
       ${row('line-chart', 'Cash flow forecast', 'Will your money cover what is coming?', 'forecast')}
       ${row('truck', 'Orders & deliveries', 'What you bought from suppliers: track bought, shipped, in transit, delivered', 'purchases')}
-      ${row('file-text', 'Business forms', 'Order, pickup, restock, expense and daily log forms. See which orders need one, save to folders, edit any time', 'bf')}
       ${row('printer', 'Print labels', 'Item number labels for 4x6 thermal or label sheets: pick items, a template, what shows and layout', 'printlabels')}
-      ${row('camera', 'Item numbers & lookup', 'A number for every item, type it to see its page, receive and remove stock', 'barcodes')}
+      ${row('tag', 'Item numbers & lookup', 'A number for every item, type it to see its page, receive and remove stock', 'barcodes')}
       ${row('users', 'Customers', `${nc} saved · repeat buyers and lifetime value`, 'customers')}
       ${row('contact', 'Suppliers', 'Who you buy from', 'suppliers')}
       ${row('car', 'Mileage', 'Business trips and the deduction they are worth', 'mileage')}
@@ -4978,10 +4945,10 @@ function styleParts() {
   };
 }
 const VARIANTS = [
-  { n: 'Left sidebar', d: 'Menu down the left, Home in one column', k: 'sidebar', o: { layout: 'sidebar', homeGrid: 'single', frame: 'full' } },
-  { n: 'Dashboard grid', d: 'Left sidebar and two columns of cards', k: 'grid', o: { layout: 'sidebar', homeGrid: 'two', frame: 'full' } },
-  { n: 'Icon rail', d: 'Slim icon-only menu, more room for content', k: 'rail', o: { layout: 'rail', homeGrid: 'single', frame: 'full' } },
-  { n: 'Top tabs', d: 'Menu as tabs under the header', k: 'top', o: { layout: 'top', homeGrid: 'single', frame: 'full' } },
+  { n: 'Left sidebar', d: 'Menu down the left, Home in one column', k: 'sidebar', o: { layout: 'sidebar', homeGrid: 'single', frame: 'wide' } },
+  { n: 'Dashboard grid', d: 'Left sidebar and two columns of cards', k: 'grid', o: { layout: 'sidebar', homeGrid: 'two', frame: 'wide' } },
+  { n: 'Icon rail', d: 'Slim icon-only menu, more room for content', k: 'rail', o: { layout: 'rail', homeGrid: 'single', frame: 'wide' } },
+  { n: 'Top tabs', d: 'Menu as tabs under the header', k: 'top', o: { layout: 'top', homeGrid: 'single', frame: 'wide' } },
   { n: 'Bottom bar', d: 'Classic phone-style menu at the bottom', k: 'bottom', o: { layout: 'bottom', homeGrid: 'single' } },
   { n: 'Dense', d: 'Tighter spacing, more on screen', k: 'dense', o: { density: 'compact', cardStyle: 'outline' } },
   { n: 'Airy', d: 'Roomier spacing and soft shadows', k: 'airy', o: { density: 'spacious', cardStyle: 'shadow' } },
@@ -5020,9 +4987,11 @@ function setupsBlock() {
     ${apSeg('setup-grp', grp, SETUP_GRPS)}${body}
     <p class="hint" style="margin-top:16px">Setups only change colors, font, style, background and effects. They never move your menu or Home layout; pick that in the Layout tab. Want to change just one thing? Use the other tabs above. Colors, Background, Layout, Style, Effects, Sounds and Home each change only their own part.</p>`;
 }
+/* a layout never changes the screen size you picked: if you are already on Wide or Full screen, that stays */
+function layoutOpts(v) { const o = { ...v.o }, L = state.settings.look || {}; if (o.frame && (L.frame === 'wide' || L.frame === 'full')) delete o.frame; return o; }
 function variantsBlock() {
   const L = state.settings.look, D = LOOK_DEFAULTS();
-  const tiles = VARIANTS.slice(0, 5).map((v, i) => { const on = Object.entries(v.o).every(([k, val]) => String(L[k] === undefined ? D[k] : L[k]) === String(val)); return `<button type="button" class="st-t ${on ? 'on' : ''}" data-act="look-variant" data-i="${i}"><span class="st-pv wf">${wire(v.k)}</span><strong class="st-n">${v.n}</strong><em class="st-d">${v.d}</em></button>`; }).join('');
+  const tiles = VARIANTS.slice(0, 5).map((v, i) => { const on = Object.entries(layoutOpts(v)).every(([k, val]) => String(L[k] === undefined ? D[k] : L[k]) === String(val)); return `<button type="button" class="st-t ${on ? 'on' : ''}" data-act="look-variant" data-i="${i}"><span class="st-pv wf">${wire(v.k)}</span><strong class="st-n">${v.n}</strong><em class="st-d">${v.d}</em></button>`; }).join('');
   return `<div class="setups">${tiles}</div>`;
 }
 const LOOK_TABS = [['start', '🎁 Quick start'], ['colors', '🎨 Colors'], ['bg', '🖼 Background'], ['layout', '🧭 Layout'], ['shape', '🔲 Style'], ['fx', '✨ Effects'], ['sound', '🔊 Sounds'], ['home', '🏠 Home']];
@@ -7301,7 +7270,7 @@ const ACT = {
   'snd-pack': el => { state.settings.look.sPack = el.dataset.v; save(); render(); playSound('ok', true); },
   'theme-grp': el => { ui.themeGrp = el.dataset.v; render(); },
   'setup-grp': el => { ui.setupGrp = el.dataset.v; render(); },
-  'look-variant': el => { const v = VARIANTS[Number(el.dataset.i)]; if (!v) return; Object.assign(state.settings.look, v.o); applyTheme(state.settings.theme, state.settings.font); save(); render(); toast(v.n + ' layout applied'); },
+  'look-variant': el => { const v = VARIANTS[Number(el.dataset.i)]; if (!v) return; Object.assign(state.settings.look, layoutOpts(v)); applyTheme(state.settings.theme, state.settings.font); save(); render(); toast(v.n + ' layout applied'); },
   'bg-grp': el => { ui.bgGrp = el.dataset.v; render(); },
   'bg-pick': el => { const U = window.LofiUI || {}, t = el.dataset.t, v = el.dataset.v; ACT.look({ dataset: { k: 'bgStyle', v: t === 'style' ? v : 'solid' } }); if (t === 'lofi' && U.setBg) U.setBg(v); if (t === 'live' && U.setScene) U.setScene(v); },
   theme: el => { const L = state.settings.look; L.accent = ''; L.bg = ''; L.card = ''; state.settings.theme = el.dataset.k; applyTheme(el.dataset.k, state.settings.font); save(); render(); },
