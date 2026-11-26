@@ -15196,7 +15196,44 @@ function tick() {
 }
 setInterval(tick, 15000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); }); window.addEventListener('focus', tick);
-try { if ('serviceWorker' in navigator && /^https:|^http:\/\/localhost/.test(location.href)) navigator.serviceWorker.register('sw.js').catch(() => { }); } catch (e) { }
+/* ---- auto-update: keeps open tabs / installed desktop apps current. Never needs editing. ---- */
+try {
+  if ('serviceWorker' in navigator && /^https:|^http:\/\/localhost/.test(location.href)) {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+      const chk = () => { try { reg.update(); } catch (e) { } };
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) chk(); });
+      setInterval(chk, 30 * 60 * 1000);
+    }).catch(() => { });
+  }
+  (function () {
+    let base = null, shown = false, last = 0;
+    const sig = async () => {
+      const r = await fetch(location.pathname + (location.search || ''), { cache: 'no-cache' });
+      if (!r.ok) return null;
+      const t = await r.text(); let h = 5381;
+      for (let i = 0; i < t.length; i += 7) h = ((h << 5) + h + t.charCodeAt(i)) | 0;
+      return t.length + ':' + h;
+    };
+    const banner = () => {
+      if (shown) return; shown = true;
+      const d = document.createElement('div');
+      d.setAttribute('role', 'status');
+      d.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:99999;background:#2d2d2d;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.3);font:600 13px system-ui,sans-serif;display:flex;gap:12px;align-items:center;max-width:92vw';
+      d.innerHTML = '<span>A new version is ready</span><button style="background:#fff;color:#2d2d2d;border:0;border-radius:8px;padding:6px 12px;font:700 13px system-ui,sans-serif;cursor:pointer">Refresh</button><button aria-label="Dismiss" style="background:none;color:#fff;border:0;font-size:16px;cursor:pointer">×</button>';
+      const [go, x] = d.querySelectorAll('button');
+      go.onclick = () => location.reload();
+      x.onclick = () => d.remove();
+      document.body.appendChild(d);
+    };
+    const check = async () => {
+      if (Date.now() - last < 60000) return; last = Date.now();
+      try { const s = await sig(); if (!s) return; if (base === null) base = s; else if (s !== base) banner(); } catch (e) { }
+    };
+    window.addEventListener('load', () => { setTimeout(check, 1500); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+    setInterval(check, 10 * 60 * 1000);
+  })();
+} catch (e) { }
 
 /* ---------- screens ---------- */
 const VIEW = { tab: 'list', done: false };
