@@ -4736,6 +4736,8 @@ function dataBody() {
       <button class="btn btn-soft block" data-act="biz-text">${ic('file-text')} Copy my whole business as text (report)</button>
       <p class="hint" style="margin:-2px 0 4px">A readable list of everything: supplies, products, listings and orders, active, archived and sold. Different from "Copy ALL my data", which is for moving to another device.</p>
       <p class="eyebrow" style="margin-top:6px">Export spreadsheets (CSV)</p>
+      <div class="grid2">${optSel('xsort', EXPORT_SORTS, exportSort(), 'Order of exported rows')}${optSel('xmats', EXPORT_MATS, exportMats(), 'Supplies export')}</div>
+      <p class="hint" style="margin:-2px 0 4px">Order applies to every export. Supplies export: pick supplies only, components only, or both. Dates always read MM/DD/YYYY and SKU is the first column.</p>
       <div class="grid2">${EXPORT_KINDS.map(x => `<button class="btn btn-line btn-sm" data-act="export-csv" data-k="${x[0]}">${x[1]}</button>`).join('')}</div>
       <p class="eyebrow" style="margin-top:6px">Export as PDF</p>
       <div class="grid2">${EXPORT_KINDS.map(x => `<button class="btn btn-line btn-sm" data-act="export-pdf" data-k="${x[0]}">${ic('file-text')} ${x[1]}</button>`).join('')}</div>
@@ -6676,18 +6678,33 @@ function download(name, type, text) {
   const a = document.createElement('a'), url = URL.createObjectURL(new Blob([text], { type }));
   a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-const csvText = (head, rows) => '﻿' + [head].concat(rows).map(r => r.map(csvCell).join(',')).join('\r\n');
+/* exports: dates always read MM/DD/YYYY, SKU first, newest / highest SKU first by default */
+const usDate = v => { const m = typeof v === 'string' && /^(\d{4})-(\d{2})-(\d{2})$/.exec(v); return m ? m[2] + '/' + m[3] + '/' + m[1] : v; };
+const csvText = (head, rows) => '﻿' + [head].concat(rows).map(r => r.map(c => csvCell(usDate(c))).join(',')).join('\r\n');
+const EXPORT_SORTS = [['sku_d', 'Highest SKU to lowest'], ['sku_a', 'Lowest SKU to highest'], ['new', 'Newest to oldest'], ['old', 'Oldest to newest']];
+const EXPORT_MATS = [['both', 'Supplies and components'], ['supplies', 'Supplies only'], ['components', 'Components only']];
+const exportSort = () => EXPORT_SORTS.some(x => x[0] === state.settings.exportSort) ? state.settings.exportSort : 'sku_d';
+const exportMats = () => EXPORT_MATS.some(x => x[0] === state.settings.exportMats) ? state.settings.exportMats : 'both';
+function exportOrder(arr) {
+  const m = exportSort(), ix = new Map(arr.map((r, i) => [r, i])), hasSku = arr.some(r => r && r.sku);
+  const dk = r => String((r && (r.date || r.createdDate)) || ''), newest = (a, b) => dk(b).localeCompare(dk(a)) || ix.get(b) - ix.get(a), out = arr.slice();
+  if ((m === 'sku_d' || m === 'sku_a') && hasSku) out.sort((a, b) => (m === 'sku_d' ? skuDesc(a.sku, b.sku) : skuCmp(a.sku, b.sku)) || ix.get(b) - ix.get(a));
+  else if (m === 'old') out.sort((a, b) => newest(b, a));
+  else out.sort(newest);
+  return out;
+}
+const exportMatsFilter = arr => { const m = exportMats(); return m === 'both' ? arr : arr.filter(x => (x.kind === 'component') === (m === 'components')); };
 function exportCsv(kind) {
-  const S = state, by = (a, k) => a.slice().sort((x, y) => String(x[k] || '').localeCompare(String(y[k] || '')));
+  const S = state, by = a => exportOrder(a);
   const sup = id => supplierName(id), M = S.settings.metrics;
   const T = {
     orders: [['Order', 'Date', 'Customer', 'Platform', 'Status', 'Items', 'Sales', 'Discount', 'Shipping charged', 'Sales tax', 'Refunded', 'Fees', 'Postage', 'Cost of goods', 'Reimbursed to you', 'Profit after cost of goods', 'Money made before cost of goods', 'Estimated profit after cost of goods', 'Final amount entered', 'Bulk', 'PO', 'Deposit', 'Paid with', 'Carrier', 'Tracking', 'Archived'], by(S.orders, 'date').map(o => { const c = oc(o); return [orderNo(o), o.date, o.customer, o.channel, o.status, o.items.map(i => `${i.qty}x ${i.name}`).join('; '), r2(c.sub), r2(c.disc), r2(num(o.shipCharged)), r2(num(o.tax)), r2(c.refund), r2(c.fees), r2(c.post), r2(c.cogs), r2(c.reimb), r2(c.profit), r2(c.made), r2(c.calcProfit), c.hasFinal ? 'yes' : '', o.bulk ? 'yes' : '', o.po || '', r2(num(o.deposit)), o.payment || '', o.carrier || '', o.tracking, o.archived ? 'yes' : '']; })],
     expenses: [['Date', 'Description', 'Category', 'Vendor', 'Amount', 'Deductible', 'Deductible %', 'Equipment years', 'Notes', 'Personal'], by(S.expenses, 'date').map(e => [e.date, e.desc, e.cat, e.vendor || '', r2(num(e.amount)), e.deductible === false ? 'no' : 'yes', dedPct(e), num(e.life) || '', e.notes || '', e.personal ? 'yes' : 'no'])],
     income: [['Date', 'Source', 'Amount', 'Personal'], by(S.income, 'date').map(e => [e.date, e.desc, r2(num(e.amount)), e.personal ? 'yes' : 'no'])],
-    products: [['Name', 'SKU', 'Barcode', 'Category', 'Price', 'Cost per unit', 'Estimated value per unit', 'In stock', 'Makes (batch)', 'Low alert', 'Location', 'Supplier', 'Tags', 'Notes', 'Archived'], S.products.map(p => [p.name, p.sku, p.barcode || '', p.category, p.price, r2(unitCost(p)), hasEst(p) ? p.valEst : '', p.qty, p.batch || 1, p.low, p.location || '', sup(p.supplierId), p.tags || '', p.notes || '', p.archived ? 'yes' : ''])],
-    supplies: [['SKU', 'Name', 'Unit', 'In total', 'Used in products', 'Available', 'Cost per unit', 'Estimated value per unit', 'Low alert', 'Category', 'Location', 'Supplier', 'Notes', 'Archived'], S.supplies.map(p => [p.sku || '', p.name, p.unit, p.qty, r2(allocated(p.id)), r2(avail(p)), p.cost, hasEst(p) ? p.valEst : '', p.low, p.category, p.location || '', sup(p.supplierId), p.notes || '', p.archived ? 'yes' : ''])],
-    listings: [['Title', 'Description', 'SKU', 'Platforms', 'Status', 'Price', 'Price now', 'Discounts', 'Listed', 'Renews', 'Age (days)', 'Bundle (extra products)'].concat(M.map(m => 'Total ' + m), ['Archived']), S.listings.map(l => { const t = listingTotals(l); return [l.title, l.description || '', l.sku, listingChans(l).join('; '), l.status, l.price, r2(listingPrice(l)), (l.discounts || []).map(d => discText(d)).join(' | '), l.listedDate, l.relistDate, listingAge(l) ?? '', (l.bundle || []).map(id => (state.products.find(p => p.id === id) || {}).name || '').filter(Boolean).join('; ')].concat(M.map(m => t[m] ?? ''), [l.archived ? 'yes' : '']); })],
-    snaps: [['Listing', 'Platform', 'Date', 'Time', 'Note'].concat(M), S.listings.flatMap(l => (l.snaps || []).slice().sort((a, b) => snapKey(a).localeCompare(snapKey(b))).map(s => [l.title, s.channel, s.date, s.time, s.note || ''].concat(M.map(m => (s.m || {})[m] ?? ''))))],
+    products: [['SKU', 'Name', 'Barcode', 'Category', 'Price', 'Cost per unit', 'Estimated value per unit', 'In stock', 'Makes (batch)', 'Low alert', 'Location', 'Supplier', 'Tags', 'Notes', 'Archived'], exportOrder(S.products).map(p => [p.sku || '', p.name, p.barcode || '', p.category, p.price, r2(unitCost(p)), hasEst(p) ? p.valEst : '', p.qty, p.batch || 1, p.low, p.location || '', sup(p.supplierId), p.tags || '', p.notes || '', p.archived ? 'yes' : ''])],
+    supplies: [['SKU', 'Name', 'Type', 'Unit', 'In total', 'Used in products', 'Available', 'Cost per unit', 'Estimated value per unit', 'Low alert', 'Category', 'Location', 'Supplier', 'Notes', 'Archived'], exportMatsFilter(exportOrder(S.supplies)).map(p => [p.sku || '', p.name, p.kind === 'component' ? 'Component' : 'Supply', p.unit, p.qty, r2(allocated(p.id)), r2(avail(p)), p.cost, hasEst(p) ? p.valEst : '', p.low, p.category, p.location || '', sup(p.supplierId), p.notes || '', p.archived ? 'yes' : ''])],
+    listings: [['SKU', 'Title', 'Description', 'Platforms', 'Status', 'Price', 'Price now', 'Discounts', 'Listed', 'Renews', 'Age (days)', 'Bundle (extra products)'].concat(M.map(m => 'Total ' + m), ['Archived']), exportOrder(S.listings).map(l => { const t = listingTotals(l); return [l.sku || '', l.title, l.description || '', listingChans(l).join('; '), l.status, l.price, r2(listingPrice(l)), (l.discounts || []).map(d => discText(d)).join(' | '), l.listedDate, l.relistDate, listingAge(l) ?? '', (l.bundle || []).map(id => (state.products.find(p => p.id === id) || {}).name || '').filter(Boolean).join('; ')].concat(M.map(m => t[m] ?? ''), [l.archived ? 'yes' : '']); })],
+    snaps: [['SKU', 'Listing', 'Platform', 'Date', 'Time', 'Note'].concat(M), exportOrder(S.listings).flatMap(l => (l.snaps || []).slice().sort((a, b) => exportSort() === 'old' ? snapKey(a).localeCompare(snapKey(b)) : snapKey(b).localeCompare(snapKey(a))).map(s => [l.sku || '', l.title, s.channel, s.date, s.time, s.note || ''].concat(M.map(m => (s.m || {})[m] ?? ''))))],
     customers: [['Name', 'Email', 'Phone', 'Address', 'Orders', 'Total spent', 'Last order', 'Tags', 'Notes'], S.customers.map(c => { const s = customerStats(c.name); return [c.name, c.email, c.phone, c.address, s.orders, r2(s.spent), s.last, c.tags || '', c.notes || '']; })],
     mileage: [['Date', 'Purpose', 'From', 'To', 'Distance (' + S.settings.mileUnit + ')', 'Deduction'], by(S.mileage, 'date').map(m => [m.date, m.purpose, m.from, m.to, m.miles, r2(num(m.miles) * mileRateOn(m.date))])],
   };
@@ -6701,7 +6718,7 @@ function exportPdf(kind) {
   const nm = n => n + (n === 1 ? ' item' : ' items'), sum = (a, f) => a.reduce((t, r) => t + num(f(r)), 0);
   let t, land = true;
   if (kind === 'orders' || kind === 'expenses' || kind === 'income') t = xpTable(kind, byDate(S[kind]));
-  else if (kind === 'products' || kind === 'supplies' || kind === 'listings') t = xpTable(kind, S[kind]);
+  else if (kind === 'products' || kind === 'supplies' || kind === 'listings') t = xpTable(kind, kind === 'supplies' ? exportMatsFilter(exportOrder(S.supplies)) : exportOrder(S[kind]));
   else if (kind === 'customers') {
     const rows = S.customers.map(c => ({ c, s: customerStats(c.name) }));
     t = { note: nm(rows.length) + '  |  ' + money(sum(rows, r => r.s.spent)) + ' total spent', cols: [{ h: 'Name', w: 2 }, { h: 'Email', w: 2.4 }, { h: 'Phone', w: 1.4 }, { h: 'Orders', w: .8, a: 'r' }, { h: 'Total spent', w: 1.1, a: 'r' }, { h: 'Last order', w: 1.1 }, { h: 'Tags', w: 1.2 }, { h: 'Address / notes', w: 3 }], rows: rows.map(r => [r.c.name || '', r.c.email || '', r.c.phone || '', String(r.s.orders), money(r.s.spent), pdfDate(r.s.last), r.c.tags || '', [r.c.address, r.c.notes].filter(Boolean).join('  |  ')]) };
@@ -6897,7 +6914,7 @@ function xpText(sets, scope) {
   return out.join('\n');
 }
 function xpCsv(k, scope) {
-  const ids = xpIdMap(), rows = xpRecords(k, scope), cols = [...new Set(rows.flatMap(r => Object.keys(r)))].filter(c => c !== 'id');
+  const ids = xpIdMap(), rows = exportOrder(xpRecords(k, scope)), cols = [...new Set(rows.flatMap(r => Object.keys(r)))].filter(c => c !== 'id').sort((a, b) => (b === 'sku') - (a === 'sku'));
   return csvText(cols.map(xpLabel), rows.map(r => cols.map(c => xpVal(r[c], ids, 0))));
 }
 function xpOut(text, title) {
@@ -8872,6 +8889,8 @@ document.addEventListener('change', async e => {
     state.prefs.period = t.value; save(); render(); return;
   }
   if (d.bind === 'valbasis') { state.settings.valueBasis = t.value === 'est' ? 'est' : 'cost'; save(); render(); return; }
+  if (d.bind === 'xsort') { state.settings.exportSort = t.value; save(); return; }
+  if (d.bind === 'xmats') { state.settings.exportMats = t.value; save(); return; }
   if (d.bind === 'cat') { ui.cat = t.value; ui.limit = 60; refreshList(); return; }
   if (d.bind === 'ch') { ui.ch = t.value; ui.limit = 60; refreshList(); return; }
   if (d.bind === 'sort') { ui.sort = t.value; rememberSort(sortKey(), t.value); refreshList(); return; }
