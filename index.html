@@ -3284,14 +3284,16 @@ function salesList() {
     ${l.length ? lkWrap(invLook('sales').style, shown.map(o => isCardLk(invLook('sales').style) ? orderCard(o) : lkOrder(o, invLook('sales').style)).join('')) : empty('search', 'No matches', ui.arch ? 'No archived sales.' : 'Try a different search or filter.')}
     ${l.length > shown.length ? `<button class="btn btn-line block btn-sm" data-act="more-rows">Show more (${l.length - shown.length})</button>` : ''}${selBar()}`;
 }
+const SALES_SORTS = [['newest', 'Newest first'], ['oldest', 'Oldest first'], ['high', 'Highest value'], ['low', 'Lowest value'], ['ship', 'Ship-by date'], ['profit_l', 'Lowest profit first'], ['profit_h', 'Highest profit first'], ['sku_d', 'Order SKU high to low'], ['sku', 'Order SKU low to high']];
 V.sales = () => {
   const K = invLook('sales'), search = searchBox('Search customer, item, order #, PO…');
   const tools = `${chips([['all', 'All'], ['open', 'Open'], ['low', 'Low profit']].concat(ALL_STATUSES.includes(ui.filter) ? [[ui.filter, ui.filter]] : []).concat(GROUPS.map(g => ['g:' + g[0], g[1]])), ui.filter)}
-  <div class="grid2">${optSel('ch', [['', 'All channels']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Channel')}${optSel('sort', [['newest', 'Newest first'], ['oldest', 'Oldest first'], ['high', 'Highest value'], ['low', 'Lowest value'], ['ship', 'Ship-by date'], ['profit_l', 'Lowest profit first'], ['profit_h', 'Highest profit first'], ['sku_d', 'Order SKU high to low'], ['sku', 'Order SKU low to high']], ui.sort || 'sku_d', 'Sort')}</div>
+  <div class="grid2">${optSel('ch', [['', 'All channels']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Channel')}${optSel('sort', SALES_SORTS, ui.sort || 'sku_d', 'Sort')}</div>
   <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="add-bulk">${ic('layers')} Bulk order</button><button class="btn btn-line btn-sm grow" data-act="bell">${ic('inbox')} Order alerts</button></div>`;
   const glance = K.glance === 'off' ? '' : lkSlim('sales');
   const body = K.tools === 'show' ? `${glance}${search}${tools}` : `${glance}${search}${ui.salesTools ? `<div class="stack-sm">${tools}</div>` : ''}`;
   return `<div class="page stack-sm fade">
+  <button type="button" class="btn btn-primary btn-sm block" data-act="sell-pick">${ic('store')} Sell from listings${sellableCount() ? ' (' + sellableCount() + ' available)' : ''}</button>
   ${invBar('sales')}
   ${body}
   <div id="list" class="stack-sm" style="margin-top:4px">${salesList()}</div></div>`;
@@ -3711,7 +3713,7 @@ const invBar = pg => {
   const L = invLook(pg), tk = pg !== 'home' && L.tools === 'tuck', sl = pg === 'sales', open = sl ? ui.salesTools : ui.invTools;
   const n = (ui.filter && ui.filter !== 'all' ? 1 : 0) + (ui.cat && !sl ? 1 : 0) + (ui.ch ? 1 : 0);
   if (!tk) return '';
-  const so = pg === 'listings' ? LISTING_SORTS : (pg === 'products' || pg === 'materials') ? STOCK_SORTS : null;   /* sort stays in sight even when filters are tucked away */
+  const so = pg === 'sales' ? SALES_SORTS : pg === 'listings' ? LISTING_SORTS : (pg === 'products' || pg === 'materials') ? STOCK_SORTS : null;   /* sort stays in sight even when filters are tucked away */
   return `<div class="row" style="gap:8px">${tk ? `<button type="button" class="btn ${open ? 'btn-primary' : 'btn-line'} btn-sm grow" data-act="lk-tools" data-pg="${pg}">${ic('list-checks')} Filters${n ? ' (' + n + ')' : ''}</button>` : ''}${so ? `<div style="flex:1;min-width:0">${optSel('sort', so, ui.sort || 'sku_d', 'Sort')}</div>` : ''}</div>`;
 };
 const LK_ROWS = ['list', 'open', 'bubbles', 'zebra', 'compact', 'minimal'];
@@ -4464,7 +4466,7 @@ V.more = () => {
       ${row('receipt', 'Bills & invoices', billsLine(), 'bills')}
       ${row('line-chart', 'Cash flow forecast', 'Will your money cover what is coming?', 'forecast')}
       ${row('truck', 'Orders & deliveries', 'What you bought from suppliers: track bought, shipped, in transit, delivered', 'purchases')}
-      ${row('file-text', 'Business forms', 'Order, pickup, fulfilled, restock, expense and daily log forms. Print or save as PDF', 'bf')}
+      ${row('file-text', 'Business forms', 'Order, pickup, restock, expense and daily log forms. See which orders need one, save to folders, edit any time', 'bf')}
       ${row('printer', 'Print labels', 'Item number labels for 4x6 thermal or label sheets: pick items, a template, what shows and layout', 'printlabels')}
       ${row('camera', 'Item numbers & lookup', 'A number for every item, type it to see its page, receive and remove stock', 'barcodes')}
       ${row('users', 'Customers', `${nc} saved · repeat buyers and lifetime value`, 'customers')}
@@ -5248,7 +5250,7 @@ FORMS.restock = (f, fd, id) => {
 
 /* ---------- sale / order ---------- */
 const listingOpts = (pid, sel, channel) => {
-  const ls = state.listings.filter(l => listingProducts(l).includes(pid) && (active(l) || l.id === sel));
+  const ls = state.listings.filter(l => listingProducts(l).includes(pid) && ((active(l) && l.status !== 'Sold' && l.status !== 'Expired' && !listingReleased(l)) || l.id === sel));
   return `<option value="">${ls.length ? 'Which listing sold? (optional)' : 'No listing'}</option>` + ls.map(l => `<option value="${l.id}" ${l.id === sel ? 'selected' : ''}>${esc(l.title)} · ${esc(listingChans(l).join('/') || 'no platform')}</option>`).join('');
 };
 /* Price for a sale line: a volume tier wins if one applies; otherwise the price of the listing that sold (with its live discount), then the product price. */
@@ -5266,7 +5268,72 @@ const listingLinePrice = (l, p) => {
   const tot = sum(ps, x => num(x.price));
   return r2(tot > 0 ? lp * num(p.price) / tot : lp / ps.length);
 };
-const pickListing = (pid, channel) => { const ls = state.listings.filter(l => listingProducts(l).includes(pid) && active(l) && l.status !== 'Sold'); return (ls.find(l => listingChans(l).includes(channel) && l.status === 'Active') || ls.find(l => l.status === 'Active') || ls[0] || {}).id || ''; };
+const pickListing = (pid, channel) => { const ls = state.listings.filter(l => listingProducts(l).includes(pid) && active(l) && l.status !== 'Sold' && l.status !== 'Expired'); return (ls.find(l => listingChans(l).includes(channel) && l.status === 'Active') || ls.find(l => l.status === 'Active') || ls[0] || {}).id || ''; };
+
+/* ===== Selling from LISTINGS: only listings that can really be sold (not sold, expired, archived or out of stock) ===== */
+const listingSellable = l => {
+  if (!l || l.archived || l.status === 'Sold' || l.status === 'Expired' || listingReleased(l)) return false;
+  const ids = listingProducts(l); if (!ids.length) return false;
+  return ids.every(id => { const p = state.products.find(x => x.id === id); return p && !p.archived && num(p.qty) > 0; });
+};
+const SELL_SORTS = [['sku_d', 'SKU high to low'], ['sku', 'SKU low to high'], ['name', 'Name A to Z'], ['price_l', 'Price low to high'], ['price_h', 'Price high to low'], ['newest', 'Newest listed'], ['oldest', 'Oldest listed'], ['stock_h', 'Most in stock'], ['stock_l', 'Fewest in stock']];
+const sellableCount = () => state.listings.filter(listingSellable).length;
+/* Multi-select list of sellable listings with search, platform / status filters and sorting. Resolves to ['L|listingId', 'P|productId', ...] or null. */
+async function pickListings(title, single) {
+  const ls = state.listings.filter(listingSellable), lids = new Set(ls.flatMap(listingProducts));
+  const loose = state.products.filter(p => !p.archived && num(p.qty) > 0 && !lids.has(p.id) && !state.listings.some(l => !l.archived && listingProducts(l).includes(p.id) && !listingReleased(l) && l.status !== 'Expired'));
+  const chans = [...new Set(ls.flatMap(listingChans))].sort(), stats = [...new Set(ls.map(l => l.status))];
+  if (!ls.length && !loose.length) { toast('Nothing to sell right now: every listing is sold, archived or out of stock'); return null; }
+  const rowL = l => { const ps = listingProdObjs(l), stock = Math.min(...ps.map(p => num(p.qty))), ch = listingChans(l);
+    return `<label class="pick" data-k="L" data-t="${esc(lc([l.title, l.sku, ch.join(' '), l.status, l.tags, listingProductText(l)].join(' ')))}" data-ch="${esc(ch.join('|'))}" data-st="${esc(l.status)}" data-sku="${esc(l.sku || '')}" data-nm="${esc(l.title || '')}" data-pr="${listingPrice(l)}" data-ld="${esc(l.listedDate || '')}" data-stock="${stock}"><input type="${single ? 'radio' : 'checkbox'}" class="chk" name="pick" value="L|${l.id}"><span class="grow" style="min-width:0"><span class="trunc b" style="display:block">${esc(l.title || 'Untitled listing')}</span><small class="trunc" style="display:block">${esc([l.sku || 'No SKU', ch.join(', ') || 'No platform', l.status].join(' · '))}</small><small class="trunc" style="display:block">${ps.length > 1 ? 'Bundle: ' : 'Product: '}${esc(ps.map(p => p.name).join(' + '))}</small></span><span style="text-align:right;flex:none"><b class="num">${money(listingPrice(l))}</b><br><small class="num">${stock} in stock</small></span></label>`; };
+  const rowP = p => `<label class="pick" data-k="P" data-t="${esc(lc([p.name, p.sku, 'no listing'].join(' ')))}" data-ch="" data-st="none" data-sku="${esc(p.sku || '')}" data-nm="${esc(p.name)}" data-pr="${num(p.price)}" data-ld="" data-stock="${num(p.qty)}" style="display:none"><input type="${single ? 'radio' : 'checkbox'}" class="chk" name="pick" value="P|${p.id}"><span class="grow" style="min-width:0"><span class="trunc b" style="display:block">${esc(p.name)}</span><small class="trunc" style="display:block">${esc((p.sku || 'No SKU') + ' · no listing')}</small></span><span style="text-align:right;flex:none"><b class="num">${money(num(p.price))}</b><br><small class="num">${num(p.qty)} in stock</small></span></label>`;
+  const v = await dialog(`<form data-dlgform><div class="sheet-head"><h3>${esc(title)}</h3></div>
+    <p class="hint" style="margin:0 0 8px">Only listings you can sell right now. Sold, expired, archived and sold-out ones are hidden. ${single ? 'Tap the one you sold.' : 'Tick as many as you like.'}</p>
+    <div class="search" style="margin-bottom:8px">${ic('search')}<input class="input sm" data-ls="q" placeholder="Search listing, SKU, product, platform…" aria-label="Search" autocomplete="off"></div>
+    <div class="grid2" style="margin-bottom:8px"><select class="select sm" data-ls="ch" aria-label="Platform"><option value="">All platforms</option>${chans.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select><select class="select sm" data-ls="st" aria-label="Status"><option value="">All statuses</option>${stats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select></div>
+    <select class="select sm" data-ls="sort" aria-label="Sort" style="margin-bottom:8px">${SELL_SORTS.map(o => `<option value="${o[0]}">Sort: ${o[1]}</option>`).join('')}</select>
+    <div class="row between" style="margin-bottom:6px"><span class="xs sub" data-ls="cnt"></span>${single ? '' : '<span class="row" style="gap:14px"><button type="button" class="link" data-ls="all">All shown</button><button type="button" class="link" data-ls="none">None</button></span>'}</div>
+    ${loose.length ? `<label class="row b xs" style="margin-bottom:8px"><input type="checkbox" class="chk" data-ls="loose"> Also show ${loose.length} in-stock product${loose.length === 1 ? '' : 's'} with no listing</label>` : ''}
+    <div class="scrollbox" data-ls="box" style="margin-bottom:12px;max-height:min(46vh,380px)">${ls.map(rowL).join('')}${loose.map(rowP).join('')}<p class="hint" data-ls="none-msg" style="padding:12px 0;margin:0" hidden>No listings match. Try another word or clear a filter.</p></div>
+    <div class="sheet-foot" style="padding-top:0"><button type="button" class="btn btn-line" data-dlg="no">Cancel</button><button class="btn btn-primary" data-ls="go" disabled>Add</button></div></form>`, d => {
+    const q = id => d.querySelector(`[data-ls="${id}"]`), box = q('box'), rows = [...box.querySelectorAll('.pick')];
+    const apply = () => {
+      const terms = lc(q('q').value).split(/\s+/).filter(Boolean), ch = q('ch').value, st = q('st').value, lo = q('loose') && q('loose').checked; let n = 0;
+      rows.forEach(r => { const o = r.dataset, ok = (o.k === 'L' || lo) && terms.every(w => o.t.includes(w)) && (!ch || o.ch.split('|').includes(ch)) && (!st || o.st === st); r.style.display = ok ? '' : 'none'; if (ok) n++; });
+      const k = q('sort').value, num_ = x => parseFloat(x) || 0;
+      rows.sort((a, b) => { const x = a.dataset, y = b.dataset; return k === 'sku' ? skuCmp(x.sku, y.sku) : k === 'name' ? x.nm.localeCompare(y.nm) : k === 'price_l' ? num_(x.pr) - num_(y.pr) : k === 'price_h' ? num_(y.pr) - num_(x.pr) : k === 'newest' ? (y.ld || '').localeCompare(x.ld || '') : k === 'oldest' ? (x.ld || '9999').localeCompare(y.ld || '9999') : k === 'stock_h' ? num_(y.stock) - num_(x.stock) : k === 'stock_l' ? num_(x.stock) - num_(y.stock) : skuDesc(x.sku, y.sku); }).forEach(r => box.insertBefore(r, q('none-msg')));
+      q('none-msg').hidden = n > 0; const sel = rows.filter(r => r.querySelector('input').checked).length;
+      q('cnt').textContent = n + ' shown' + (sel ? ' · ' + sel + ' selected' : ''); const go = q('go'); go.disabled = !sel; go.textContent = single ? 'Choose' : (sel ? 'Add ' + sel : 'Add');
+    };
+    d.addEventListener('input', e => { if (e.target.dataset && e.target.dataset.ls) apply(); });
+    d.addEventListener('change', e => { if (e.target.closest && e.target.closest('[data-dlgform]')) apply(); });
+    d.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-ls=all],[data-ls=none]'); if (!b) return; rows.filter(r => r.style.display !== 'none').forEach(r => { r.querySelector('input').checked = b.dataset.ls === 'all'; }); apply(); });
+    apply();
+  });
+  return v && v.fd ? v.fd.getAll('pick') : null;
+}
+/* pick listings and add them to the sale form as lines (empty rows are dropped first) */
+async function addListingsToOrder(f) {
+  const picks = await pickListings('Sell from listings');
+  if (!picks || !picks.length || !f || !f.isConnected) return;
+  const r = saleItemsFromPicks(picks), wasEmpty = !$$('.line', f).some(row => $('[name=lp]', row).value || tidy($('[name=ln]', row).value));
+  $$('.line', f).forEach(row => { if (!$('[name=lp]', row).value && !tidy($('[name=ln]', row).value)) row.remove(); });
+  r.items.forEach(it => $('#lines', f).insertAdjacentHTML('beforeend', lineRow(it)));
+  if (wasEmpty) { const ch = $('[name=channel]', f); if (ch && r.ch && [...ch.options].some(o => o.value === r.ch)) ch.value = r.ch; }
+  formLive(f); if (r.bundle) toast('Bundle: the listing price is split across its items. Check each one');
+}
+/* turn picked listings (and any loose products) into sale lines */
+function saleItemsFromPicks(tokens) {
+  const items = []; let bundle = false, ch = '';
+  const chans = activeChans().map(c => c.name);
+  tokens.forEach(t => {
+    const [k, id] = String(t).split('|');
+    if (k === 'L') { const l = find('listings', id); if (!l) return; const ps = listingProdObjs(l).filter(p => !p.archived); if (ps.length > 1) bundle = true; if (!ch) ch = listingChans(l).find(c => chans.includes(c)) || '';
+      ps.forEach(p => items.push({ productId: p.id, name: p.name, qty: 1, price: linePrice(p, l.id, 1), cost: r2(unitCost(p)), listingId: l.id })); }
+    else { const p = find('products', id); if (p) items.push({ productId: p.id, name: p.name, qty: 1, price: linePrice(p, '', 1), cost: r2(unitCost(p)), listingId: '' }); }
+  });
+  return { items, bundle, ch };
+}
 /* Supplies used on a sale */
 const supOpts = sel => `<option value="">Pick a supply…</option>` + state.supplies.filter(x => x.kind !== 'component' && (active(x) || x.id === sel)).sort((a, b) => String(a.name).localeCompare(String(b.name))).map(x => `<option value="${x.id}" ${x.id === sel ? 'selected' : ''}>${esc((x.sku ? x.sku + ' · ' : '') + x.name)} (${avail(x)}${x.unit ? ' ' + esc(x.unit) : ''} free)</option>`).join('');
 const supRow = u => `<div class="sup-line" style="margin-bottom:10px"><div class="row" style="margin-bottom:6px"><select class="select sm" name="su" aria-label="Supply used">${supOpts(u.supplyId || '')}</select><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove supply">${ic('x')}</button></div>
@@ -5275,12 +5342,13 @@ const supRow = u => `<div class="sup-line" style="margin-bottom:10px"><div class
 const linePickOpts = (selPid, selLid) => {
   const o = (v, t, sel) => `<option value="${esc(v)}" ${sel ? 'selected' : ''}>${esc(t)}</option>`;
   const sk = x => x.sku ? x.sku + ' · ' : 'no SKU · ';
-  const lsts = state.listings.filter(x => active(x) || x.id === selLid).sort((a, b) => skuDesc(a.sku, b.sku));
+  const lsts = state.listings.filter(x => listingSellable(x) || x.id === selLid).sort((a, b) => skuDesc(a.sku, b.sku));
   const inList = new Set(); let lo = '', hit = false;
   lsts.forEach(x => listingProducts(x).forEach(pid => {
     const p = state.products.find(y => y.id === pid); if (!p) return;
-    if (active(x)) inList.add(pid);
+    if (listingSellable(x)) inList.add(pid);
     const sel = !!selLid && selLid === x.id && selPid === pid; if (sel) hit = true;
+    if (!sel && num(p.qty) <= 0) return;
     lo += o(`L|${x.id}|${pid}`, `Listing: ${sk(x)}${x.title}  |  Product: ${sk(p)}${p.name} (${p.qty} in stock)`, sel);
   }));
   let ro = '';
@@ -5289,12 +5357,12 @@ const linePickOpts = (selPid, selLid) => {
     state.orders.filter(active).slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0) || (b.date || '').localeCompare(a.date || '')).forEach(od => (od.items || []).forEach(it => {
       if (seen.size >= 5 || !it.productId) return;
       const p = state.products.find(y => y.id === it.productId), x = it.listingId && state.listings.find(y => y.id === it.listingId);
-      if (!p || p.archived || (it.listingId && (!x || x.archived))) return;
+      if (!p || p.archived || num(p.qty) <= 0 || (it.listingId && (!x || !listingSellable(x)))) return;
       const key = (x ? x.id : '') + '|' + p.id; if (seen.has(key)) return; seen.add(key);
       ro += o(x ? `L|${x.id}|${p.id}` : `P||${p.id}`, (x ? `Listing: ${sk(x)}${x.title}  |  ` : 'No listing  |  ') + `Product: ${sk(p)}${p.name} (${p.qty} in stock)`, false);
     }));
   }
-  const prods = state.products.filter(x => (active(x) && !inList.has(x.id)) || (x.id === selPid && !selLid)).sort((a, b) => skuDesc(a.sku, b.sku));
+  const prods = state.products.filter(x => (active(x) && num(x.qty) > 0 && !inList.has(x.id)) || (x.id === selPid && !selLid)).sort((a, b) => skuDesc(a.sku, b.sku));
   let po = prods.map(x => { const sel = !selLid && selPid === x.id; if (sel) hit = true; return o(`P||${x.id}`, `No listing  |  Product: ${sk(x)}${x.name} (${x.qty} in stock)`, sel); }).join('');
   if (selPid && !hit) { const p = state.products.find(y => y.id === selPid), x = state.listings.find(y => y.id === selLid); if (p) po += o(selLid ? `L|${selLid}|${selPid}` : `P||${selPid}`, (x ? `Listing: ${sk(x)}${x.title}  |  ` : 'No listing  |  ') + `Product: ${sk(p)}${p.name}`, true); }
   return `<option value="">Custom item / service</option>` + (ro ? `<optgroup label="Recently sold">${ro}</optgroup>` : '') + (lo ? `<optgroup label="Sell from a listing">${lo}</optgroup>` : '') + (po ? `<optgroup label="Products with no listing">${po}</optgroup>` : '');
@@ -5309,13 +5377,19 @@ function lpFilter(sel, q) {
   sel.value = cur;
   const c = sel.closest('.line') && $('[data-lpcnt]', sel.closest('.line')); if (c) { c.hidden = !terms.length; c.textContent = n ? n + (n === 1 ? ' match. Open the list below to pick it.' : ' matches. Open the list below to pick one.') : 'No matches. Try another word or SKU.'; }
 }
-const lpInfoHtml = (p, lid) => { if (!p) return ''; const x = lid && state.listings.find(y => y.id === lid); const txt = (x ? `<b>Listing:</b> ${esc(x.title)} · SKU ${esc(x.sku || 'none')}<br>` : '') + `<b>Product:</b> ${esc(p.name)} · SKU ${esc(p.sku || 'none')}`; return txt; };
+const lpInfoHtml = (p, lid) => {
+  if (!p) return '<span class="sub">Nothing picked yet</span>';
+  const x = lid && state.listings.find(y => y.id === lid);
+  return (x ? `<span class="trunc b" style="display:block;font-size:14px">${esc(x.title)}</span><span class="xs sub" style="display:block">${esc([x.sku || 'No SKU', listingChans(x).join(', ') || 'No platform', x.status].filter(Boolean).join(' · '))}</span>` : '<span class="xs sub" style="display:block">No listing</span>')
+    + `<span class="xs" style="display:block;word-break:break-word">Product: ${esc(p.name)}${p.sku ? ' · ' + esc(p.sku) : ''} · ${num(p.qty)} in stock</span>`;
+};
 const lineRow = l => {
-  const p = l.productId && find('products', l.productId), custom = !p, free = l.free !== undefined ? !!l.free : !!(p && p.free);
-  return `<div class="line"><input class="input sm" data-lpfilter placeholder="Search listings or products by name or SKU…" aria-label="Search listings and products" autocomplete="off" style="margin-bottom:6px"><div class="hint" data-lpcnt style="margin:-2px 0 6px" hidden></div><div class="row" style="margin-bottom:8px"><select class="select sm" data-lpick aria-label="Pick the listing or product you sold">${linePickOpts(p ? p.id : '', l.listingId || '')}</select><select class="select sm" name="lp" style="display:none" tabindex="-1" aria-hidden="true"><option value="">Custom item / service</option>${state.products.filter(x => active(x) || (p && x.id === p.id)).map(x => `<option value="${x.id}" ${p && x.id === p.id ? 'selected' : ''}>${esc(pLabel(x))} (${x.qty} in stock)</option>`).join('')}</select><button type="button" class="icon-btn" data-act="row-del" aria-label="Remove item">${ic('x')}</button></div>
-    <input class="input sm" name="ln" placeholder="Item name" value="${esc(custom ? l.name : (p ? p.name : ''))}" ${custom ? '' : 'hidden'} style="margin-bottom:8px">
-    <select class="select sm" name="ll" style="margin-bottom:8px" ${p ? '' : 'hidden'}>${p ? listingOpts(p.id, l.listingId) : ''}</select>
-    <div class="hint" data-lpinfo style="margin:-2px 0 8px">${lpInfoHtml(p, l.listingId)}</div>
+  const p = l.productId && find('products', l.productId), custom = !p, showName = custom && !!(l.name || l.custom), free = l.free !== undefined ? !!l.free : !!(p && p.free);
+  const info = p ? lpInfoHtml(p, l.listingId) : (showName ? '<span class="xs sub">Custom item</span>' : '<span class="sub">Nothing picked yet</span>');
+  return `<div class="line"><div class="row" style="margin-bottom:8px;align-items:flex-start;gap:8px"><div class="grow" style="min-width:0" data-lpinfo>${info}</div>${showName ? '' : `<button type="button" class="btn btn-soft btn-sm" data-act="line-pick" style="flex:none">${p ? 'Change' : 'Choose listing'}</button>`}<button type="button" class="icon-btn" data-act="row-del" aria-label="Remove item">${ic('x')}</button></div>
+    <select name="lp" hidden tabindex="-1" aria-hidden="true"><option value="">Custom item / service</option>${state.products.filter(x => active(x) || (p && x.id === p.id)).map(x => `<option value="${x.id}" ${p && x.id === p.id ? 'selected' : ''}>${esc(pLabel(x))} (${x.qty} in stock)</option>`).join('')}</select>
+    <input class="input sm" name="ln" placeholder="Item name" value="${esc(custom ? l.name : (p ? p.name : ''))}" ${showName ? '' : 'hidden'} style="margin-bottom:8px">
+    <select name="ll" hidden tabindex="-1" aria-hidden="true">${p ? listingOpts(p.id, l.listingId) : ''}</select>
     <select class="select sm" name="lv" style="margin-bottom:8px" ${p && (p.variants || []).length ? '' : 'hidden'}>${p && (p.variants || []).length ? variantOpts(p, l) : ''}</select><input type="hidden" name="lsz" value="${esc(l.size || '')}"><input type="hidden" name="lcl" value="${esc(l.color || '')}">
     <input type="hidden" name="lr" value="${l.returned || 0}">
     <div class="grid3"><label>Qty<input class="input" type="number" step="1" min="1" name="lq" value="${l.qty ?? 1}"></label><label>Price each<input class="input" type="number" step="any" min="0" name="lc" value="${l.price ?? ''}" placeholder="0.00"></label><label>Cost per unit<input class="input" type="number" step="any" min="0" name="lk" value="${l.cost ?? ''}" placeholder="0.00"></label></div>
@@ -5325,7 +5399,7 @@ const lineRow = l => {
 const customerNames = () => [...new Set(state.customers.map(c => c.name).concat(state.orders.map(o => o.customer)).filter(Boolean))];
 OPEN.order = (id, pre = {}) => {
   const o = id ? find('orders', id) : null;
-  const d = o ? clone(o) : { acct: defaultAcct('orders'), date: today(), customer: pre.customer || '', channel: pre.channel || (state.settings.channels[0] || {}).name || '', items: pre.items && pre.items.length ? pre.items : [{ productId: '', name: '', qty: 1, price: '', cost: '' }], supplies: [], discount: '', bulk: !!pre.bulk, bulkPct: '', po: '', terms: pre.bulk ? 'Net 15' : '', deposit: '', shipCharged: '', tax: '', postage: '', fees: '', feesManual: false, finalProfit: '', status: 'Order Received', payment: '', carrier: '', shipBy: '', tracking: '', ref: '', notes: '', unpaid: !!pre.unpaid, invTerms: pre.unpaid ? 'Net 15' : '', invDue: '' };
+  const d = o ? clone(o) : { acct: defaultAcct('orders'), date: today(), customer: pre.customer || '', channel: pre.channel || (state.settings.channels[0] || {}).name || '', items: pre.items && pre.items.length ? pre.items : [], supplies: [], discount: '', bulk: !!pre.bulk, bulkPct: '', po: '', terms: pre.bulk ? 'Net 15' : '', deposit: '', shipCharged: '', tax: '', postage: '', fees: '', feesManual: false, finalProfit: '', status: 'Order Received', payment: '', carrier: '', shipBy: '', tracking: '', ref: '', notes: '', unpaid: !!pre.unpaid, invTerms: pre.unpaid ? 'Net 15' : '', invDue: '' };
   const chans = activeChans().map(c => c.name); if (d.channel && !chans.includes(d.channel)) chans.push(d.channel);
   openSheet(o ? 'Edit sale ' + orderNo(o) : (d.bulk ? 'New bulk order' : d.unpaid ? 'New invoice' : 'New sale'), formWrap('order', id, `
     ${fText('Sale SKU / order #', 'osku', d.sku || (o ? autoOrderNo(o.no) : nextOrderSku()), 'maxlength=\"30\" autocomplete=\"off\" placeholder=\"' + (o ? autoOrderNo(o.no) : nextOrderSku()) + '\"')}<p class=\"hint\" style=\"margin:-6px 0 10px\">Filled in automatically. Type over it to use your own. Clear it to go back to the automatic number.</p>
@@ -5336,7 +5410,7 @@ OPEN.order = (id, pre = {}) => {
       <div class="grid2">${fText('PO / reference', 'po', d.po, 'maxlength="40" placeholder="Their PO number"')}${fSel('Payment terms', 'terms', [['', 'Not set']].concat(TERMS.map(x => [x, x])), d.terms || '')}</div>
       <div class="grid2">${fNum('Wholesale discount %', 'bulkPct', d.bulkPct, '0', 'min="0" max="100"')}${fNum('Deposit paid so far', 'deposit', d.deposit, '0.00', 'min="0"')}</div>
       <p class="hint" style="margin:0">Quantity price breaks you set on a product fill in by themselves. The balance still owed shows on the order and invoice.</p></div>
-    <div class="fld"><span class="lbl">Items</span><div id="lines">${d.items.map(lineRow).join('')}</div><div class="row" style="gap:16px"><button type="button" class="link" data-act="line-add">${ic('plus')} Add another item</button><button type="button" class="link" data-act="add-multi">${ic('layers')} Add several products</button></div></div>
+    <div class="fld"><span class="lbl">Items</span><div id="lines">${d.items.map(lineRow).join('')}</div><button type="button" class="btn btn-primary btn-sm block" data-act="add-multi">${ic('store')} Sell from listings</button><div class="row" style="margin-top:8px"><button type="button" class="link" data-act="line-custom">${ic('plus')} Add a custom item</button></div></div>
     <div class="fld"><span class="lbl">Supplies used on this order <span class="xs sub">(bubble mailers, stickers, etc.)</span></span><div id="sup-lines">${(d.supplies || []).map(supRow).join('')}</div><button type="button" class="link" data-act="sup-add">${ic('plus')} Add a supply used</button><p class="hint" style="margin:6px 0 0">Comes out of your Materials stock and counts in cost of goods, so your profit is right.</p></div>
     <div class="grid2"><label class="fld"><span>Discount</span><div class="row" style="gap:6px;flex-wrap:nowrap"><input class="input" type="number" step="any" inputmode="decimal" enterkeyhint="next" name="discount" min="0" placeholder="0.00" value="${num(d.discPct) > 0 ? esc(d.discPct) : (d.discount ? esc(d.discount) : '')}" style="min-width:0"><select class="select" name="discMode" style="width:auto;flex:0 0 auto" aria-label="Discount type"><option value="amt" ${num(d.discPct) > 0 ? '' : 'selected'}>$ off</option><option value="pct" ${num(d.discPct) > 0 ? 'selected' : ''}>% off</option></select></div></label>${fNum('Buyer paid for shipping', 'shipCharged', d.shipCharged || '', '0.00', 'min="0"')}</div>
     <div class="grid2">${fNum('Your postage cost', 'postage', d.postage || '', '0.00', 'min="0"')}${fNum('Fees (blank = auto)', 'fees', d.feesManual ? d.fees : '', 'Auto', 'min="0"')}</div>
@@ -5360,6 +5434,7 @@ OPEN.order = (id, pre = {}) => {
     ${fArea('Notes', 'notes', d.notes)}
     <div class="preview" id="pv"></div>`, `<div class="row between b sm-t" style="padding:10px 4px 0;gap:8px;flex-wrap:wrap"><span>Buyer paid <span class="num" id="pv-total"></span></span><span>You get <span class="num" id="pv-payout"></span></span><span>Made <span class="num" id="pv-made"></span></span><span>After cost of goods <span class="num" id="pv-profit"></span></span></div>` + foot('order', id)));
   formLive($('form[data-form=order]'));
+  if (!o && !(pre.items && pre.items.length)) setTimeout(() => { const f = $('form[data-form=order]'); if (f && f.isConnected && !$$('.line', f).length) addListingsToOrder(f); }, 60);
 };
 function autoFees(o) {
   const c = oc(o), fx = fxOf(o), sn = (o.feeSnap && o.feeSnap.ch === o.channel) ? o.feeSnap : feeSnapOf(o.channel);
@@ -6930,13 +7005,22 @@ const ACT = {
   'row-del': el => { const row = el.closest('.line, .sup-line, .rec-wrap, .tier-row, .disc-row'), f = el.closest('form'); if (row) row.remove(); if (f) formLive(f); },
   'sup-add': el => { const f = formOf(el); $('#sup-lines', f).insertAdjacentHTML('beforeend', supRow({ supplyId: '', qty: 1, cost: '' })); formLive(f); },
   'line-add': el => { const f = formOf(el); $('#lines', f).insertAdjacentHTML('beforeend', lineRow({ productId: '', name: '', qty: 1, price: '', cost: '' })); formLive(f); },
-  'add-multi': async el => {
-    const f = formOf(el), ps = state.products.filter(active).sort((a, b) => a.name.localeCompare(b.name)); if (!ps.length) return toast('Add a product first');
-    const ids = await pickProducts('Add several products', ps);
-    if (!ids || !f.isConnected) return;
-    const ch = ($('[name=channel]', f) || {}).value;
-    ids.forEach(id => { const p = find('products', id); if (p) { const lid = pickListing(p.id, ch); $('#lines', f).insertAdjacentHTML('beforeend', lineRow({ productId: p.id, name: p.name, qty: 1, price: linePrice(p, lid, 1), cost: r2(unitCost(p)), listingId: lid })); } });
-    formLive(f);
+  'add-multi': el => addListingsToOrder(formOf(el)),
+  'line-custom': el => { const f = formOf(el); $('#lines', f).insertAdjacentHTML('beforeend', lineRow({ productId: '', name: '', qty: 1, price: '', cost: '', custom: true })); formLive(f); const n = $$('[name=ln]', f).pop(); if (n) n.focus(); },
+  'line-pick': async el => {
+    const f = formOf(el), row = el.closest('.line'), picks = await pickListings('Choose a listing', true);
+    if (!picks || !picks.length || !f.isConnected || !row.isConnected) return;
+    const r = saleItemsFromPicks(picks); if (!r.items.length) return;
+    r.items[0].qty = Math.max(1, Math.round(num($('[name=lq]', row).value)) || 1);
+    row.outerHTML = r.items.map(lineRow).join(''); formLive(f);
+    if (r.bundle) toast('Bundle: the listing price is split across its items. Check each one');
+  },
+  'sell-pick': async () => {
+    const picks = await pickListings('Sell from listings');
+    if (!picks || !picks.length) return;
+    const r = saleItemsFromPicks(picks); if (!r.items.length) return;
+    OPEN.order(null, { items: r.items, channel: r.ch });
+    if (r.bundle) toast('Bundle: the listing price is split across its items. Check each one');
   },
   'rec-add': el => { const f = formOf(el), ss = state.supplies.filter(active), s = ss.find(x => freeFor(x.id, curPid) > 0) || ss[0]; if (!s) return toast('Add a component or supply first (Inventory)'); $('#rec-rows', f).insertAdjacentHTML('beforeend', recRow({ supplyId: s.id, qty: 1 })); formLive(f); },
   look: el => { const U = window.LofiUI; if (U) { if (el.dataset.k === 'bgStyle') { U.clearBg && U.clearBg(); U.clearScene && U.clearScene(); } if (el.dataset.k === 'particles') U.clearParts && U.clearParts(); } state.settings.look[el.dataset.k] = el.dataset.v; applyLook(); save(); render(); },
@@ -15768,8 +15852,8 @@ new MutationObserver(inject).observe($('#scroll'), { childList: true }); inject(
   BUSINESS FORMS ADD-ON for Grimms Business Tracker
   More > Business forms: ready-made professional forms (new order, pickup scheduled, fulfilled,
   picked up, restock, expense, plus daily logs of what was listed / entered / ordered).
-  Everything the app fills in (items, fees, costs, profit, listings) can be edited on the form
-  before you print, save as PDF or keep a copy. Saved in settings.forms.docs.
+  Everything the app fills in can be edited on the form. Save a form into a folder (settings.forms.docs / folders),
+  rename any form, see which orders still need a form, and reopen + edit saved forms any time.
 ===================================================================== -->
 <style>
 #bf-host .bf-chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -15857,11 +15941,40 @@ const DEFS = [
     gen: d => S().orders.filter(o => o.date === d && !o.archived).map(o => { const c = calc(o); return [ono(o), o.customer || '', o.channel || '', o.status || '', money(c.net), money(c.fees), money(c.cogs), money(c.profit)]; }) }
 ];
 const CATS = ['All', 'Orders', 'Stock', 'Money', 'Daily logs'];
-const V = { tab: 'forms', cat: 'All', key: null, vals: {}, rows: [], date: today(), view: null, oid: '' };
+const V = { tab: 'forms', cat: 'All', key: null, vals: {}, rows: [], date: today(), view: null, oid: '', step: '', edit: '', title: '', folder: '', nf: '', q: '', f: 'all', dev: false, optSt: false, optPu: false };
 const def = k => DEFS.find(d => d.k === k);
 
+/* ---------- extra data: folders, custom titles, skipped to-dos ---------- */
+const FS = () => { docs(); const f = S().settings.forms; if (!Array.isArray(f.folders)) f.folders = []; if (!f.titles || typeof f.titles !== 'object') f.titles = {}; if (!f.skip || typeof f.skip !== 'object') f.skip = {}; return f; };
+const folders = () => FS().folders;
+const title = d => FS().titles[d.k] || d.name;
+const folderOf = id => folders().find(x => x.id === id);
+const persist = () => { try { G.save(); } catch (e) { } };
+const rid = p => p + Math.random().toString(36).slice(2, 10);
+const WHEN = { neworder: 'Use it when a customer places an order.', pickupsched: 'Use it when someone will collect an order.', fulfilled: 'Use it once an order is packed and on its way.', pickedup: 'Use it when the order is handed over.', restock: 'Use it when something is running low.', expense: 'Use it for every purchase or bill.', listed: 'End of day: what you listed.', entered: 'End of day: what you added.', ordersday: 'End of day: what came in.' };
+const TINT = { Orders: '#d97793', Stock: '#0891b2', Money: '#059669', 'Daily logs': '#7c3aed' };
+const FOLDER_IDEAS = ['Orders', 'Receipts', 'Taxes', 'Customers', 'Stock'];
+
+/* ---------- which orders still need a form ---------- */
+const NOFORM = ['Cancelled', 'Payment Failed'];
+const PRE = ['Order Received', 'In Preparation', 'Packaged'];
+const SHIPPED = ['Shipped', 'Out for Delivery', 'Delivered', 'Customer Received', 'Awaiting Feedback', 'Awaiting Fulfillment', 'Fulfilled'];
+const RECV = ['Customer Received', 'Awaiting Feedback', 'Awaiting Fulfillment', 'Fulfilled'];
+const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); return dkey(d); };
+const need = o => {
+  if (NOFORM.includes(o.status)) return [];
+  const n = [['neworder', 'Record the order details']];
+  if (o.pickup && PRE.includes(o.status)) n.push(['pickupsched', 'A pickup is set. Book the time']);
+  if (SHIPPED.includes(o.status)) n.push(['fulfilled', 'It has shipped. Confirm it was fulfilled']);
+  if (RECV.includes(o.status) && (o.pickup || /person|pickup/i.test(o.channel || ''))) n.push(['pickedup', 'Proof it was handed over']);
+  return n.filter(([k]) => !docs().some(x => x.oid === o.id && x.key === k) && !FS().skip[o.id + ':' + k]);
+};
+const todo = () => S().orders.filter(o => !o.archived && (o.date || '') >= daysAgo(30)).map(o => ({ o, miss: need(o) })).filter(x => x.miss.length).sort((a, b) => (b.o.createdAt || 0) - (a.o.createdAt || 0));
+const used = k => docs().filter(x => x.key === k).length;
+
 /* ---------- the document ---------- */
-function docHtml(d, vals, date, rows, no) {
+const DOC_CSS = '@page{margin:1.5cm}body{margin:0;font-family:Arial,sans-serif}.bf-doc{font:13px/1.45 Arial,sans-serif;color:#1b2430;padding:8px}.bf-doc h2{margin:0;font-size:20px}.bf-co,.bf-no{font-size:12px;color:#5b6675}.bf-no{text-align:right}.bf-hd{display:flex;justify-content:space-between;border-bottom:3px solid #1b2430;padding-bottom:10px;margin-bottom:14px}table{width:100%;border-collapse:collapse;margin-bottom:14px}th{background:#eef1f5;text-align:left;font-size:11px;text-transform:uppercase}th,td{border:1px solid #c9d0da;padding:6px 8px;vertical-align:top}td.k{width:34%;background:#f7f8fa;font-weight:700;font-size:12px}tr.t td{background:#eef1f5;font-weight:700}.bf-sig{display:flex;gap:28px;margin-top:40px}.bf-sig div{flex:1;border-top:1px solid #1b2430;padding-top:4px;font-size:11px;color:#5b6675}.bf-ft{margin-top:14px;font-size:10.5px;color:#7a8594}';
+function docHtml(d, vals, date, rows, no, name) {
   const val = f => { const v = vals[f.id]; if (f.t === 'c') return v ? '☑ Yes' : '☐ No'; if (f.t === 'd') return fd(v); if (v === '' || v == null) return ''; if (f.t === 'm') return money(num(v)); if (f.t === 'p') return num(v) + '%'; return esc(v).replace(/\n/g, '<br>'); };
   const fields = d.f();
   let tbl = '';
@@ -15869,38 +15982,140 @@ function docHtml(d, vals, date, rows, no) {
     const tot = d.tot ? d.cols.map((c, j) => d.tot.includes(j) ? (/qty/i.test(c[0]) ? String(rows.reduce((a, r) => a + num(r[j]), 0)) : money(rows.reduce((a, r) => a + num(r[j]), 0))) : (j === 0 ? 'Total' : '')) : null;
     tbl = `<div class="bf-scroll"><table style="min-width:${d.cols.length > 3 ? d.cols.length * 92 : 0}px"><tr>${d.cols.map(c => `<th>${esc(c[0])}</th>`).join('')}</tr>${rows.length ? rows.map(r => `<tr>${d.cols.map((c, j) => `<td>${esc(r[j] ?? '').replace(/\n/g, '<br>')}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${d.cols.length}">${esc(d.none || 'No items listed.')}</td></tr>`}${tot && rows.length ? `<tr class="t">${tot.map(x => `<td>${esc(x)}</td>`).join('')}</tr>` : ''}</table></div>`;
   }
-  return `<div class="bf-doc"><div class="bf-hd"><div><h2>${esc(d.name.toUpperCase())}</h2><div class="bf-co">${esc(bizName())}</div></div><div class="bf-no"><b>${esc(no)}</b><br>${d.day ? esc(fd(date)) : 'Printed ' + esc(fd(today()))}</div></div>`
+  return `<div class="bf-doc"><div class="bf-hd"><div><h2>${esc((name || title(d)).toUpperCase())}</h2><div class="bf-co">${esc(bizName())}</div></div><div class="bf-no"><b>${esc(no)}</b><br>${d.day ? esc(fd(date)) : 'Printed ' + esc(fd(today()))}</div></div>`
     + `<table>${fields.map(f => `<tr><td class="k">${esc(f.label)}</td><td>${val(f) || '&nbsp;'}</td></tr>`).join('')}</table>` + tbl
     + (d.sig || d.status ? `<div class="bf-sig"><div>Signature</div><div>Printed name</div><div>Date</div></div>` : '') + `<div class="bf-ft">Created with ${esc(bizName())} · ${esc(no)}</div></div>`;
 }
 const nextNo = (date) => 'FRM-' + (date || today()).replace(/-/g, '') + '-' + P2(docs().filter(x => x.date === (date || today())).length + 1);
-const preview = () => { const d = def(V.key); if (d.calc) d.calc(V.vals); return docHtml(d, V.vals, V.date, V.rows, nextNo(V.date)); };
+const curNo = () => { const x = V.edit && docs().find(z => z.id === V.edit); return x ? x.no : nextNo(V.date); };
+const preview = () => { const d = def(V.key); if (d.calc) d.calc(V.vals); return docHtml(d, V.vals, V.date, V.rows, curNo(), (V.title || '').trim() || title(d)); };
+
 
 /* ---------- screens ---------- */
+const st = document.createElement('style');
+st.textContent = `
+#bf-host .bf-hero{border-radius:18px;padding:16px;color:var(--on-p,#fff);background:linear-gradient(135deg,var(--p),var(--p-dark))}
+#bf-host .bf-hero h3{font-size:21px;font-weight:800;margin:0}
+#bf-host .bf-hero p{margin:3px 0 0;font-size:13px;opacity:.93}
+#bf-host .bf-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+#bf-host .bf-stat{background:rgba(255,255,255,.2);border-radius:12px;padding:9px 10px;text-align:left;color:inherit;min-height:58px}
+#bf-host .bf-stat b{display:block;font-size:22px;line-height:1.1}
+#bf-host .bf-stat span{font-size:11px;opacity:.92}
+#bf-host .bf-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;background:var(--bg);border:1px solid var(--line);border-radius:14px}
+#bf-host .bf-tabs button{min-height:42px;border-radius:11px;font-weight:700;font-size:13px;color:var(--sub)}
+#bf-host .bf-tabs button.on{background:var(--card);color:var(--p-dark);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+#bf-host .bf-tabs i{font-style:normal;display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--p);color:var(--on-p,#fff);font-size:11px;line-height:18px}
+#bf-host .bf-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:8px 0 0}
+#bf-host .bf-h b{font-size:15px}
+#bf-host .bf-card{position:relative;padding:0;gap:0;align-items:stretch}
+#bf-host .bf-main{display:flex;gap:12px;align-items:flex-start;flex:1;min-width:0;text-align:left;padding:14px 8px 14px 14px}
+#bf-host .bf-pen{width:44px;flex:none;font-size:16px;opacity:.7}
+#bf-host .bf-ico{background:var(--p-soft)}
+#bf-host .bf-ico.sm{width:36px;height:36px;font-size:18px;border-radius:10px}
+#bf-host .bf-used{display:inline-block;margin-top:4px;font-size:11px;font-weight:700;color:var(--sub)}
+#bf-host .bf-todo{padding:12px 14px;border-left:4px solid var(--warn)}
+#bf-host .bf-forms{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+#bf-host .bf-forms .btn{min-height:40px;font-size:13px;padding:0 12px}
+#bf-host .bf-pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--p-soft);color:var(--p-dark)}
+#bf-host .bf-pickf{display:flex;gap:12px;align-items:center;padding:12px;border:1.5px solid var(--line);border-radius:14px;background:var(--card);min-height:56px;cursor:pointer}
+#bf-host .bf-pickf.on{border-color:var(--p);background:var(--p-soft)}
+#bf-host .bf-pickf input{width:20px;height:20px;flex:none;accent-color:var(--p)}
+#bf-host .bf-ok{text-align:center;padding:26px 14px}
+#bf-host .bf-ok .big{font-size:38px}
+#bf-host .bf-title{font-size:17px;font-weight:700}
+`;
+document.head.appendChild(st);
+
 const fld = (f, v) => f.t === 'c' ? `<label class="bf-chk"><input type="checkbox" data-bf-f="${f.id}"${v ? ' checked' : ''}> <span>${esc(f.label)}</span></label>`
   : `<label class="fld"><span>${esc(f.label)}</span>` + (f.t === 'l' ? `<textarea class="input" rows="3" data-bf-f="${f.id}">${esc(v ?? '')}</textarea>` : f.t === 's' ? `<select class="select" data-bf-f="${f.id}">${[''].concat(typeof f.o === 'function' ? f.o() : (f.o || [])).map(o => `<option${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>` : (f.t === 'x' ? `<textarea class="input" rows="1" data-grow data-bf-f="${f.id}">${esc(v ?? '')}</textarea>` : `<input class="input" data-bf-f="${f.id}" type="${{ d: 'date', n: 'number', m: 'number', p: 'number', tm: 'time' }[f.t] || 'text'}"${/[nmp]/.test(f.t) ? ' step="any" inputmode="decimal"' : ''} value="${esc(v ?? '')}">`)) + '</label>';
 const rowsEditor = d => `<div class="bf-box"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><b>${d.day ? 'Filled in from your app' : 'Items'}</b>${d.gen ? '<button class="link" data-bf="regen">Refresh from app</button>' : ''}</div><p class="hint" style="margin:4px 0 0">Change any box if something is wrong. Totals update by themselves.</p>${V.rows.map((r, i) => `<div class="bf-rc"><div class="bf-rg">${d.cols.map((c, j) => `<label class="fld${c[1] ? ' w' : ''}"><span>${esc(c[0])}</span><textarea class="input" rows="1" data-grow data-bf-r="${i}" data-bf-c="${j}">${esc(r[j] ?? '')}</textarea></label>`).join('')}</div><button class="link" style="margin-top:8px" data-bf="delrow" data-v="${i}">Remove row</button></div>`).join('')}<button class="btn btn-line" style="width:100%;margin-top:10px;min-height:46px" data-bf="addrow">+ Add a row</button></div>`;
+
+
+const chk = (id, label, on) => `<label class="bf-chk"><input type="checkbox" id="${id}"${on ? ' checked' : ''}> <span>${label}</span></label>`;
+const tabsHtml = (n) => `<div class="bf-tabs">${[['forms', 'Forms', 0], ['todo', 'To do', n], ['saved', 'Saved', 0]].map(([k, l, c]) => `<button class="${V.tab === k ? 'on' : ''}" data-bf="tab" data-v="${k}">${l}${c ? `<i>${c}</i>` : ''}</button>`).join('')}</div>`;
+const heroHtml = n => `<div class="bf-hero"><h3>Business forms</h3><p>Fill one in, print it, file it in a folder. Every saved form can be edited any time.</p><div class="bf-stats"><button class="bf-stat" data-bf="tab" data-v="todo"><b>${n}</b><span>Orders need a form</span></button><button class="bf-stat" data-bf="tab" data-v="saved"><b>${docs().length}</b><span>Saved forms</span></button><button class="bf-stat" data-bf="tab" data-v="saved"><b>${folders().length}</b><span>Folders</span></button></div></div>`;
+
+function todoRow(x) {
+  const o = x.o, c = calc(o);
+  return `<div class="card bf-todo"><div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><b>${esc(ono(o))} · ${esc(o.customer || 'No name')}</b><span class="bf-pill">${esc(o.status || 'Order')}</span></div><div class="xs sub">${esc(fd(o.date))}${o.channel ? ' · ' + esc(o.channel) : ''}${c.buyerTotal ? ' · ' + esc(money(c.buyerTotal)) : ''}</div>${x.miss.map(([k, why]) => { const d = def(k); return `<div style="margin-top:8px"><div class="xs sub">${esc(why)}</div><div class="bf-forms"><button class="btn btn-primary" data-bf="fill" data-v="${k}" data-o="${o.id}">${d.ico} Fill in ${esc(title(d))}</button><button class="link" data-bf="skip" data-v="${k}" data-o="${o.id}">Not needed</button></div></div>`; }).join('')}</div>`;
+}
+const savedCard = x => { const f = folderOf(x.folder); return `<div class="card bf-card" style="flex-direction:column"><div class="bf-main" style="padding-bottom:6px"><span class="bf-ico">${esc(x.ico)}</span><span style="flex:1;min-width:0"><b>${esc(x.name)}</b><div class="xs sub">${esc(x.no)} · ${esc(fd(x.date))}${x.vals && x.vals.customer ? ' · ' + esc(x.vals.customer) : ''}</div><div style="margin-top:5px"><span class="bf-pill">${f ? '📁 ' + esc(f.name) : '📄 No folder'}</span></div></span></div><div class="bf-acts" style="padding:0 14px 12px;gap:4px 14px"><button class="link" data-bf="editsaved" data-v="${x.id}">✏️ Edit</button><button class="link" data-bf="open" data-v="${x.id}">View / print</button><button class="link" data-bf="move" data-v="${x.id}">Move to folder</button><button class="link" data-bf="rensaved" data-v="${x.id}">Rename</button><button class="link" data-bf="del" data-v="${x.id}">Delete</button></div></div>`; };
+function savedList() {
+  const q = (V.q || '').trim().toLowerCase();
+  const l = docs().slice().reverse().filter(x => (V.f === 'all' || (V.f === 'none' ? !folderOf(x.folder) : x.folder === V.f)) && (!q || (x.name + ' ' + x.no + ' ' + ((x.vals && x.vals.customer) || '') + ' ' + ((x.vals && x.vals.order) || '')).toLowerCase().includes(q)));
+  return l.length ? l.map(savedCard).join('') : `<div class="card bf-ok"><div class="big">📂</div><b>${docs().length ? 'Nothing here' : 'No saved forms yet'}</b><p class="hint" style="margin:4px 0 0">${docs().length ? 'Try a different folder or search.' : 'Fill in a form, tap Save this form and pick a folder.'}</p></div>`;
+}
+
+function saveScreen() {
+  const d = def(V.key), o = V.oid && S().orders.find(z => z.id === V.oid), fl = folders();
+  const cnt = id => docs().filter(x => (id === '' ? !folderOf(x.folder) : x.folder === id)).length;
+  const radio = (id, ico, label, sub) => `<label class="bf-pickf${V.folder === id ? ' on' : ''}"><input type="radio" name="bf-fo" data-bf-fo="${id}"${V.folder === id ? ' checked' : ''}><span class="bf-ico sm">${ico}</span><span style="flex:1;min-width:0"><b>${esc(label)}</b><div class="xs sub">${esc(sub)}</div></span></label>`;
+  const ideas = FOLDER_IDEAS.filter(n => !fl.some(f => f.name.toLowerCase() === n.toLowerCase()));
+  const opts = (d.status && o ? chk('bf-st', `Also mark order ${esc(ono(o))} “${esc(d.status[0])}”`, V.optSt) : '') + (d.pu && o ? chk('bf-pu', 'Also set this pickup date on the order', V.optPu) : '');
+  return `<button class="link" data-bf="unsave">${ic('chevron-left')} Back to the form</button><h3 style="margin:6px 0 0">${V.edit ? 'Save your changes' : 'Save this form'}</h3><p class="hint" style="margin:0">Give it a name and choose where it lives. You can reopen, edit, rename or move it any time from Saved.</p>`
+    + `<label class="fld"><span>Name</span><input class="input" data-bf-title value="${esc(V.title || '')}" placeholder="${esc(title(d))}"></label>`
+    + `<div class="bf-h"><b>Where do you want it?</b></div>`
+    + radio('', '📄', 'No folder', cnt('') + ' form' + (cnt('') === 1 ? '' : 's') + ' not filed')
+    + fl.map(f => radio(f.id, '📁', f.name, cnt(f.id) + ' form' + (cnt(f.id) === 1 ? '' : 's'))).join('')
+    + `<div class="bf-box"><b class="sm-t">Make a new folder</b><div style="display:flex;gap:8px;margin-top:8px"><input class="input" data-bf-nf placeholder="Folder name" value="${esc(V.nf || '')}" style="flex:1"></div>${ideas.length ? `<div class="bf-chips" style="margin-top:8px">${ideas.map(n => `<button class="chip" data-bf="mkf" data-v="${esc(n)}">+ ${esc(n)}</button>`).join('')}</div>` : ''}<p class="hint" style="margin:8px 0 0">Type a name and tap Save: the folder is made and used.</p></div>`
+    + opts + chk('bf-dev', 'Also download a copy to this device', V.dev)
+    + `<div class="bf-acts"><button class="btn btn-primary" data-bf="savego">${V.edit ? 'Save changes' : 'Save here'}</button></div>`;
+}
+
 function paint() { paint0(); setTimeout(() => { try { growAll(); } catch (e) { } }, 0); }
 function paint0() {
   const h = $('#bf-host'); if (!h) return;
-  const top = `<div class="bf-chips"><button class="chip${V.tab === 'forms' ? ' on' : ''}" data-bf="tab" data-v="forms">Forms</button><button class="chip${V.tab === 'saved' ? ' on' : ''}" data-bf="tab" data-v="saved">Saved (${docs().length})</button></div>`;
-  if (V.view) { const x = docs().find(z => z.id === V.view); if (!x) { V.view = null; return paint0(); } h.innerHTML = `<button class="link" data-bf="back">${ic('chevron-left')} Back</button><div class="bf-acts"><button class="btn btn-primary" data-bf="print-saved">Print / Save PDF</button></div>${x.html}`; return; }
+  if (V.step === 'save' && V.key) { h.innerHTML = saveScreen(); return; }
+  if (V.view) {
+    const x = docs().find(z => z.id === V.view); if (!x) { V.view = null; return paint0(); }
+    h.innerHTML = `<button class="link" data-bf="back">${ic('chevron-left')} Back</button><div class="bf-title">${esc(x.name)}</div><div class="bf-acts"><button class="btn btn-primary" data-bf="print-saved">Print / Save PDF</button><button class="btn btn-soft" data-bf="editsaved" data-v="${x.id}">✏️ Edit</button></div><div class="bf-acts"><button class="btn btn-line" data-bf="move" data-v="${x.id}">📁 Move to folder</button><button class="btn btn-line" data-bf="dl" data-v="${x.id}">Download a copy</button></div>${x.html}`; return;
+  }
   if (V.key) {
     const d = def(V.key), o = S().orders.filter(z => !z.archived).slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     const picker = d.pick === 'o' ? `<label class="fld"><span>Fill in from an order</span><select class="select" data-bf-pick="o"><option value="">Choose an order…</option>${o.map(z => `<option value="${z.id}"${V.oid === z.id ? ' selected' : ''}>${esc(ono(z) + ' · ' + (z.customer || 'No name'))}</option>`).join('')}</select></label>` : d.pick === 'i' ? `<label class="fld"><span>Fill in from a product or supply</span><select class="select" data-bf-pick="i"><option value="">Choose an item…</option>${S().products.filter(z => !z.archived).map(z => `<option value="p:${z.id}">${esc(z.name)}</option>`).join('')}${S().supplies.filter(z => !z.archived).map(z => `<option value="s:${z.id}">${esc(z.name)} (supply)</option>`).join('')}</select></label>` : '';
-    const opts = (d.status ? `<label class="bf-chk"><input type="checkbox" id="bf-st"> <span>Also mark the order “${esc(d.status[0])}” when I save</span></label>` : '') + (d.pu ? `<label class="bf-chk"><input type="checkbox" id="bf-pu"> <span>Also set this pickup date on the order</span></label>` : '');
-    h.innerHTML = `<button class="link" data-bf="back">${ic('chevron-left')} All forms</button><h3 style="margin:6px 0 0">${esc(d.ico + ' ' + d.name)}</h3><p class="hint" style="margin:0">${esc(d.desc)}</p>${picker}${d.day ? `<label class="fld"><span>Day</span><input class="input" type="date" data-bf-date value="${esc(V.date)}"></label>` : ''}<div class="bf-grid">${d.f().map(f => fld(f, V.vals[f.id])).join('')}</div>${d.cols ? rowsEditor(d) : ''}${opts}<div class="bf-acts"><button class="btn btn-primary" data-bf="print">Print / Save PDF</button><button class="btn btn-soft" data-bf="save">Save a copy</button></div><p class="eyebrow" style="margin:6px 0 0">Preview</p><div id="bf-pv">${preview()}</div>`;
+    h.innerHTML = `<button class="link" data-bf="back">${ic('chevron-left')} ${V.edit ? 'Back to Saved' : 'All forms'}</button><div style="display:flex;gap:12px;align-items:center"><span class="bf-ico" style="width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px;flex:none">${d.ico}</span><div style="min-width:0"><div class="eyebrow" style="margin:0">${V.edit ? 'Editing a saved form' : esc(d.cat)}</div><p class="hint" style="margin:0">${esc(d.desc)}</p></div></div>`
+      + `<label class="fld"><span>Form title (change it to anything)</span><input class="input" data-bf-title value="${esc(V.title || '')}" placeholder="${esc(title(d))}"></label>`
+      + picker + (d.day ? `<label class="fld"><span>Day</span><input class="input" type="date" data-bf-date value="${esc(V.date)}"></label>` : '')
+      + `<div class="bf-grid">${d.f().map(f => fld(f, V.vals[f.id])).join('')}</div>${d.cols ? rowsEditor(d) : ''}`
+      + `<div class="bf-acts"><button class="btn btn-primary" data-bf="save">Save this form</button><button class="btn btn-soft" data-bf="print">Print / Save PDF</button></div><p class="eyebrow" style="margin:6px 0 0">Preview</p><div id="bf-pv">${preview()}</div>`;
+    return;
+  }
+  const n = todo().length;
+  const top = heroHtml(n) + tabsHtml(n);
+  if (V.tab === 'todo') {
+    const l = todo();
+    h.innerHTML = top + `<p class="hint" style="margin:0">Orders from the last 30 days that don’t have these forms saved yet. Tap a button and the form fills itself in.</p>` + (l.length ? l.map(todoRow).join('') : `<div class="card bf-ok"><div class="big">🎉</div><b>All caught up</b><p class="hint" style="margin:4px 0 0">Every recent order has its forms. New orders show up here by themselves.</p></div>`);
+    return;
+  }
+  if (V.tab === 'saved') {
+    const all = docs().length, none = docs().filter(x => !folderOf(x.folder)).length;
+    const fch = [['all', 'All (' + all + ')'], ['none', 'No folder (' + none + ')']].concat(folders().map(f => [f.id, '📁 ' + f.name + ' (' + docs().filter(x => x.folder === f.id).length + ')']));
+    const cur = folderOf(V.f);
+    h.innerHTML = top + `<input class="input" id="bf-q" data-bf-q placeholder="Search saved forms" value="${esc(V.q || '')}" style="min-height:46px">`
+      + `<div class="bf-chips">${fch.map(([k, l]) => `<button class="chip${V.f === k ? ' on' : ''}" data-bf="fol" data-v="${k}">${esc(l)}</button>`).join('')}<button class="chip" data-bf="newfolder">＋ New folder</button></div>`
+      + (cur ? `<div class="bf-acts" style="gap:4px 16px"><button class="link" data-bf="renfolder">Rename “${esc(cur.name)}”</button><button class="link" data-bf="delfolder">Delete folder</button></div>` : '')
+      + `<div id="bf-list" style="display:grid;gap:10px">${savedList()}</div>`;
     return;
   }
   const list = DEFS.filter(d => V.cat === 'All' || d.cat === V.cat);
-  h.innerHTML = V.tab === 'saved'
-    ? top + (docs().length ? docs().slice().reverse().map(x => `<div class="card bf-card"><span class="bf-ico">${esc(x.ico)}</span><span style="flex:1;min-width:0"><b>${esc(x.name)}</b><div class="xs sub">${esc(x.no)} · ${esc(fd(x.date))}</div><div class="bf-acts" style="margin-top:6px"><button class="link" data-bf="open" data-v="${x.id}">View / print</button><button class="link" data-bf="del" data-v="${x.id}">Delete</button></div></span></div>`).join('') : '<p class="hint">No saved forms yet. Fill one in and tap Save a copy.</p>')
-    : top + `<div class="bf-chips">${CATS.map(c => `<button class="chip${V.cat === c ? ' on' : ''}" data-bf="cat" data-v="${c}">${c}</button>`).join('')}</div>` + list.map(d => `<button class="card bf-card" data-bf="new" data-v="${d.k}"><span class="bf-ico">${d.ico}</span><span style="flex:1;min-width:0"><b>${esc(d.name)}</b><div class="xs sub">${esc(d.desc)}</div></span>${ic('chevron-right', 'chev')}</button>`).join('');
+  const t = todo().slice(0, 3);
+  h.innerHTML = top
+    + (t.length ? `<div class="bf-h"><b>Needs a form</b><button class="link" data-bf="tab" data-v="todo">See all ${n}</button></div>` + t.map(todoRow).join('') : '')
+    + `<div class="bf-h"><b>All forms</b><span class="xs sub">Tap ✏️ to rename</span></div><div class="bf-chips">${CATS.map(c => `<button class="chip${V.cat === c ? ' on' : ''}" data-bf="cat" data-v="${c}">${c}</button>`).join('')}</div>`
+    + list.map(d => { const tc = TINT[d.cat] || 'var(--p)'; return `<div class="card bf-card"><button class="bf-main" data-bf="new" data-v="${d.k}"><span class="bf-ico" style="background:color-mix(in srgb,${tc} 16%,transparent)">${d.ico}</span><span style="flex:1;min-width:0"><b>${esc(title(d))}</b><div class="xs sub">${esc(d.desc)}</div><div class="xs" style="margin-top:3px;color:${tc};font-weight:600">${esc(WHEN[d.k] || '')}</div>${used(d.k) ? `<span class="bf-used">Filled ${used(d.k)} time${used(d.k) === 1 ? '' : 's'}</span>` : ''}</span></button><button class="bf-pen" data-bf="rename" data-v="${d.k}" aria-label="Rename this form">✏️</button></div>`; }).join('');
 }
 function printHtml(html) {
   const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;left:-9999px;width:800px;height:600px'; document.body.appendChild(f);
-  f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><title>Form</title><style>@page{margin:1.5cm}body{margin:0}.bf-doc{font:13px/1.45 Arial,sans-serif;color:#1b2430}.bf-doc h2{margin:0;font-size:20px}.bf-co,.bf-no{font-size:12px;color:#5b6675}.bf-no{text-align:right}.bf-hd{display:flex;justify-content:space-between;border-bottom:3px solid #1b2430;padding-bottom:10px;margin-bottom:14px}table{width:100%;border-collapse:collapse;margin-bottom:14px}th{background:#eef1f5;text-align:left;font-size:11px;text-transform:uppercase}th,td{border:1px solid #c9d0da;padding:6px 8px;vertical-align:top}td.k{width:34%;background:#f7f8fa;font-weight:700;font-size:12px}tr.t td{background:#eef1f5;font-weight:700}.bf-sig{display:flex;gap:28px;margin-top:40px}.bf-sig div{flex:1;border-top:1px solid #1b2430;padding-top:4px;font-size:11px;color:#5b6675}.bf-ft{margin-top:14px;font-size:10.5px;color:#7a8594}</style></head><body>${html}</body></html>`;
+  f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><title>Form</title><style>${DOC_CSS}</style></head><body>${html}</body></html>`;
   f.onload = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toast('Printing is not available here'); } setTimeout(() => f.remove(), 60000); };
+}
+async function toDevice(x) {
+  const name = String(x.name || 'form').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') + '-' + x.no + '.html';
+  const page = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(x.name)}</title><style>${DOC_CSS}</style></head><body>${x.html}</body></html>`;
+  try {
+    if (window.showSaveFilePicker) { const hd = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'Web page', accept: { 'text/html': ['.html'] } }] }); const w = await hd.createWritable(); await w.write(page); await w.close(); return toast('Saved to your device'); }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([page], { type: 'text/html' })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast('Downloaded ' + name); } catch (e) { toast('Could not download here'); }
 }
 function pick(v) {
   const d = def(V.key); if (!v) return;
@@ -15908,42 +16123,97 @@ function pick(v) {
   else { const [k, id] = v.split(':'), it = (k === 'p' ? S().products : S().supplies).find(z => z.id === id); if (!it) return; const sp = (S().suppliers || []).find(z => z.id === it.supplierId); Object.assign(V.vals, { item: it.name, have: it.qty ?? '', cost: it.cost ?? '', supplier: sp ? sp.name : V.vals.supplier || '' }); }
   paint();
 }
-function save() {
-  const d = def(V.key), no = nextNo(V.date); if (d.calc) d.calc(V.vals);
-  docs().push({ id: 'bf' + Math.random().toString(36).slice(2, 10), key: d.k, ico: d.ico, name: d.name, no, date: d.day ? V.date : today(), vals: { ...V.vals }, html: docHtml(d, V.vals, V.date, V.rows, no), at: Date.now() });
-  const o = V.oid && S().orders.find(z => z.id === V.oid); let extra = '';
-  if (o && d.status && $('#bf-st') && $('#bf-st').checked) { try { G.putOrder(G.setOrderStatus({ ...o }, d.status[0])); extra = ' and order marked ' + d.status[0]; } catch (e) { } }
-  if (o && d.pu && $('#bf-pu') && $('#bf-pu').checked && V.vals.pdate) { try { G.putOrder({ ...o, pickup: V.vals.pdate }); extra = ' and pickup date set'; } catch (e) { } }
-  try { G.save(); } catch (e) { } toast('Saved ' + no + extra); V.key = null; V.tab = 'saved'; V.oid = ''; paint();
+function startForm(k, oid) {
+  const d = def(k); V.key = k; V.vals = d.init ? d.init() : {}; V.oid = ''; V.date = today(); V.rows = d.gen ? d.gen(V.date) : []; V.edit = ''; V.step = ''; V.title = title(d); V.nf = ''; V.dev = false; V.optSt = false; V.optPu = false;
+  V.folder = folderOf(FS().last) ? FS().last : '';
+  if (oid) pick(oid); else paint();
+}
+function addFolder(name) {
+  const n = String(name || '').trim().slice(0, 40); if (!n) return '';
+  const ex = folders().find(f => f.name.toLowerCase() === n.toLowerCase()); if (ex) return ex.id;
+  const f = { id: rid('fo'), name: n }; folders().push(f); return f.id;
+}
+function commit() {
+  const d = def(V.key); if (d.calc) d.calc(V.vals);
+  const nf = (V.nf || '').trim(); if (nf) V.folder = addFolder(nf);
+  if (!folderOf(V.folder)) V.folder = '';
+  const ttl = (V.title || '').trim() || title(d);
+  let x = V.edit && docs().find(z => z.id === V.edit);
+  const no = x ? x.no : nextNo(V.date), html = docHtml(d, V.vals, V.date, V.rows, no, ttl), rows = V.rows.map(r => r.slice());
+  if (x) Object.assign(x, { name: ttl, vals: { ...V.vals }, rows, date: d.day ? V.date : x.date, oid: V.oid || x.oid || '', folder: V.folder, html, upd: Date.now() });
+  else { x = { id: rid('bf'), key: d.k, ico: d.ico, name: ttl, no, date: d.day ? V.date : today(), vals: { ...V.vals }, rows, oid: V.oid || '', folder: V.folder, html, at: Date.now() }; docs().push(x); }
+  FS().last = V.folder;
+  const o = V.oid && S().orders.find(z => z.id === V.oid);
+  const st1 = $('#bf-st'), pu1 = $('#bf-pu');
+  if (o && d.status && st1 && st1.checked) { try { G.putOrder(G.setOrderStatus({ ...o }, d.status[0])); } catch (e) { } }
+  if (o && d.pu && pu1 && pu1.checked && V.vals.pdate) { try { G.putOrder({ ...o, pickup: V.vals.pdate }); } catch (e) { } }
+  persist(); return x;
 }
 document.addEventListener('click', e => {
   const b = e.target.closest && e.target.closest('#bf-host [data-bf]'); if (!b) return; const a = b.dataset.bf, v = b.dataset.v;
-  if (a === 'tab') { V.tab = v; V.view = null; V.key = null; paint(); } else if (a === 'cat') { V.cat = v; paint(); }
-  else if (a === 'new') { const d = def(v); V.key = v; V.vals = d.init ? d.init() : {}; V.oid = ''; V.date = today(); V.rows = d.gen ? d.gen(V.date) : []; paint(); }
-  else if (a === 'back') { if (V.view) V.view = null; else V.key = null; paint(); }
+  const dx = () => docs().find(z => z.id === v);
+  if (a === 'tab') { V.tab = v; V.view = null; V.key = null; V.step = ''; paint(); }
+  else if (a === 'cat') { V.cat = v; paint(); }
+  else if (a === 'new') startForm(v);
+  else if (a === 'fill') startForm(v, b.dataset.o);
+  else if (a === 'skip') { FS().skip[b.dataset.o + ':' + v] = 1; persist(); paint(); toast('Okay, it won’t ask again for this order'); }
+  else if (a === 'rename') { const d = def(v), n = prompt('Rename this form. Leave it blank to go back to “' + d.name + '”.', title(d)); if (n === null) return; const t = n.trim(); if (t && t !== d.name) FS().titles[d.k] = t.slice(0, 60); else delete FS().titles[d.k]; persist(); paint(); toast('Renamed'); }
+  else if (a === 'back') { if (V.view) V.view = null; else { if (V.edit) V.tab = 'saved'; V.key = null; V.edit = ''; } paint(); }
   else if (a === 'regen') { V.rows = def(V.key).gen(V.date); paint(); toast('Refreshed from your app'); }
   else if (a === 'addrow') { V.rows.push(def(V.key).cols.map(() => '')); paint(); }
   else if (a === 'delrow') { V.rows.splice(+v, 1); paint(); }
   else if (a === 'print') printHtml(preview());
-  else if (a === 'save') save();
+  else if (a === 'save') { V.step = 'save'; paint(); window.scrollTo && $('#scroll') && ($('#scroll').scrollTop = 0); }
+  else if (a === 'unsave') { V.step = ''; paint(); }
+  else if (a === 'mkf') { V.folder = addFolder(v); V.nf = ''; persist(); paint(); }
+  else if (a === 'savego') {
+    const dev = $('#bf-dev') && $('#bf-dev').checked, x = commit(), f = folderOf(x.folder);
+    V.key = null; V.step = ''; V.edit = ''; V.oid = ''; V.tab = 'saved'; V.f = x.folder || 'all'; V.q = ''; paint();
+    toast('Saved “' + x.name + '” ' + (f ? 'in ' + f.name : '(no folder)')); if (dev) toDevice(x);
+  }
   else if (a === 'open') { V.view = v; paint(); }
   else if (a === 'print-saved') { const x = docs().find(z => z.id === V.view); if (x) printHtml(x.html); }
-  else if (a === 'del') { const i = docs().findIndex(z => z.id === v); if (i > -1 && confirm('Delete this saved form?')) { docs().splice(i, 1); try { G.save(); } catch (er) { } paint(); } }
+  else if (a === 'dl') { const x = dx(); if (x) toDevice(x); }
+  else if (a === 'editsaved') {
+    const x = dx(); if (!x || !def(x.key)) return toast('That form type is no longer available'); const d = def(x.key);
+    V.key = x.key; V.vals = { ...(x.vals || {}) }; V.rows = (x.rows || []).map(r => r.slice()); V.date = x.date || today(); V.oid = x.oid || ''; V.edit = x.id; V.title = x.name; V.folder = x.folder || ''; V.nf = ''; V.step = ''; V.view = null; V.dev = false;
+    if (d.cols && !x.rows) toast('Saved before rows could be edited. Add the rows again if you need them.'); paint();
+  }
+  else if (a === 'move') {
+    const x = dx(); if (!x || !def(x.key)) return;
+    V.key = x.key; V.vals = { ...(x.vals || {}) }; V.rows = x.rows ? x.rows.map(r => r.slice()) : []; V.date = x.date || today(); V.oid = x.oid || ''; V.edit = x.id; V.title = x.name; V.folder = x.folder || ''; V.nf = ''; V.view = null; V.dev = false;
+    if (def(x.key).cols && !x.rows) { const k = x; const f = prompt('Move to which folder? Type a folder name (leave blank for no folder).\n' + (folders().length ? 'Folders: ' + folders().map(z => z.name).join(', ') : 'You have no folders yet. A new one will be made.'), (folderOf(k.folder) || {}).name || ''); V.edit = ''; V.key = null; if (f !== null) { k.folder = f.trim() ? addFolder(f) : ''; FS().last = k.folder; persist(); toast('Moved'); } paint(); return; }
+    V.step = 'save'; paint();
+  }
+  else if (a === 'rensaved') { const x = dx(); if (!x) return; const n = prompt('Rename this form', x.name); if (n === null || !n.trim()) return; const old = x.name; x.name = n.trim().slice(0, 60); const d = def(x.key); if (x.rows && d) x.html = docHtml(d, x.vals || {}, x.date, x.rows, x.no, x.name); else x.html = x.html.replace('<h2>' + esc(old.toUpperCase()) + '</h2>', '<h2>' + esc(x.name.toUpperCase()) + '</h2>'); persist(); paint(); toast('Renamed'); }
+  else if (a === 'del') { const i = docs().findIndex(z => z.id === v); if (i > -1 && confirm('Delete this saved form?')) { docs().splice(i, 1); persist(); paint(); } }
+  else if (a === 'fol') { V.f = v; paint(); }
+  else if (a === 'newfolder') { const n = prompt('Name your new folder'); if (n && n.trim()) { V.f = addFolder(n); persist(); paint(); toast('Folder made'); } }
+  else if (a === 'renfolder') { const f = folderOf(V.f); if (!f) return; const n = prompt('Rename this folder', f.name); if (n && n.trim()) { f.name = n.trim().slice(0, 40); persist(); paint(); } }
+  else if (a === 'delfolder') { const f = folderOf(V.f); if (!f) return; if (!confirm('Delete the folder “' + f.name + '”? The forms inside are kept and move to No folder.')) return; docs().forEach(x => { if (x.folder === f.id) x.folder = ''; }); FS().folders = folders().filter(z => z.id !== f.id); V.f = 'all'; persist(); paint(); }
 });
 const grow = el => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
 const growAll = () => document.querySelectorAll('#bf-host textarea[data-grow]').forEach(grow);
 const pv = () => { const p = $('#bf-pv'); if (p) p.innerHTML = preview(); };
-document.addEventListener('input', e => { const t = e.target; if (!t.closest || !t.closest('#bf-host') || !V.key) return;
+document.addEventListener('input', e => { const t = e.target; if (!t.closest || !t.closest('#bf-host')) return;
+  if (t.dataset.bfQ !== undefined) { V.q = t.value; const l = $('#bf-list'); if (l) l.innerHTML = savedList(); return; }
+  if (t.dataset.bfNf !== undefined) { V.nf = t.value; return; }
+  if (t.dataset.bfTitle !== undefined) { V.title = t.value; pv(); return; }
+  if (!V.key) return;
   if (t.dataset.grow !== undefined) grow(t);
   if (t.dataset.bfF) { V.vals[t.dataset.bfF] = t.type === 'checkbox' ? t.checked : t.value; const d = def(V.key); if (d.calc) { d.calc(V.vals); d.f().forEach(f => { const el = $('#bf-host [data-bf-f="' + f.id + '"]'); if (el && el !== t && V.vals[f.id] != null && f.t !== 'c') el.value = V.vals[f.id]; }); } pv(); }
   else if (t.dataset.bfR !== undefined) { V.rows[+t.dataset.bfR][+t.dataset.bfC] = t.value; pv(); }
   else if (t.dataset.bfDate !== undefined) { V.date = t.value || today(); const d = def(V.key); if (d.gen) { V.rows = d.gen(V.date); paint(); } else pv(); } });
-document.addEventListener('change', e => { const t = e.target; if (!t.closest || !t.closest('#bf-host') || !V.key) return; if (t.dataset.bfPick) pick(t.value); else if (t.type === 'checkbox' || t.tagName === 'SELECT' || t.type === 'date' || t.type === 'time') { if (t.dataset.bfF) { V.vals[t.dataset.bfF] = t.type === 'checkbox' ? t.checked : t.value; pv(); } } });
+document.addEventListener('change', e => { const t = e.target; if (!t.closest || !t.closest('#bf-host')) return;
+  if (t.dataset.bfFo !== undefined) { V.folder = t.dataset.bfFo; paint(); return; }
+  if (t.id === 'bf-st') { V.optSt = t.checked; return; } if (t.id === 'bf-pu') { V.optPu = t.checked; return; } if (t.id === 'bf-dev') { V.dev = t.checked; return; }
+  if (!V.key) return;
+  if (t.dataset.bfPick) pick(t.value); else if (t.type === 'checkbox' || t.tagName === 'SELECT' || t.type === 'date' || t.type === 'time') { if (t.dataset.bfF) { V.vals[t.dataset.bfF] = t.type === 'checkbox' ? t.checked : t.value; pv(); } } });
 
 /* ---------- plug into the app (More > Business forms is a built-in row) ---------- */
 G.TITLES.bf = 'Business forms';
 G.V.bf = () => '<div class="page stack-sm fade" id="bf-host"></div>';
-function inject() { if (G.ui.sub === 'bf') setTimeout(growAll, 0); if (G.ui.sub === 'bf') { const h = $('#bf-host'); if (h && !h.dataset.ready) { h.dataset.ready = '1'; V.key = null; V.view = null; paint(); } } }
+function inject() { if (G.ui.sub === 'bf') setTimeout(growAll, 0); if (G.ui.sub === 'bf') { const h = $('#bf-host'); if (h && !h.dataset.ready) { h.dataset.ready = '1'; V.key = null; V.view = null; V.step = ''; V.edit = ''; V.tab = 'forms'; paint(); } } }
 new MutationObserver(inject).observe($('#scroll'), { childList: true });
 inject();
 })();
