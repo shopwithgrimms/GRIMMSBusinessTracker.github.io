@@ -976,6 +976,46 @@ html[data-layout=top] #screen-app>#nav .nav-sec{display:block;flex:none;width:1p
   html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app>#nav .nav-sec{height:auto;margin:10px 0 2px;padding:12px 12px 4px;background:none;border-top:1px solid var(--line);font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);overflow:visible}
   html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app>#nav .nav-n{display:inline-block!important}
 }
+
+/* ---------- v1.3: desktop mode (proper website feel on big screens) ---------- */
+.nav-brand{display:none}
+@media(min-width:900px){
+  html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app.on{grid-template-columns:248px minmax(0,1fr)}
+  html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app>#nav .nav-brand{display:flex;align-items:center;gap:12px;flex:none;padding:4px 8px 18px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+  .nav-logo{width:40px;height:40px;border-radius:12px;background:var(--p);color:var(--on-p);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex:none}
+  .nav-bn{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+  .nav-bn b{font-size:15px;font-weight:800;display:block}
+  .nav-bn small{font-size:12px;color:var(--sub);display:block}
+  .nav-bn span{display:block!important}
+}
+@media(min-width:1024px){
+  html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app.on{grid-template-columns:288px minmax(0,1fr)}
+  html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app>#nav{padding:22px 16px 28px}
+  html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app>#nav button{font-size:15px;font-weight:600;padding:11px 14px;gap:14px;border-radius:10px}
+  html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app>#nav button .ic{width:22px;height:22px}
+  html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app>#nav button.on{font-weight:700}
+  html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app>#nav button.on::before{left:-16px;top:8px;bottom:8px}
+  html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app>#nav .nav-sec{font-size:11.5px;padding:16px 14px 6px;margin-top:12px}
+  html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app>#nav .nav-n{font-size:11px;height:20px;line-height:20px;border-radius:10px}
+  .nav-logo{width:44px;height:44px;font-size:20px;border-radius:13px}
+  .nav-bn b{font-size:16px}
+  /* everything a little larger and roomier, like a web app */
+  html:is([data-frame=wide],[data-frame=full]) :is(.scroll,.hdr){zoom:calc(var(--zoom) * 1.12)}
+  html:is([data-frame=wide],[data-frame=full]) .hdr{padding-top:18px;padding-bottom:16px;padding-inline:max(28px,calc((100% - 1180px)/2 + 24px))}
+  html:is([data-frame=wide],[data-frame=full]) .hdr h1{font-size:22px}
+  html:is([data-layout=sidebar],[data-layout=rail],[data-layout=top],[data-pro=on]):is([data-frame=wide],[data-frame=full]) .page,html[data-hgrid=two]:is([data-frame=wide],[data-frame=full]) .page,html[data-pro=on] .page{max-width:1180px;margin:0 auto;padding:28px 24px 64px}
+  /* Home: cards sit in columns instead of one long stretched stack */
+  html:is([data-frame=wide],[data-frame=full]) .home-flex{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:20px}
+  html:is([data-frame=wide],[data-frame=full]) .home-flex>:is(.banner,.grid2,[data-w=widgets],[data-w=quick]),html:is([data-frame=wide],[data-frame=full]) .home-flex>.card:not([data-w]){grid-column:1/-1}
+  html:is([data-frame=wide],[data-frame=full]) .stack>*+*{margin-top:var(--gap,20px)}
+  html:is([data-frame=wide],[data-frame=full]) .grid2{gap:16px}
+  html:is([data-frame=wide],[data-frame=full]) .card{padding:22px}
+  html:is([data-frame=wide],[data-frame=full]) .card.sm{padding:16px 18px}
+}
+@media(min-width:1500px){
+  html:is([data-layout=sidebar],[data-layout=rail],[data-layout=top],[data-pro=on]):is([data-frame=wide],[data-frame=full]) .page,html[data-hgrid=two]:is([data-frame=wide],[data-frame=full]) .page,html[data-pro=on] .page{max-width:1320px}
+  html:is([data-frame=wide],[data-frame=full]) .hdr{padding-inline:max(28px,calc((100% - 1320px)/2 + 24px))}
+}
 </style>
 <style id="ap-css">
 /* Appearance: numbered steps, named theme tiles, real background previews */
@@ -3062,7 +3102,8 @@ function renderNav() {
     const pg = i => i[0] === 'inbox'
       ? `<button class="${cur === 'inbox' ? 'on' : ''}" data-act="bell" aria-label="${i[2]}" title="${i[2]}">${ic(i[1])}<span>${i[2]}</span>${na ? `<span class="nav-n">${na > 99 ? '99+' : na}</span>` : ''}</button>`
       : `<button class="${cur === i[0] ? 'on' : ''}" data-act="sub" data-sub="${i[0]}" aria-label="${i[2]}" title="${i[2]}">${ic(i[1])}<span>${i[2]}</span></button>`;
-    return main.map(mk).join('') + `<div class="nav-sec" role="separator">All other pages</div>` + NAV_PAGES.map(pg).join('');
+    const st = state.settings, brand = `<div class="nav-brand"><span class="nav-logo">${esc(st.look && st.look.emoji ? st.look.emoji : initial(st.name))}</span><span class="nav-bn"><b class="trunc">${esc(st.name || 'Your business')}</b><small class="trunc">${esc(st.industry || 'Business Tracker')}</small></span></div>`;
+    return brand + main.map(mk).join('') + `<div class="nav-sec" role="separator">All other pages</div>` + NAV_PAGES.map(pg).join('');
   }
   const items = main.concat([['more', 'more-horizontal', moreName()]]);
   const sub = ui.sub === 'inbox' ? (ui.ret && ui.ret.sub) : ui.sub;
@@ -5042,8 +5083,9 @@ function appearanceBody(s, hide) {
   return `${bar}${panel}<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line)">${P.reset}</div>`;
 }
 /* ---- APP VERSION: raise APP_VERSION and add a line at the top of APP_CHANGES with every update ---- */
-const APP_VERSION = '1.2.0', APP_VERSION_DATE = '2026-11-26';
+const APP_VERSION = '1.3.0', APP_VERSION_DATE = '2026-11-26';
 const APP_CHANGES = [
+  ['1.3.0', '2026-11-26', ['Left menu is much bigger and wider, with larger icons and text, and your business name and logo at the top, like a real website.', 'On a computer everything is a little larger and roomier, so it no longer looks like a small phone app stretched out.', 'Pages sit in a centered content area with sensible margins instead of stretching edge to edge.', 'Home shows its cards in two columns on big screens.', 'Header lines up with the page content.']],
   ['1.2.0', '2026-11-26', ['The side menu now lists every page with its own icon and name, in order, under "All other pages" (Inbox, Business Assistant, Business forms, Goals, Taxes, Bills, Cash flow, Orders, Print labels, Item numbers, Customers, Suppliers, Mileage, Notes, Activity, Help, Settings).', 'On a computer the app now fills the whole screen edge to edge. No more phone-shaped column with empty space on the sides.', 'Pages stretch to the full width next to the side menu.', 'Full screen is now the default screen shape.']],
   ['1.1.0', '2026-11-26', ['Added this Version & updates section in Settings.', 'Photos and everything to do with them removed from the app.', 'Full screen now stays on when you switch menu and Home layouts.', 'With a sidebar, icon rail or top-tab layout, "More" is now called "All other pages".', 'Business forms moved higher up in the menu so it is easy to find.']]
 ];
