@@ -1712,7 +1712,7 @@ const PLATFORM_PRESETS = [
 
 const HOME_ORDER = ['today', 'pipeline', 'goals', 'attention', 'lowstock', 'upcoming', 'quick'];
 const QUICKS = [['sale', 'Sale'], ['bulk', 'Bulk order'], ['expense', 'Expense'], ['supply', 'Supply'], ['product', 'Product'], ['listing', 'Listing'], ['task', 'Task'], ['time', 'Time'], ['customer', 'Customer'], ['note', 'Note'], ['income', 'Income'], ['mileage', 'Trip'], ['bill', 'Bill'], ['po', 'Purchase order']];
-const LOOK_DEFAULTS = () => ({ layout: 'bottom', homeGrid: 'single', setup: 'Professional', pro: true, auto: false, darkTheme: 'midnight', accent: '', bg: '', card: '', round: 'default', density: 'compact', size: '100', cardStyle: 'outline', bgStyle: 'solid', header: 'plain', nav: 'labels', btn: 'solid', border: 'thin', frame: 'wide', motion: true, headFont: "'Inter', sans-serif", greeting: '', emoji: '', homeChart: 'line', wholeHome: false, confetti: false, g1: '#fbcfe8', g2: '#c4b5fd', gAngle: '160', bgDim: '30', particles: 'none', pCount: '16', pSpeed: '1', pEmoji: '', pageAnim: 'none', hover: 'none', press: 'none', tapFx: 'none', btnFx: 'none', titleFx: 'none', celebrate: 'confetti', sOn: false, sPack: 'soft', sVol: '60', sTap: true, sOk: true, sDel: true, sWin: true, homeOrder: HOME_ORDER.slice(), quickHide: ['customer', 'note', 'income', 'mileage'] });
+const LOOK_DEFAULTS = () => ({ navMigrated: true, layout: 'bottom', homeGrid: 'single', setup: 'Professional', pro: true, auto: false, darkTheme: 'midnight', accent: '', bg: '', card: '', round: 'default', density: 'compact', size: '100', cardStyle: 'outline', bgStyle: 'solid', header: 'plain', nav: 'labels', btn: 'solid', border: 'thin', frame: 'wide', motion: true, headFont: "'Inter', sans-serif", greeting: '', emoji: '', homeChart: 'line', wholeHome: false, confetti: false, g1: '#fbcfe8', g2: '#c4b5fd', gAngle: '160', bgDim: '30', particles: 'none', pCount: '16', pSpeed: '1', pEmoji: '', pageAnim: 'none', hover: 'none', press: 'none', tapFx: 'none', btnFx: 'none', titleFx: 'none', celebrate: 'confetti', sOn: false, sPack: 'soft', sVol: '60', sTap: true, sOk: true, sDel: true, sWin: true, homeOrder: HOME_ORDER.slice(), quickHide: ['customer', 'note', 'income', 'mileage'] });
 const guessWeekStart = () => {
   const l = (navigator.language || 'en-US').toLowerCase();
   return 'sun';
@@ -1785,7 +1785,7 @@ function normalize(src) {
   { /* look settings: older backups simply get the defaults */
     const sl = (src.settings || {}).look, L = { ...LOOK_DEFAULTS(), ...(sl && typeof sl === 'object' && !Array.isArray(sl) ? sl : {}) };
     if (!Array.isArray(L.quickHide)) L.quickHide = LOOK_DEFAULTS().quickHide;
-    if (!L.navMigrated) { L.layout = 'bottom'; L.homeGrid = 'single'; L.navMigrated = true; }
+    if (!L.navMigrated) { if (!(sl && sl.layout)) { L.layout = 'bottom'; L.homeGrid = 'single'; } L.navMigrated = true; }
     const ho = Array.isArray(L.homeOrder) ? L.homeOrder.filter((x, i, a) => HOME_ORDER.includes(x) && a.indexOf(x) === i) : [];
     if (!ho.includes('today')) ho.unshift('today');
     HOME_ORDER.forEach(x => { if (!ho.includes(x)) ho.push(x); });
