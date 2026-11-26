@@ -6841,6 +6841,7 @@ function pdfMake(o) {
     y -= 52 + 18;
   }
   o.sections.forEach(sec => {
+    if (sec.brk) np(false);
     need(sec.kv ? 90 : 96);
     txt([{ t: pdfClean(sec.name), b: true }], M, y - 13, 13); y -= 19;
     if (sec.note) { txt([{ t: pdfClean(sec.note), c: GREY }], M, y - 9, 8.5); y -= 14; }
@@ -9201,7 +9202,7 @@ setTimeout(() => { try { DRAFT_TYPES.forEach(t => { const d = JSON.parse(localSt
 window.addEventListener('offline', () => toast('You are offline. Everything still works and saves on this device.'));
 window.addEventListener('online', () => toast('Back online'));
 
-window.GBT = { get state() { return state; }, refCard: refCardFor, save, openOrders: aiOpenOrders, oc, summary, periodRange, goalInfo, feeFor, putOrder, removeOrder, setOrderStatus, processRecurring, unitCost, allocated, avail, genSample, enterApp, render, ui, ACT, OPEN, FORMS, alerts, visibleAlerts, archiveBlock, archiveRecords, deleteRecords, parseCsv, csvProducts, exportCsv, curType, dupRecord, listingPrice, listingTotals, taxInfo, normalize, bulkListPlan, V, TITLES, ic, download };
+window.GBT = { get state() { return state; }, refCard: refCardFor, save, openOrders: aiOpenOrders, oc, summary, periodRange, goalInfo, feeFor, putOrder, removeOrder, setOrderStatus, processRecurring, unitCost, allocated, avail, genSample, enterApp, render, ui, ACT, OPEN, FORMS, alerts, visibleAlerts, archiveBlock, archiveRecords, deleteRecords, parseCsv, csvProducts, exportCsv, curType, dupRecord, listingPrice, listingTotals, taxInfo, normalize, bulkListPlan, V, TITLES, ic, download, pdfMake, pdfBizName };
 $$('[data-ic]').forEach(el => { el.outerHTML = ic(el.dataset.ic); });
 load();
 applyTheme(state.settings.theme, state.settings.font);
@@ -11377,10 +11378,11 @@ function plannerEvents(date) {
   if (!events.length) return '';
   return `<section class="up-section"><div class="up-section-head"><div><span class="eyebrow">Appointments & reminders</span><h3>Events</h3></div><button type="button" class="link" data-act="seg" data-k="plan" data-v="calendar">Calendar</button></div><div class="up-events">${events.map(e => `<button type="button" class="up-event" data-act="edit" data-type="event" data-id="${esc(e.id)}"><span class="up-event-dot"></span><b>${esc(e.title)}</b><small>${e.time ? tLab(e.time) : 'All day'}${e.kind ? ' · ' + esc(e.kind) : ''}</small></button>`).join('')}</div></section>`;
 }
+let PLAN_UNDO = null;
 function plannerView() {
   const date = plannerDate(), todayKey = today(), bs = schedFor(date), tasks = planDueTasks(date), items = dayKeys(date).length;
   if (T().runs[date]) syncAssignedTasks(T().runs[date]);
-  return `<div class="ultimate-plan"><div class="up-date-head"><div><span class="eyebrow">${date === todayKey ? 'Your day at a glance' : 'Planning ahead'}</span><h2>${date === todayKey ? 'Today' : date === addDays(todayKey, 1) ? 'Tomorrow' : dparse(date).toLocaleDateString(undefined, { weekday: 'long' })}</h2><p>${dparse(date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p></div>${date !== todayKey ? `<button type="button" class="btn btn-soft btn-sm" data-ts="plan-today">Today</button>` : ''}</div>${plannerStrip(date)}<div class="up-summary"><div><b>${bs.length}</b><span>Blocks</span></div><div><b>${tasks.length}</b><span>Due tasks</span></div><div><b>${items}</b><span>Day plan items</span></div></div>${plannerShiftCard(date)}${dayPlanCard()}${plannerSchedule(date)}${plannerTasks(date)}${plannerEvents(date)}<div class="up-footer"><button type="button" data-act="seg" data-k="plan" data-v="calendar">${I('calendar', 15)}Calendar &amp; key dates</button><button type="button" data-ts="nav" data-v="shift:history">${I('clock', 15)}Hours &amp; reports</button></div></div>`;
+  return `<div class="ultimate-plan"><div class="up-date-head"><div><span class="eyebrow">${date === todayKey ? 'Your day at a glance' : 'Planning ahead'}</span><h2>${date === todayKey ? 'Today' : date === addDays(todayKey, 1) ? 'Tomorrow' : dparse(date).toLocaleDateString(undefined, { weekday: 'long' })}</h2><p>${dparse(date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p></div>${date !== todayKey ? `<button type="button" class="btn btn-soft btn-sm" data-ts="plan-today">Today</button>` : ''}</div>${plannerStrip(date)}<div class="up-summary"><div><b>${bs.length}</b><span>Blocks</span></div><div><b>${tasks.length}</b><span>Due tasks</span></div><div><b>${items}</b><span>Day plan items</span></div></div>${plannerShiftCard(date)}${dayPlanCard()}${plannerSchedule(date)}${plannerTasks(date)}${plannerEvents(date)}<div class="up-footer"><button type="button" data-act="seg" data-k="plan" data-v="calendar">${I('calendar', 15)}Calendar &amp; key dates</button><button type="button" data-ts="nav" data-v="shift:history">${I('clock', 15)}Hours &amp; reports</button></div><div class=\"up-footer\" style=\"margin-top:8px\">${PLAN_UNDO ? `<button type=\"button\" data-ts=\"plan-clear-undo\">${I('check', 15)}Undo clear</button>` : ''}<button type=\"button\" data-ts=\"plan-clear-all\" style=\"color:var(--bad,#d33)\">${I('x', 15)}Clear all plans</button></div></div>`;
 }
 const PK = { dates: [], sel: new Set(), tab: 'product', q: '', cal: '', calOpen: false, blkOpen: false, blocks: new Set(), tasks: new Set() };
 const pkMatch = (q, parts) => { const h = parts.join(' ').toLowerCase(); return q.toLowerCase().split(/\s+/).filter(Boolean).every(w => h.includes(w)); };
@@ -11503,6 +11505,24 @@ Object.assign(HX, {
   'pk-open': el => pkOpen(el.dataset.d, el.dataset.k, el.dataset.i), 'pk-blk': el => { const k = el.dataset.k; if (PK.blocks.has(k)) PK.blocks.delete(k); else PK.blocks.add(k); PK.tasks.clear(); pkPaint(); pkMore(); }, 'dp-sort': el => { T().dpSort = el.dataset.v; save(); paintSheet(); const m = $('#ts-modal'); if (m && $('#ref-body', m)) refPaint(); }, 'dp-nav': el => { const d = +el.dataset.d; dpDate = d === 0 ? null : addDays(dpDate || today(), d); paintSheet(); },
   'dp-del': el => { const t = T(), a = t.dayItems[el.dataset.d]; if (!a) return; t.dayItems[el.dataset.d] = a.filter(x => x !== el.dataset.k); if (!t.dayItems[el.dataset.d].length) delete t.dayItems[el.dataset.d]; const bi = t.blockItems[el.dataset.d]; if (bi) { Object.keys(bi).forEach(b => { bi[b] = bi[b].filter(x => x !== el.dataset.k); if (!bi[b].length) delete bi[b]; }); if (!Object.keys(bi).length) delete t.blockItems[el.dataset.d]; } const ti = t.taskItems && t.taskItems[el.dataset.d]; if (ti) { Object.keys(ti).forEach(b => { Object.keys(ti[b]).forEach(i => { ti[b][i] = ti[b][i].filter(x => x !== el.dataset.k); if (!ti[b][i].length) delete ti[b][i]; }); if (!Object.keys(ti[b]).length) delete ti[b]; }); } save(); paintSheet(); paintBar(true); },
   'dp-view': () => refOpen(), 'ref-open': el => refOpen(el.dataset.d, el.dataset.v), 'ref-tab': el => { REF.v = el.dataset.v; refPaint(); $$('#ts-modal .ref-tabs button').forEach(x => x.classList.toggle('on', x.dataset.v === REF.v)); },
+  'plan-clear-all': async () => {
+    const t = T(), td = today(), cnt = o => Object.values(o || {}).reduce((a, v) => a + (Array.isArray(v) ? v.length : cnt(v)), 0);
+    const nb = t.blocks.length, ni = cnt(t.dayItems) + cnt(t.blockItems) + cnt(t.taskItems);
+    if (!nb && !ni) return toast('There are no plans to clear');
+    if (!await ask('Clear ALL plans?', `This removes every time block (${nb}, including repeating and one-time ones) and every product, listing and order planned on any day, along with their task and block assignments (${ni}).\n\nHours you already worked, past days and your days off are kept.`, 'Clear everything', true)) return;
+    const J = x => JSON.parse(JSON.stringify(x));
+    const futureRuns = {}; Object.keys(t.runs).forEach(d => { if (d >= td) futureRuns[d] = J(t.runs[d]); });
+    PLAN_UNDO = { blocks: J(t.blocks), dayItems: J(t.dayItems), blockItems: J(t.blockItems), taskItems: J(t.taskItems || {}), runs: futureRuns };
+    t.blocks = []; t.dayItems = {}; t.blockItems = {}; t.taskItems = {};
+    Object.keys(futureRuns).forEach(d => { const r = t.runs[d]; if (r && Array.isArray(r.entries)) r.entries = r.entries.filter(e => !(e.bid && e.status === 'pending')); });
+    commit(); toast('All plans cleared. You can undo it from the bottom of this page');
+  },
+  'plan-clear-undo': () => {
+    const u = PLAN_UNDO; if (!u) return; const t = T();
+    t.blocks = u.blocks; t.dayItems = u.dayItems; t.blockItems = u.blockItems; t.taskItems = u.taskItems;
+    Object.keys(u.runs).forEach(d => { t.runs[d] = u.runs[d]; });
+    PLAN_UNDO = null; commit(); toast('Plans restored');
+  },
   'ref-rm': el => { const t = T(), d = REF.d, k = el.dataset.k, b = el.dataset.b; if (b) { const bi = t.blockItems[d] && t.blockItems[d][b]; if (bi) { t.blockItems[d][b] = bi.filter(x => x !== k); if (!t.blockItems[d][b].length) delete t.blockItems[d][b]; } } else HX['dp-del']({ dataset: { d, k } }); save(); paintSheet(); paintBar(true); const rv = refViews(d); if (REF.v !== 'day' && !blkItems(d, REF.v).length) REF.v = 'day'; const m = $('#ts-modal'); if (m && $('#ref-body', m)) { refPaint(); $$('#ts-modal .ref-tabs button').forEach(x => x.classList.toggle('on', x.dataset.v === REF.v)); } },
   'pk-tab': el => { PK.tab = el.dataset.v; pkPaint(true); },
   'pk-tog': el => { const k = el.dataset.k; if (el.classList.contains('dis')) return; if (PK.sel.has(k)) PK.sel.delete(k); else PK.sel.add(k); pkPaint(true); },
@@ -16032,7 +16052,7 @@ const rowsEditor = d => `<div class="bf-box"><div style="display:flex;justify-co
 
 
 const chk = (id, label, on) => `<label class="bf-chk"><input type="checkbox" id="${id}"${on ? ' checked' : ''}> <span>${label}</span></label>`;
-const tabsHtml = (n) => `<div class="bf-tabs">${[['forms', 'Forms', 0], ['todo', 'To do', n], ['saved', 'Saved', 0]].map(([k, l, c]) => `<button class="${V.tab === k ? 'on' : ''}" data-bf="tab" data-v="${k}">${l}${c ? `<i>${c}</i>` : ''}</button>`).join('')}</div>`;
+const tabsHtml = (n) => `<div class="bf-tabs">${[['forms', 'Forms', 0], ['todo', 'To do', n], ['saved', 'Saved', 0], ['export', 'Export', 0]].map(([k, l, c]) => `<button class="${V.tab === k ? 'on' : ''}" data-bf="tab" data-v="${k}">${l}${c ? `<i>${c}</i>` : ''}</button>`).join('')}</div>`;
 const heroHtml = n => `<div class="bf-hero"><h3>Business forms</h3><p>Fill one in, print it, file it in a folder. Every saved form can be edited any time.</p><div class="bf-stats"><button class="bf-stat" data-bf="tab" data-v="todo"><b>${n}</b><span>Orders need a form</span></button><button class="bf-stat" data-bf="tab" data-v="saved"><b>${docs().length}</b><span>Saved forms</span></button><button class="bf-stat" data-bf="tab" data-v="saved"><b>${folders().length}</b><span>Folders</span></button></div></div>`;
 
 function todoRow(x) {
@@ -16082,6 +16102,7 @@ function paint0() {
   }
   const n = todo().length;
   const top = heroHtml(n) + tabsHtml(n);
+  if (V.tab === 'export') { h.innerHTML = top + exportScreen(); xCountUpdate(); return; }
   if (V.tab === 'todo') {
     const l = todo();
     h.innerHTML = top + `<p class="hint" style="margin:0">Orders from the last 30 days that don’t have these forms saved yet. Tap a button and the form fills itself in.</p>` + (l.length ? l.map(todoRow).join('') : `<div class="card bf-ok"><div class="big">🎉</div><b>All caught up</b><p class="hint" style="margin:4px 0 0">Every recent order has its forms. New orders show up here by themselves.</p></div>`);
@@ -16094,6 +16115,7 @@ function paint0() {
     h.innerHTML = top + `<input class="input" id="bf-q" data-bf-q placeholder="Search saved forms" value="${esc(V.q || '')}" style="min-height:46px">`
       + `<div class="bf-chips">${fch.map(([k, l]) => `<button class="chip${V.f === k ? ' on' : ''}" data-bf="fol" data-v="${k}">${esc(l)}</button>`).join('')}<button class="chip" data-bf="newfolder">＋ New folder</button></div>`
       + (cur ? `<div class="bf-acts" style="gap:4px 16px"><button class="link" data-bf="renfolder">Rename “${esc(cur.name)}”</button><button class="link" data-bf="delfolder">Delete folder</button></div>` : '')
+      + `<div class="bf-acts"><button class="btn btn-soft" data-bfx="open">⬇ Export ${V.f === 'all' ? 'all saved forms' : 'this folder'}…</button></div>`
       + `<div id="bf-list" style="display:grid;gap:10px">${savedList()}</div>`;
     return;
   }
@@ -16149,6 +16171,140 @@ function commit() {
   if (o && d.pu && pu1 && pu1.checked && V.vals.pdate) { try { G.putOrder({ ...o, pickup: V.vals.pdate }); } catch (e) { } }
   persist(); return x;
 }
+/* ---------- export: all forms, a folder, a category, or hand-picked; as PDF, text, web page, CSV or JSON ---------- */
+const XS = document.createElement('style');
+XS.textContent = '#bf-host .bf-tabs{grid-template-columns:repeat(4,1fr)}#bf-host .bf-tabs button{padding:0 2px}#bf-host .bfx-list{display:grid;gap:6px;max-height:min(46vh,420px);overflow:auto;-webkit-overflow-scrolling:touch;padding:2px}#bf-host .bfx-list .bf-chk{align-items:flex-start;padding:10px 12px;min-height:0}#bf-host .bfx-list .bf-chk input{margin-top:1px}#bf-host .bfx-fmt{display:grid;grid-template-columns:1fr 1fr;gap:8px}#bf-host .bfx-fmt .btn{min-height:50px;flex-direction:column;line-height:1.2}#bf-host .bfx-fmt .btn small{display:block;font-weight:500;opacity:.8;font-size:11px}';
+document.head.appendChild(XS);
+const X = { src: 'saved', sel: new Set(), q: '', sep: false, ready: false };
+const slug = s => String(s || 'form').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').slice(0, 60) || 'form';
+function xItems() {
+  if (X.src === 'blank') return DEFS.map(d => ({ id: d.k, name: title(d), sub: d.desc, cat: d.cat, fol: '', ico: d.ico }));
+  return docs().slice().reverse().map(x => { const d = def(x.key); return { id: x.id, name: x.name, sub: x.no + ' · ' + fd(x.date) + (folderOf(x.folder) ? ' · 📁 ' + folderOf(x.folder).name : ''), cat: d ? d.cat : 'Other', fol: folderOf(x.folder) ? x.folder : '', ico: x.ico || '📄' }; });
+}
+function xGroups() {
+  const it = xItems(), n = f => it.filter(f).length, g = [['all', 'All (' + it.length + ')', () => true]];
+  if (X.src === 'saved') { g.push(['nofol', '📄 No folder (' + n(i => !i.fol) + ')', i => !i.fol]); folders().forEach(f => g.push(['f:' + f.id, '📁 ' + f.name + ' (' + n(i => i.fol === f.id) + ')', i => i.fol === f.id])); }
+  [...new Set(it.map(i => i.cat))].forEach(c => g.push(['c:' + c, c + ' (' + n(i => i.cat === c) + ')', i => i.cat === c]));
+  return g;
+}
+const xSelect = key => { const g = xGroups().find(z => z[0] === key) || xGroups()[0]; X.sel = new Set(xItems().filter(g[2]).map(i => i.id)); };
+const xChosen = () => { const ids = new Set(xItems().map(i => i.id)); return [...X.sel].filter(id => ids.has(id)); };
+function xListHtml() {
+  const q = X.q.trim().toLowerCase(), it = xItems().filter(i => !q || (i.name + ' ' + i.sub + ' ' + i.cat).toLowerCase().includes(q));
+  return it.length ? it.map(i => `<label class="bf-chk"><input type="checkbox" data-bfx-i="${esc(i.id)}"${X.sel.has(i.id) ? ' checked' : ''}><span style="flex:1;min-width:0"><b>${esc(i.ico)} ${esc(i.name)}</b><div class="xs sub">${esc(i.sub)}</div></span></label>`).join('')
+    : `<div class="card bf-ok"><div class="big">📂</div><b>${X.src === 'saved' && !docs().length ? 'No saved forms yet' : 'Nothing here'}</b><p class="hint" style="margin:4px 0 0">${X.src === 'saved' && !docs().length ? 'Fill in a form and save it, or switch to Blank forms above.' : 'Try a different word.'}</p></div>`;
+}
+function xCountUpdate() {
+  const n = xChosen().length, c = $('#bfx-count'); if (c) c.textContent = n + ' of ' + xItems().length + ' selected';
+  document.querySelectorAll('#bf-host [data-bfx-run]').forEach(b => { b.disabled = !n; b.style.opacity = n ? '' : '.5'; });
+}
+function exportScreen() {
+  if (!X.ready) { X.ready = true; xSelect('all'); }
+  const sc = docs().length, ft = (k, a, b) => `<button class="btn btn-line" data-bfx="run" data-bfx-run data-v="${k}"><b>${a}</b><small>${b}</small></button>`;
+  return `<p class="hint" style="margin:0">Pick the forms you want, then choose how to save them. You can export everything, one folder, one category, or tick forms one by one.</p>`
+    + `<div class="bf-chips"><button class="chip${X.src === 'saved' ? ' on' : ''}" data-bfx="src" data-v="saved">Saved forms (${sc})</button><button class="chip${X.src === 'blank' ? ' on' : ''}" data-bfx="src" data-v="blank">Blank forms (${DEFS.length})</button></div>`
+    + `<div class="bf-h"><b>Quick select</b><button class="link" data-bfx="none">Clear</button></div><div class="bf-chips">${xGroups().map(g => `<button class="chip" data-bfx="grp" data-v="${esc(g[0])}">${esc(g[1])}</button>`).join('')}</div>`
+    + `<input class="input" data-bfx-q placeholder="Search these forms" value="${esc(X.q)}" style="min-height:46px">`
+    + `<div class="bf-h"><b id="bfx-count"></b><button class="link" data-bfx="shown">Tick all shown</button></div><div class="bfx-list" id="bfx-list">${xListHtml()}</div>`
+    + chk('bfx-sep', 'Each form as its own file (downloads as one .zip). Works for PDF, text and web page.', X.sep)
+    + `<div class="bf-h"><b>Save as</b></div><div class="bfx-fmt">${ft('pdf', 'PDF', 'Opens anywhere')}${ft('txt', 'Text file', '.txt, plain words')}${ft('copy', 'Copy as text', 'Paste anywhere')}${ft('html', 'Web page', '.html, looks like the form')}${ft('csv', 'Spreadsheet', '.csv for Excel or Sheets')}${ft('json', 'Data file', '.json, for backups')}</div>`
+    + `<p class="hint" style="margin:0">Want the paper version? Open a saved form and tap Print / Save PDF.</p>`;
+}
+/* turn a saved form (or a blank one) into plain data */
+const cleanV = s => String(s).replace(/☑ Yes/g, 'Yes').replace(/☐ No/g, 'No').replace(/\u00a0/g, ' ').trim();
+function xModel(id) {
+  if (X.src === 'blank') {
+    const d = def(id); if (!d) return null; const blank = d.cols ? [0, 1, 2, 3].map(() => d.cols.map(() => '')) : [];
+    return { id, name: title(d), no: '', date: '', folder: '', cat: d.cat, ico: d.ico, sig: !!(d.sig || d.status),
+      fields: d.f().map(f => [f.label, f.t === 'c' ? '[  ] Yes   [  ] No' : '____________________']), cols: d.cols ? d.cols.map(c => c[0]) : null, rows: blank, foot: null,
+      html: docHtml(Object.assign({}, d, { tot: null }), {}, '', blank, 'Blank form', title(d)) };
+  }
+  const x = docs().find(z => z.id === id); if (!x) return null;
+  const dom = new DOMParser().parseFromString(x.html || '', 'text/html'), root = dom.querySelector('.bf-doc') || dom.body;
+  const tx = el => { const c = el.cloneNode(true); c.querySelectorAll('br').forEach(b => b.replaceWith('\n')); return cleanV(c.textContent); };
+  const fields = [...root.querySelectorAll('tr')].filter(tr => tr.querySelector('td.k')).map(tr => [tx(tr.querySelector('td.k')), tx(tr.querySelector('td.k').nextElementSibling || tr)]);
+  const it = root.querySelector('.bf-scroll table'); let cols = null, rows = [], foot = null;
+  if (it) { const trs = [...it.querySelectorAll('tr')]; cols = [...(trs[0] ? trs[0].querySelectorAll('th') : [])].map(tx);
+    trs.slice(1).forEach(tr => { const c = [...tr.querySelectorAll('td')].map(tx); if (tr.classList.contains('t')) foot = c; else if (!(c.length === 1 && cols.length > 1)) rows.push(c); }); }
+  const d = def(x.key), f = folderOf(x.folder);
+  return { id, name: x.name, no: x.no, date: fd(x.date), folder: f ? f.name : '', cat: d ? d.cat : '', ico: x.ico, sig: !!root.querySelector('.bf-sig'), fields, cols, rows, foot, html: x.html || '' };
+}
+function modelText(m) {
+  const L = [m.name.toUpperCase(), bizName(), [m.no, m.date, m.folder && 'Folder: ' + m.folder].filter(Boolean).join(' | ')].filter(Boolean);
+  L.push('-'.repeat(44));
+  const w = Math.max(0, ...m.fields.map(f => f[0].length));
+  m.fields.forEach(([k, v]) => { const ls = String(v).split('\n'); L.push(k.padEnd(w) + ' : ' + ls[0]); ls.slice(1).forEach(s => L.push(' '.repeat(w + 3) + s)); });
+  if (m.cols) {
+    const all = [m.cols].concat(m.rows, m.foot ? [m.foot] : []), ws = m.cols.map((_, j) => Math.max(...all.map(r => String(r[j] ?? '').length))), fm = r => r.map((c, j) => String(c ?? '').padEnd(ws[j])).join(' | ').trimEnd(), ln = ws.map(n => '-'.repeat(n)).join('-+-');
+    L.push('', fm(m.cols), ln); m.rows.forEach(r => L.push(fm(r))); if (!m.rows.length) L.push('(no items)'); if (m.foot) { L.push(ln); L.push(fm(m.foot)); }
+  }
+  if (m.sig) L.push('', 'Signature: ____________________   Printed name: ____________________   Date: ____________');
+  return L.join('\n');
+}
+const txtFor = ms => ms.map(modelText).join('\n\n' + '='.repeat(44) + '\n\n') + '\n';
+const htmlFor = ms => `<!doctype html><html><head><meta charset="utf-8"><title>${esc(ms.length === 1 ? ms[0].name : 'Business forms')}</title><style>${DOC_CSS}.pg{page-break-after:always;margin-bottom:24px}.pg:last-child{page-break-after:auto}</style></head><body>${ms.map(m => `<div class="pg">${m.html}</div>`).join('')}</body></html>`;
+const csvC = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+function csvFor(ms) {
+  const labels = []; ms.forEach(m => m.fields.forEach(f => { if (!labels.includes(f[0])) labels.push(f[0]); }));
+  const head = ['Form', 'Form number', 'Form date', 'Folder', 'Form category'].concat(labels, ['Items']);
+  const rows = ms.map(m => { const o = {}; m.fields.forEach(f => { o[f[0]] = f[1]; }); return [m.name, m.no, m.date, m.folder, m.cat].concat(labels.map(l => o[l] ?? ''), [m.rows.filter(r => r.some(Boolean)).map(r => r.join(' | ')).join(' ; ')]); });
+  return '\ufeff' + [head].concat(rows).map(r => r.map(csvC).join(',')).join('\r\n');
+}
+const jsonFor = ms => JSON.stringify(ms.map(m => ({ form: m.name, number: m.no, date: m.date, folder: m.folder, category: m.cat, fields: Object.fromEntries(m.fields), items: m.cols ? m.rows.filter(r => r.some(Boolean)).map(r => Object.fromEntries(m.cols.map((c, j) => [c, r[j] ?? '']))) : [], itemsTotal: m.foot ? Object.fromEntries(m.cols.map((c, j) => [c, m.foot[j] ?? ''])) : undefined })), null, 2);
+function pdfFor(ms) {
+  const numLike = v => /^[-\u2212(]?\s*[^\d\s]{0,3}\s*\d[\d.,]*\s*%?\)?$/.test(String(v).trim());
+  const secs = []; ms.forEach((m, i) => {
+    secs.push({ name: m.name, note: [m.no, m.date, m.folder && 'Folder: ' + m.folder, m.cat].filter(Boolean).join('  |  '), brk: i > 0, cols: [{ h: 'Field', w: 1 }, { h: 'Details', w: 2 }], rows: m.fields.map(f => [f[0], f[1]]) });
+    if (m.cols) { const al = m.cols.map((_, j) => { const v = m.rows.map(r => r[j]).filter(Boolean); return j > 0 && v.length && v.every(numLike) ? 'r' : 'l'; }); secs.push({ name: 'Items', cols: m.cols.map((h, j) => ({ h, w: j === 0 ? 2.2 : 1, a: al[j] })), rows: m.rows, foot: m.foot || undefined }); }
+  });
+  const str = G.pdfMake({ title: ms.length === 1 ? ms[0].name : 'Business forms', biz: G.pdfBizName ? G.pdfBizName() : bizName(), sub: ms.length + ' form' + (ms.length === 1 ? '' : 's') + '  |  ' + fd(today()), landscape: ms.some(m => m.cols && m.cols.length > 5), sections: secs });
+  return Uint8Array.from(str, c => c.charCodeAt(0) & 255);
+}
+/* a small .zip writer (files stored, not squeezed) */
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = u => { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = CRC_T[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+function zipMake(files) {
+  const enc = new TextEncoder(), parts = [], cen = [], u16 = n => [n & 255, (n >> 8) & 255], u32 = n => [n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >>> 24) & 255];
+  const nw = new Date(), tm = (nw.getHours() << 11) | (nw.getMinutes() << 5) | (nw.getSeconds() >> 1), dt = ((nw.getFullYear() - 1980) << 9) | ((nw.getMonth() + 1) << 5) | nw.getDate(); let off = 0;
+  files.forEach(f => { const nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length;
+    const lh = new Uint8Array([0x50, 0x4b, 3, 4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(tm), ...u16(dt), ...u32(crc), ...u32(sz), ...u32(sz), ...u16(nm.length), ...u16(0)]);
+    parts.push(lh, nm, f.data); cen.push({ nm, crc, sz, off }); off += lh.length + nm.length + sz; });
+  let csz = 0; cen.forEach(c => { const h = new Uint8Array([0x50, 0x4b, 1, 2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(tm), ...u16(dt), ...u32(c.crc), ...u32(c.sz), ...u32(c.sz), ...u16(c.nm.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(c.off)]); parts.push(h, c.nm); csz += h.length + c.nm.length; });
+  parts.push(new Uint8Array([0x50, 0x4b, 5, 6, 0, 0, 0, 0, ...u16(cen.length), ...u16(cen.length), ...u32(csz), ...u32(off), ...u16(0)]));
+  return new Blob(parts, { type: 'application/zip' });
+}
+function saveBlob(name, blob) { const a = document.createElement('a'), u = URL.createObjectURL(blob); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); }
+async function copyText(t) { try { await navigator.clipboard.writeText(t); return true; } catch (e) { try { const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(a); a.select(); const ok = document.execCommand('copy'); a.remove(); return ok; } catch (e2) { return false; } } }
+async function runExport(fmt) {
+  const ms = xChosen().map(xModel).filter(Boolean); if (!ms.length) return toast('Tick at least one form first');
+  const kind = X.src === 'blank' ? 'blank-forms' : 'forms', base = 'business-' + kind + '-' + today(), enc = s => new TextEncoder().encode(s);
+  if (fmt === 'copy') return toast(await copyText(txtFor(ms)) ? 'Copied ' + ms.length + ' form' + (ms.length === 1 ? '' : 's') + ' as text' : 'Could not copy here');
+  if (fmt === 'pdf' && !G.pdfMake) return toast('PDF is not available here');
+  const one = {
+    pdf: l => ({ d: pdfFor(l), t: 'application/pdf' }), txt: l => ({ d: enc(txtFor(l)), t: 'text/plain' }), html: l => ({ d: enc(htmlFor(l)), t: 'text/html' }),
+    csv: l => ({ d: enc(csvFor(l)), t: 'text/csv' }), json: l => ({ d: enc(jsonFor(l)), t: 'application/json' })
+  }[fmt]; if (!one) return;
+  try {
+    if (X.sep && ms.length > 1 && ['pdf', 'txt', 'html'].includes(fmt)) {
+      const used = {}; const files = ms.map(m => { let n = slug(m.name + (m.no ? '-' + m.no : '')); used[n] = (used[n] || 0) + 1; if (used[n] > 1) n += '-' + used[n]; return { name: n + '.' + fmt, data: one([m]).d }; });
+      saveBlob(base + '.zip', zipMake(files)); return toast('Downloaded ' + ms.length + ' files in one .zip');
+    }
+    const r = one(ms); saveBlob((ms.length === 1 ? slug(ms[0].name + (ms[0].no ? '-' + ms[0].no : '')) : base) + '.' + fmt, new Blob([r.d], { type: r.t })); toast('Downloaded ' + (ms.length === 1 ? '1 form' : ms.length + ' forms') + ' as ' + fmt.toUpperCase());
+  } catch (e) { toast('Could not export here'); }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('#bf-host [data-bfx]'); if (!b) return; const a = b.dataset.bfx, v = b.dataset.v;
+  if (a === 'open') { X.src = 'saved'; X.q = ''; X.ready = true; xSelect(V.f === 'all' ? 'all' : V.f === 'none' ? 'nofol' : 'f:' + V.f); V.tab = 'export'; V.view = null; V.key = null; paint(); }
+  else if (a === 'src') { X.src = v; X.q = ''; X.ready = true; xSelect('all'); paint(); }
+  else if (a === 'grp') { xSelect(v); const l = $('#bfx-list'); if (l) l.innerHTML = xListHtml(); xCountUpdate(); }
+  else if (a === 'none') { X.sel = new Set(); const l = $('#bfx-list'); if (l) l.innerHTML = xListHtml(); xCountUpdate(); }
+  else if (a === 'shown') { const q = X.q.trim().toLowerCase(); xItems().filter(i => !q || (i.name + ' ' + i.sub + ' ' + i.cat).toLowerCase().includes(q)).forEach(i => X.sel.add(i.id)); const l = $('#bfx-list'); if (l) l.innerHTML = xListHtml(); xCountUpdate(); }
+  else if (a === 'run') runExport(v);
+});
+document.addEventListener('input', e => { const t = e.target; if (t.dataset && t.dataset.bfxQ !== undefined && t.closest('#bf-host')) { X.q = t.value; const l = $('#bfx-list'); if (l) l.innerHTML = xListHtml(); } });
+document.addEventListener('change', e => { const t = e.target; if (!t.closest || !t.closest('#bf-host')) return;
+  if (t.dataset.bfxI !== undefined) { if (t.checked) X.sel.add(t.dataset.bfxI); else X.sel.delete(t.dataset.bfxI); xCountUpdate(); }
+  else if (t.id === 'bfx-sep') X.sep = t.checked; });
 document.addEventListener('click', e => {
   const b = e.target.closest && e.target.closest('#bf-host [data-bf]'); if (!b) return; const a = b.dataset.bf, v = b.dataset.v;
   const dx = () => docs().find(z => z.id === v);
