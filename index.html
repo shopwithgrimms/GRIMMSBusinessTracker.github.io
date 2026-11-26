@@ -957,6 +957,25 @@ html[data-motion=off] *{animation:none!important;transition:none!important}
 .lkfilled .card,.invh.inv-filled .card{background:var(--p-soft);border-color:transparent}
 .invh.inv-flat .card{background:transparent;border-color:transparent;box-shadow:none;border-radius:0;border-bottom:1px solid var(--line)}
 .invh.inv-outline .card{border:2px solid color-mix(in srgb,var(--p) 40%,var(--line));box-shadow:none}
+
+/* ---------- v1.2: true full width on computers + full page list in the side menu ---------- */
+@media(min-width:640px){
+  html:is([data-frame=wide],[data-frame=full]) body{padding:0;display:block}
+  html:is([data-frame=wide],[data-frame=full]) .frame,html[data-pro=on]:is([data-frame=wide],[data-frame=full]) .frame{max-width:none;width:100%;height:100dvh;border:0;border-radius:0;box-shadow:none}
+}
+@media(min-width:900px){
+  html:is([data-layout=sidebar],[data-layout=rail],[data-layout=top],[data-pro=on]):is([data-frame=wide],[data-frame=full]) .page,html[data-hgrid=two]:is([data-frame=wide],[data-frame=full]) .page{max-width:none;margin:0}
+}
+.nav-sec{display:none}
+.nav-n{margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--p);color:var(--on-p);font-size:10px;font-weight:700;line-height:18px;text-align:center}
+html:is([data-layout=sidebar],[data-layout=rail]) #screen-app>#nav{scrollbar-width:thin}
+html:is([data-layout=sidebar],[data-layout=rail]) #screen-app>#nav .nav-sec{display:block;flex:none;height:1px;margin:6px 10px;padding:0;background:var(--line);font-size:0;color:transparent;overflow:hidden}
+html:is([data-layout=sidebar],[data-layout=rail]) #screen-app>#nav .nav-n{display:none!important}
+html[data-layout=top] #screen-app>#nav .nav-sec{display:block;flex:none;width:1px;align-self:stretch;margin:8px 8px;padding:0;background:var(--line);font-size:0;color:transparent;overflow:hidden}
+@media(min-width:900px){
+  html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app>#nav .nav-sec{height:auto;margin:10px 0 2px;padding:12px 12px 4px;background:none;border-top:1px solid var(--line);font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);overflow:visible}
+  html[data-layout=sidebar]:is([data-frame=wide],[data-frame=full]) #screen-app>#nav .nav-n{display:inline-block!important}
+}
 </style>
 <style id="ap-css">
 /* Appearance: numbered steps, named theme tiles, real background previews */
@@ -1695,7 +1714,7 @@ const PLATFORM_PRESETS = [
 
 const HOME_ORDER = ['today', 'pipeline', 'goals', 'attention', 'lowstock', 'upcoming', 'quick'];
 const QUICKS = [['sale', 'Sale'], ['bulk', 'Bulk order'], ['expense', 'Expense'], ['supply', 'Supply'], ['product', 'Product'], ['listing', 'Listing'], ['task', 'Task'], ['time', 'Time'], ['customer', 'Customer'], ['note', 'Note'], ['income', 'Income'], ['mileage', 'Trip'], ['bill', 'Bill'], ['po', 'Purchase order']];
-const LOOK_DEFAULTS = () => ({ layout: 'bottom', homeGrid: 'single', setup: 'Professional', pro: true, auto: false, darkTheme: 'midnight', accent: '', bg: '', card: '', round: 'default', density: 'compact', size: '100', cardStyle: 'outline', bgStyle: 'solid', header: 'plain', nav: 'labels', btn: 'solid', border: 'thin', frame: 'wide', motion: true, headFont: "'Inter', sans-serif", greeting: '', emoji: '', homeChart: 'line', wholeHome: false, confetti: false, g1: '#fbcfe8', g2: '#c4b5fd', gAngle: '160', bgDim: '30', particles: 'none', pCount: '16', pSpeed: '1', pEmoji: '', pageAnim: 'none', hover: 'none', press: 'none', tapFx: 'none', btnFx: 'none', titleFx: 'none', celebrate: 'confetti', sOn: false, sPack: 'soft', sVol: '60', sTap: true, sOk: true, sDel: true, sWin: true, homeOrder: HOME_ORDER.slice(), quickHide: ['customer', 'note', 'income', 'mileage'] });
+const LOOK_DEFAULTS = () => ({ layout: 'bottom', homeGrid: 'single', setup: 'Professional', pro: true, auto: false, darkTheme: 'midnight', accent: '', bg: '', card: '', round: 'default', density: 'compact', size: '100', cardStyle: 'outline', bgStyle: 'solid', header: 'plain', nav: 'labels', btn: 'solid', border: 'thin', frame: 'full', motion: true, headFont: "'Inter', sans-serif", greeting: '', emoji: '', homeChart: 'line', wholeHome: false, confetti: false, g1: '#fbcfe8', g2: '#c4b5fd', gAngle: '160', bgDim: '30', particles: 'none', pCount: '16', pSpeed: '1', pEmoji: '', pageAnim: 'none', hover: 'none', press: 'none', tapFx: 'none', btnFx: 'none', titleFx: 'none', celebrate: 'confetti', sOn: false, sPack: 'soft', sVol: '60', sTap: true, sOk: true, sDel: true, sWin: true, homeOrder: HOME_ORDER.slice(), quickHide: ['customer', 'note', 'income', 'mileage'] });
 const guessWeekStart = () => {
   const l = (navigator.language || 'en-US').toLowerCase();
   return 'sun';
@@ -3032,8 +3051,20 @@ function renderHeader() {
   return `<div class="hdr"><div class="row" style="gap:10px;min-width:0">${left}<h1 class="trunc">${title}</h1></div><div class="row" style="gap:8px">${extra}${add ? `<button class="btn btn-primary btn-sm" data-act="add" data-type="${add[0]}" aria-label="Add ${esc(add[1])}">${ic('plus')}<span class="addl"> ${add[1]}</span></button>` : ''}${v === 'stock' ? pgSetBtn(ui.seg.stock) : PG_SET_NAMES[v] ? pgSetBtn(v) : ''}${helpBtn()}${bellBtn(v)}</div></div>`;
 }
 const moreName = () => { const l = (state.settings.look || {}).layout; return l && l !== 'bottom' ? 'All other pages' : 'More'; };
+const NAV_PAGES = [['inbox', 'inbox', 'Inbox'], ['assistant', 'star', 'Business Assistant'], ['bf', 'file-text', 'Business forms'], ['goals', 'target', 'Goals'], ['taxes', 'landmark', 'Taxes'], ['bills', 'receipt', 'Bills & invoices'], ['forecast', 'line-chart', 'Cash flow forecast'], ['purchases', 'truck', 'Orders & deliveries'], ['printlabels', 'printer', 'Print labels'], ['barcodes', 'tag', 'Item numbers & lookup'], ['customers', 'users', 'Customers'], ['suppliers', 'contact', 'Suppliers'], ['mileage', 'car', 'Mileage'], ['notes', 'sticky-note', 'Notes'], ['activity', 'history', 'Activity'], ['faq', 'info', 'Help & FAQ'], ['settings', 'settings', 'Settings']];
 function renderNav() {
-  const items = [['home', 'house', 'Home'], ['sales', 'receipt', 'Sales'], ['stock', 'package', 'Inventory'], ['money', 'wallet', 'Money'], ['plan', 'list-checks', 'Plan'], ['more', 'more-horizontal', moreName()]];
+  const lay = (state.settings.look || {}).layout, wide = !!lay && lay !== 'bottom';
+  const main = [['home', 'house', 'Home'], ['sales', 'receipt', 'Sales'], ['stock', 'package', 'Inventory'], ['money', 'wallet', 'Money'], ['plan', 'list-checks', 'Plan']];
+  if (wide) {
+    /* sidebar / rail / top layouts: every page gets its own icon and name, in the same order as the More list */
+    const cur = ui.sub === 'inbox' ? 'inbox' : (ui.sub || ui.tab), na = visibleAlerts().length;
+    const mk = i => `<button class="${cur === i[0] ? 'on' : ''}" ${i[0] === 'plan' ? 'data-act="plan-home"' : `data-act="tab" data-tab="${i[0]}"`} aria-label="${i[2]}" title="${i[2]}">${ic(i[1])}<span>${i[2]}</span></button>`;
+    const pg = i => i[0] === 'inbox'
+      ? `<button class="${cur === 'inbox' ? 'on' : ''}" data-act="bell" aria-label="${i[2]}" title="${i[2]}">${ic(i[1])}<span>${i[2]}</span>${na ? `<span class="nav-n">${na > 99 ? '99+' : na}</span>` : ''}</button>`
+      : `<button class="${cur === i[0] ? 'on' : ''}" data-act="sub" data-sub="${i[0]}" aria-label="${i[2]}" title="${i[2]}">${ic(i[1])}<span>${i[2]}</span></button>`;
+    return main.map(mk).join('') + `<div class="nav-sec" role="separator">All other pages</div>` + NAV_PAGES.map(pg).join('');
+  }
+  const items = main.concat([['more', 'more-horizontal', moreName()]]);
   const sub = ui.sub === 'inbox' ? (ui.ret && ui.ret.sub) : ui.sub;
   const cur = ui.sub === 'inbox' ? ((ui.ret && (ui.ret.sub ? (sub === 'plan' ? 'plan' : 'more') : ui.ret.tab)) || 'home') : ui.sub ? (ui.sub === 'plan' ? 'plan' : 'more') : ui.tab;
   return items.map(i => `<button class="${cur === i[0] ? 'on' : ''}" ${i[0] === 'plan' ? 'data-act="plan-home"' : `data-act="tab" data-tab="${i[0]}"`} aria-label="${i[2]}">${ic(i[1])}<span>${i[2]}</span></button>`).join('');
@@ -5011,8 +5042,9 @@ function appearanceBody(s, hide) {
   return `${bar}${panel}<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line)">${P.reset}</div>`;
 }
 /* ---- APP VERSION: raise APP_VERSION and add a line at the top of APP_CHANGES with every update ---- */
-const APP_VERSION = '1.1.0', APP_VERSION_DATE = '2026-11-26';
+const APP_VERSION = '1.2.0', APP_VERSION_DATE = '2026-11-26';
 const APP_CHANGES = [
+  ['1.2.0', '2026-11-26', ['The side menu now lists every page with its own icon and name, in order, under "All other pages" (Inbox, Business Assistant, Business forms, Goals, Taxes, Bills, Cash flow, Orders, Print labels, Item numbers, Customers, Suppliers, Mileage, Notes, Activity, Help, Settings).', 'On a computer the app now fills the whole screen edge to edge. No more phone-shaped column with empty space on the sides.', 'Pages stretch to the full width next to the side menu.', 'Full screen is now the default screen shape.']],
   ['1.1.0', '2026-11-26', ['Added this Version & updates section in Settings.', 'Photos and everything to do with them removed from the app.', 'Full screen now stays on when you switch menu and Home layouts.', 'With a sidebar, icon rail or top-tab layout, "More" is now called "All other pages".', 'Business forms moved higher up in the menu so it is easy to find.']]
 ];
 const dlong = k => new Date(k + 'T12:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
