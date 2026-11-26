@@ -5010,10 +5010,20 @@ function appearanceBody(s, hide) {
   else panel = `${apIntro('What shows on your Home page and in what order.')}<p class="eyebrow" style="margin-bottom:8px">Show on Home</p>${homeListHtml(hide)}<button type="button" class="btn btn-soft btn-sm block" style="margin:14px 0 18px" data-gw="manage">🧩 Dashboard widgets: add, remove, reorder</button>${P.home}`;
   return `${bar}${panel}<div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line)">${P.reset}</div>`;
 }
+/* ---- APP VERSION: raise APP_VERSION and add a line at the top of APP_CHANGES with every update ---- */
+const APP_VERSION = '1.1.0', APP_VERSION_DATE = '2026-11-26';
+const APP_CHANGES = [
+  ['1.1.0', '2026-11-26', ['Added this Version & updates section in Settings.', 'Photos and everything to do with them removed from the app.', 'Full screen now stays on when you switch menu and Home layouts.', 'With a sidebar, icon rail or top-tab layout, "More" is now called "All other pages".', 'Business forms moved higher up in the menu so it is easy to find.']]
+];
+const dlong = k => new Date(k + 'T12:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+const aboutBody = () => `<div class="row between" style="margin-bottom:6px"><div><b style="font-size:22px">Version ${esc(APP_VERSION)}</b><p class="xs sub" style="margin:2px 0 0">Updated ${esc(dlong(APP_VERSION_DATE))}</p></div></div>
+  <p class="hint" style="margin:0 0 10px">If this number does not match the one you were told, you are probably opening an older copy of the app.</p>
+  ${APP_CHANGES.map(c => `<p class="eyebrow" style="margin:12px 0 6px">${esc(c[0])} · ${esc(dlong(c[1]))}</p><ul style="margin:0;padding-left:18px">${c[2].map(x => `<li style="margin:0 0 4px;font-size:13px">${esc(x)}</li>`).join('')}</ul>`).join('')}`;
 V.settings = () => {
   const s = state.settings, b = s.business, hide = new Set(s.homeHide);
   return `<div class="page stack-sm fade">
     <div class="search" style="margin-bottom:2px">${ic('search')}<input id="set-q" class="input" placeholder="Search settings (backup, fees, theme)" aria-label="Search settings" value="${esc(ui.setQ || '')}" autocomplete="off"></div>
+    ${acc('about', 'Version &amp; updates', 'info', aboutBody())}
     ${acc('data', 'Your data &amp; backups', 'shield', dataBody())}
     ${acc('business', 'Business &amp; invoices', 'store', `<label class="fld"><span>Business name</span><input class="input" data-set="name" value="${esc(s.name)}" maxlength="60"></label>
       <label class="fld"><span>What you do</span><input class="input" data-set="industry" value="${esc(s.industry)}" maxlength="60"></label>
@@ -5042,7 +5052,7 @@ V.settings = () => {
       <p class="hint" style="margin:0 0 12px">Off: you get a reminder when a planned day passes and you have not confirmed it. On: it is marked as listed on its planned day without asking. This happens when you open the app.</p>
       <label class="row b sm-t" style="margin-bottom:10px"><input type="checkbox" class="chk" data-quarterly ${s.quarterly ? 'checked' : ''}> Show US quarterly estimated tax dates</label>
       <p class="hint">Use your local mileage rate. Items you resell are costed automatically when sold, so don't log inventory purchases as expenses (that would count them twice).</p>`)}
-    <p class="hint" style="text-align:center;margin-top:8px">Grimms Business Tracker</p></div>`;
+    <p class="hint" style="text-align:center;margin-top:8px">Grimms Business Tracker · Version ${esc(APP_VERSION)}</p></div>`;
 };
 
 
