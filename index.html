@@ -1724,6 +1724,30 @@ const OLD_STATUS = { 'Awaiting Payment': 'Payment Processing', 'To Pack': 'In Pr
 const closedOrder = o => o.status === 'Fulfilled' || RESOLVED.includes(o.status);
 const isIssue = s => ISSUES.includes(s);
 
+/* Order steps you can edit (Settings > Order steps). "Fulfilled" always stays last: it is what makes a sale count as earned. */
+const BASE_FLOW = FLOW.slice();
+const BASE_GROUPS = GROUPS.slice(0, 6).map(g => [g[0], g[1], g[2].slice()]);
+const KEY_STEPS = ['Order Received', 'In Preparation', 'Packaged', 'Awaiting Fulfillment'];   // a few built-in summaries look for these by name
+function applyFlow(list, grp) {
+  let L = (Array.isArray(list) ? list : []).map(x => String(x == null ? '' : x).trim().slice(0, 40)).filter(Boolean);
+  L = L.filter((x, i) => L.indexOf(x) === i && x !== 'Fulfilled' && !ISSUES.includes(x));
+  if (!L.length) L = BASE_FLOW.slice(0, -1);
+  L.push('Fulfilled');
+  grp = grp && typeof grp === 'object' && !Array.isArray(grp) ? grp : {};
+  FLOW.length = 0; L.forEach(x => FLOW.push(x));
+  ALL_STATUSES.length = 0; FLOW.concat(ISSUES).forEach(x => ALL_STATUSES.push(x));
+  /* each step sits in a filter group: its original one, the one it was renamed from, or the group of the step before it */
+  const gid = {}; let prev = 'recv';
+  FLOW.forEach(x => {
+    const b = BASE_GROUPS.find(g => g[2].includes(x));
+    let id = BASE_GROUPS.some(g => g[0] === grp[x]) ? grp[x] : b ? b[0] : prev;
+    if (x === 'Fulfilled') id = 'done';
+    gid[x] = id; prev = id;
+    if (!STATUS_TONE[x]) STATUS_TONE[x] = 'brand';
+  });
+  GROUPS.slice(0, 6).forEach(g => { g[2].length = 0; FLOW.forEach(x => { if (gid[x] === g[0]) g[2].push(x); }); });
+}
+
 const LISTING_STATUSES = ['Planned', 'Active', 'Paused', 'Sold', 'Expired'];
 const LISTING_TONE = { Planned: 'mute', Active: 'ok', Paused: 'warn', Sold: 'brand', Expired: 'bad' };
 const PERIODS = [['today', 'Today'], ['week', 'This Week'], ['last7', 'Last 7 Days'], ['month', 'This Month'], ['last30', 'Last 30 Days'], ['last_month', 'Last Month'], ['quarter', 'This Quarter'], ['year', 'This Year'], ['all', 'All Time'], ['custom', 'Custom range…']];
@@ -1771,7 +1795,7 @@ const DEFAULTS = () => ({
     stockCats: ['General', 'Packaging', 'Materials'],
     paymentMethods: ['Cash', 'Card', 'PayPal', 'Bank transfer', 'Other'],
     carriers: ['USPS', 'UPS', 'FedEx', 'DHL', 'Local delivery', 'Platform label', 'Pickup'],
-    metrics: DEFAULT_METRICS.slice(),
+    metrics: DEFAULT_METRICS.slice(), flow: BASE_FLOW.slice(), flowGrp: {},
     forecast: { days: 60, sales: true, spend: true, cash: '' },
     look: LOOK_DEFAULTS(),
   },
@@ -1840,6 +1864,8 @@ function normalize(src) {
   ['products', 'supplies', 'orders', 'expenses', 'income', 'suppliers', 'customers', 'listings', 'mileage', 'taxPayments', 'accounts', 'transfers', 'meetings', 'tasks', 'events', 'shifts', 'notes', 'goals', 'activity'].forEach(k => { if (!Array.isArray(out[k])) out[k] = []; });
   ['channels', 'expenseCats', 'stockCats', 'paymentMethods', 'carriers', 'homeHide', 'metrics'].forEach(k => { if (!Array.isArray(out.settings[k])) out.settings[k] = d.settings[k]; });
   if (!out.settings.budgets || typeof out.settings.budgets !== 'object' || Array.isArray(out.settings.budgets)) out.settings.budgets = {};
+  if (!out.settings.flowGrp || typeof out.settings.flowGrp !== 'object' || Array.isArray(out.settings.flowGrp)) out.settings.flowGrp = {};
+  applyFlow(out.settings.flow, out.settings.flowGrp); out.settings.flow = FLOW.slice();
   if (!THEMES[out.settings.theme]) out.settings.theme = 'pro_blue';
   if (!PERIODS.some(p => p[0] === out.prefs.period)) out.prefs.period = 'month';
   out.settings.channels.forEach(c => { if (c.renew == null) c.renew = 0; if (c.tax == null) c.tax = false; if (!c.id) c.id = uid('c'); });
@@ -1848,7 +1874,7 @@ function normalize(src) {
   /* order steps: map the old names onto the new ones */
   out.orders.forEach(o => {
     if (OLD_STATUS[o.status]) o.status = OLD_STATUS[o.status];
-    if (!ALL_STATUSES.includes(o.status)) o.status = 'Order Received';
+    if (!ALL_STATUSES.includes(o.status)) o.status = FLOW.includes('Order Received') ? 'Order Received' : FLOW[0];
     if (!Array.isArray(o.items)) o.items = [];
     o.items = o.items.filter(l => l && typeof l === 'object');
     o.items.forEach(l => { l.qty = Math.max(0, num(l.qty)); l.price = num(l.price); l.cost = num(l.cost); l.returned = Math.max(0, Math.min(l.qty, num(l.returned))); });
@@ -3052,7 +3078,7 @@ function pgSetBody(pg) {
       ${homeListHtml(hide)}
       <div class="sep" style="margin:16px 0 4px"></div><p class="eyebrow" style="margin:10px 0 0">More looks</p>${pgExtrasHtml('home-page')}</div>`;
   }
-  if (pg === 'sales') return wrap(sec('How sales are counted', `${basis}<div class="grid2">${fld('Low-profit warning (margin %)', `<input class="input" type="number" min="0" max="99" step="any" data-set="marginFloor" value="${E(s.marginFloor ?? 10)}">`)}${fld('Target margin (%)', `<input class="input" type="number" min="0" max="90" step="any" data-set="targetMargin" value="${E(s.targetMargin ?? 30)}">`)}</div>`) + sec('Platforms &amp; fees', platforms));
+  if (pg === 'sales') return wrap(sec('How sales are counted', `${basis}<div class="grid2">${fld('Low-profit warning (margin %)', `<input class="input" type="number" min="0" max="99" step="any" data-set="marginFloor" value="${E(s.marginFloor ?? 10)}">`)}${fld('Target margin (%)', `<input class="input" type="number" min="0" max="90" step="any" data-set="targetMargin" value="${E(s.targetMargin ?? 30)}">`)}</div>`) + sec('Platforms &amp; fees', platforms) + sec('Order steps', flowEditor()));
   if (pg === 'home') return wrap(sec('Stock alerts', fld('Low-stock level', `<input class="input" type="number" min="0" step="1" data-set="lowStock" value="${E(s.lowStock)}">`, 'Items at or below this count show as low. You can set a different level on any one item.')));
   if (pg === 'materials' || pg === 'products') return wrap(sec('Stock alerts', fld('Low-stock level', `<input class="input" type="number" min="0" step="1" data-set="lowStock" value="${E(s.lowStock)}">`, 'Items at or below this count show as low. You can set a different level on any one item.')) + (pg === 'products' ? sec('Product value', fld('When I leave the value blank', sel('valFromPrice', [['yes', 'Use my estimated selling price'], ['no', 'Use what it cost me']]))) : '') + sec('Inventory categories', listEditor('stockCats', s.stockCats)));
   if (pg === 'listings') return wrap(sec('Renewing', `${fld('Default renew (days)', `<input class="input" type="number" min="1" step="1" data-set="relistDays" value="${E(s.relistDays)}">`)}${chk('data-autorenew', autoRenewOn(), 'Auto-renew new listings', 'On: every listing\u2019s renewal date is set for you. You can still change it on any one listing.')}${chk('data-autolist', s.autoListPlanned, 'Mark planned listings as listed automatically', 'Off: you get a reminder when a planned day passes. On: it is marked as listed on its planned day.')}`) + sec('Platforms &amp; fees', platforms));
@@ -3065,7 +3091,7 @@ function pgSetBody(pg) {
     <label class="row b sm-t" style="margin-bottom:10px"><input type="checkbox" class="chk" data-fc="sales" ${fc.sales ? 'checked' : ''}> Include expected new sales</label>
     <label class="row b sm-t"><input type="checkbox" class="chk" data-fc="spend" ${fc.spend ? 'checked' : ''}> Include typical everyday spending</label>`)); }
   if (pg === 'bills') { const b = s.business; return wrap(sec('Shown on invoices', `<label class="fld"><span>Address</span><textarea class="textarea" style="min-height:60px" data-biz="address" maxlength="200">${E(b.address)}</textarea></label><div class="grid2"><label class="fld"><span>Email</span><input class="input" data-biz="email" value="${E(b.email)}" maxlength="80"></label><label class="fld"><span>Phone</span><input class="input" data-biz="phone" value="${E(b.phone)}" maxlength="40"></label></div><label class="fld"><span>Tax / business ID</span><input class="input" data-biz="taxId" value="${E(b.taxId)}" maxlength="40"></label><label class="fld" style="margin:0"><span>Invoice footer</span><input class="input" data-biz="note" value="${E(b.note)}" maxlength="140"></label>`) + sec('Payment methods', listEditor('paymentMethods', s.paymentMethods))); }
-  if (pg === 'purchases') return wrap(sec('Shipping carriers', listEditor('carriers', s.carriers)));
+  if (pg === 'purchases') return wrap(sec('Shipping carriers', listEditor('carriers', s.carriers)) + sec('Order steps', flowEditor()));
   if (PG_LOOK_PAGES[pg]) return wrap('');
   return '';
 
@@ -4701,9 +4727,19 @@ const chanRow = c => `<div class="stack-sm" style="padding:10px 0;border-top:1px
   <div class="grid2"><label class="row b xs"><input type="checkbox" class="chk" data-chan-f="feeShip" ${c.feeShip !== false ? 'checked' : ''}> Fee also applies to shipping</label><label class="row b xs"><input type="checkbox" class="chk" data-chan-f="feeTax" ${c.feeTax ? 'checked' : ''}> Fee also applies to sales tax</label></div></div>`;
 const removedChans = () => { const a = state.settings.channels.filter(c => c.archived); if (!a.length) return '';
   return `<h4 class="eyebrow" style="margin:14px 0 4px">Removed platforms · kept for past sales</h4>` + a.map(c => { const r = chanRefs(c.name); return `<div class="row between" style="padding:8px 0;border-top:1px solid var(--line)"><div><b class="sm-t">${esc(c.name)}</b><div class="xs sub">${r.orders} sale${r.orders === 1 ? '' : 's'} · ${r.listings} listing${r.listings === 1 ? '' : 's'} · fee ${num(c.pct)}% + ${money(num(c.fixed))}</div></div><button class="link" data-act="restore-chan" data-id="${c.id}">Restore</button></div>`; }).join(''); };
+const flowUse = st => state.orders.filter(o => o.status === st).length;
+const flowEditor = () => {
+  const rows = FLOW.map((st, i) => {
+    const fin = st === 'Fulfilled', n = flowUse(st), movable = !fin, canUp = movable && i > 0, canDn = movable && i < FLOW.length - 2;
+    const b = (act, ico, label, on, extra = '') => `<button type="button" class="icon-btn" data-act="${act}" data-i="${i}" aria-label="${label}" ${on ? '' : 'disabled style="opacity:.25"'} ${extra}>${ic(ico)}</button>`;
+    return `<div class="row" style="margin-bottom:6px;gap:4px"><span class="xs sub num" style="width:22px;text-align:right;flex:none">${i + 1}</span><div class="grow" style="min-width:0;padding:0 6px"><div class="b sm-t trunc">${esc(st)}</div>${fin ? '<div class="xs sub">Always last. A sale counts as earned here.</div>' : n ? `<div class="xs sub">${n} order${n === 1 ? '' : 's'} on this step</div>` : ''}</div>${fin ? `<span class="icon-btn" style="opacity:.5;pointer-events:none">${ic('lock')}</span>` : b('flow-move-up', 'arrow-up', 'Move up', canUp) + b('flow-move-down', 'arrow-down', 'Move down', canDn) + b('flow-edit', 'pencil', 'Rename', true) + b('flow-del', 'trash', 'Remove', true)}</div>`;
+  }).join('');
+  return `<p class="hint" style="margin:0 0 10px">Orders move through these steps in order. Add your own (like "Placed On Porch"), rename them, or use the arrows to rearrange. You can remove a step once no open order is on it.</p>${rows}<button class="link" data-act="flow-add">${ic('plus')} Add a step</button>`;
+};
+const flowSet = (L, grp) => { state.settings.flowGrp = grp; applyFlow(L, grp); state.settings.flow = FLOW.slice(); save(); render(); };
 const listEditor = (key, arr, budget) => `<div>${arr.map((x, i) => `<div class="row" style="margin-bottom:8px"><input class="input sm" data-list="${key}" data-i="${i}" value="${esc(x)}" aria-label="Name">${budget ? `<input class="input sm" style="width:96px" type="number" min="0" step="any" inputmode="decimal" data-budget="${esc(x)}" value="${state.settings.budgets[x] || ''}" placeholder="Budget" aria-label="Monthly budget for ${esc(x)}">` : ''}<button class="icon-btn" data-act="del-list" data-k="${key}" data-i="${i}" aria-label="Remove">${ic('trash')}</button></div>`).join('')}</div><button class="link" data-act="add-list" data-k="${key}">${ic('plus')} Add</button>`;
 const EXPORT_KINDS = [['orders', 'Sales'], ['expenses', 'Expenses'], ['products', 'Products'], ['supplies', 'Supplies'], ['listings', 'Listings'], ['snaps', 'Analytics'], ['customers', 'Customers'], ['mileage', 'Mileage'], ['income', 'Income']];
-const ACC_KW = { data: 'backup restore copy paste export csv pdf print spreadsheet erase earlier version file import device', business: 'invoice name address logo tax business', channels: 'platform mercari vinted depop ebay fees', metrics: 'analytics views likes watchers', look: 'appearance theme color colour font layout dark light style', cats: 'category categories budget', lists: 'payment method carrier shipping', tpls: 'description template templates', prefs: 'preferences tax mileage renew listing quarterly' };
+const ACC_KW = { steps: 'order steps fulfillment fulfilment status shipped delivered porch rearrange pipeline stages', data: 'backup restore copy paste export csv pdf print spreadsheet erase earlier version file import device', business: 'invoice name address logo tax business', channels: 'platform mercari vinted depop ebay fees', metrics: 'analytics views likes watchers', look: 'appearance theme color colour font layout dark light style', cats: 'category categories budget', lists: 'payment method carrier shipping', tpls: 'description template templates', prefs: 'preferences tax mileage renew listing quarterly' };
 const accHit = (k, t, q) => !q || (t.replace(/&amp;/g, '&') + ' ' + (ACC_KW[k] || '')).toLowerCase().includes(q);
 const acc = (k, t, ico, body) => `<div class="card acc ${ui.setOpen[k] ? 'open' : ''}" ${accHit(k, t, ui.setQ) ? '' : 'style="display:none"'}><button class="acc-h" data-act="acc" data-k="${k}">${ic(ico)}<b>${t}</b>${ic('chevron-down', 'chev')}</button>${ui.setOpen[k] ? `<div class="acc-b fade">${body}</div>` : ''}</div>`;
 function dataBody() {
@@ -5114,6 +5150,7 @@ V.settings = () => {
     ${acc('metrics', 'Listing analytics to track', 'bar-chart', `<p class="hint" style="margin:0 0 10px">These are the numbers you can record in a listing's analytics snapshots, on any platform. Add anything you track: clicks, likes, watchers, saves, messages, impressions…</p>${listEditor('metrics', s.metrics)}`)}
     ${acc('look', 'Appearance', 'sliders', appearanceBody(s, hide))}
     ${acc('cats', 'Categories &amp; budgets', 'tag', `<p class="eyebrow" style="margin-bottom:8px">Expense categories · monthly budget</p>${listEditor('expenseCats', s.expenseCats, true)}<p class="eyebrow" style="margin:18px 0 8px">Inventory categories</p>${listEditor('stockCats', s.stockCats)}<label class="fld" style="margin-top:14px"><span>Budgets count stock purchases</span><select class="select" data-set="budgetStock"><option value="no" ${s.budgetStock !== 'yes' ? 'selected' : ''}>No (like your profit)</option><option value="yes" ${s.budgetStock === 'yes' ? 'selected' : ''}>Yes (all money spent)</option></select></label>`)}
+    ${acc('steps', 'Order steps', 'list-checks', flowEditor())}
     ${acc('lists', 'Payment methods &amp; carriers', 'truck', `<p class="eyebrow" style="margin-bottom:8px">Payment methods</p>${listEditor('paymentMethods', s.paymentMethods)}<p class="eyebrow" style="margin:18px 0 8px">Shipping carriers</p>${listEditor('carriers', s.carriers)}`)}
     ${acc('tpls', 'Description templates', 'copy', `<p class="hint" style="margin:0 0 8px">Write a description once and reuse it on any listing, like one for Pokemon cards. In a template, {title}, {product}, {sku}, {price} and {platform} are filled in when you use it. Choose "Use automatically" and it fills in for you when you pick a matching product or bulk create listings.</p>${descTpls().map(t => `<div class="row" style="padding:8px 0;border-top:1px solid var(--line);gap:10px"><div class="grow" style="min-width:0"><b class="trunc" style="display:block">${esc(t.name)}</b><span class="xs sub trunc" style="display:block">${esc(tplUseLabel(t.use))} · ${esc(oneLine(t.text).slice(0, 60))}</span></div><button class="link" data-act="tpl-edit" data-id="${esc(t.id)}">Edit</button><button class="icon-btn" data-act="tpl-del" data-id="${esc(t.id)}" aria-label="Delete template">${ic('trash')}</button></div>`).join('')}<button class="link" style="margin-top:8px" data-act="tpl-edit" data-id="">${ic('plus')} Add template</button>`)}
     ${acc('prefs', 'Preferences &amp; taxes', 'settings', `<div class="grid2"><label class="fld"><span>Low-stock level</span><input class="input" type="number" min="0" step="1" data-set="lowStock" value="${s.lowStock}"></label><label class="fld"><span>Income tax set-aside %</span><input class="input" type="number" min="0" max="100" step="any" data-set="taxRate" value="${s.taxRate}"></label></div>
@@ -7438,6 +7475,35 @@ const ACT = {
     if (await confirmBox(used ? 'Hide platform?' : 'Remove platform?', msg)) { if (used) c.archived = true; else state.settings.channels = state.settings.channels.filter(x => x.id !== c.id); save(); render(); }
   },
   'restore-chan': el => { const c = state.settings.channels.find(x => x.id === el.dataset.id); if (c) { c.archived = false; save(); render(); toast(c.name + ' restored'); } },
+  /* order steps: add, rename, rearrange, remove */
+  'flow-add': async () => {
+    const v = await askText('New order step', 'Name', '', 'e.g. Placed On Porch'); if (!v) return;
+    if (FLOW.concat(ISSUES).some(x => lc(x) === lc(v))) return toast('That name is already used');
+    const L = FLOW.slice(0, -1); L.push(v);
+    flowSet(L, { ...state.settings.flowGrp }); toast('Added. Use the arrows to move it where it belongs');
+  },
+  'flow-move-up': el => { const i = Number(el.dataset.i), L = FLOW.slice(0, -1); if (i < 1 || i >= L.length) return; [L[i - 1], L[i]] = [L[i], L[i - 1]]; flowSet(L, { ...state.settings.flowGrp }); },
+  'flow-move-down': el => { const i = Number(el.dataset.i), L = FLOW.slice(0, -1); if (i < 0 || i >= L.length - 1) return; [L[i + 1], L[i]] = [L[i], L[i + 1]]; flowSet(L, { ...state.settings.flowGrp }); },
+  'flow-edit': async el => {
+    const i = Number(el.dataset.i), old = FLOW[i]; if (!old || old === 'Fulfilled') return;
+    let v = await askText('Rename step', 'Name', old); if (!v || v === old) return;
+    if (FLOW.concat(ISSUES).some(x => lc(x) === lc(v) && x !== old)) return toast('That name is already used');
+    const n = flowUse(old);
+    if (n || KEY_STEPS.includes(old)) { const msg = (n ? `${n} order${n === 1 ? '' : 's'} on this step will switch to the new name. ` : '') + (KEY_STEPS.includes(old) ? 'Note: a few built-in summaries (like "To ship" counts and pickup lists) look for this step by its original name.' : ''); if (!(await confirmBox('Rename "' + old + '"?', msg.trim(), 'Rename', false))) return; }
+    state.orders.forEach(o => { if (o.status === old) o.status = v; if (o.stepDates && old in o.stepDates) { o.stepDates[v] = o.stepDates[old]; delete o.stepDates[old]; } });
+    if (STATUS_TONE[old]) STATUS_TONE[v] = STATUS_TONE[old];
+    if (ui.filter === old) ui.filter = v;
+    const g = { ...state.settings.flowGrp }, og = g[old] || (BASE_GROUPS.find(b => b[2].includes(old)) || [])[0]; delete g[old]; if (og) g[v] = og;
+    const L = FLOW.slice(0, -1); L[i] = v; flowSet(L, g);
+  },
+  'flow-del': async el => {
+    const i = Number(el.dataset.i), st = FLOW[i]; if (!st || st === 'Fulfilled') return;
+    const n = flowUse(st);
+    if (n) return toast(`${n} order${n === 1 ? ' is' : 's are'} still on "${st}". Move ${n === 1 ? 'it' : 'them'} to another step first.`);
+    if (!(await confirmBox('Remove "' + st + '"?', 'Orders that already passed through it keep their dates.' + (KEY_STEPS.includes(st) ? '\nNote: a few built-in summaries look for this step by name and will stop counting it.' : ''), 'Remove'))) return;
+    const g = { ...state.settings.flowGrp }; delete g[st];
+    flowSet(FLOW.slice(0, -1).filter(x => x !== st), g);
+  },
   'add-list': async el => { const k = el.dataset.k, v = await askText('New ' + LIST_TITLES[k], 'Name'); if (v && !state.settings[k].some(x => lc(x) === lc(v))) { state.settings[k].push(v); save(); render(); } },
   'del-list': async el => {
     const k = el.dataset.k, i = Number(el.dataset.i), name = state.settings[k][i];
@@ -9353,7 +9419,7 @@ setTimeout(() => { try { DRAFT_TYPES.forEach(t => { const d = JSON.parse(localSt
 window.addEventListener('offline', () => toast('You are offline. Everything still works and saves on this device.'));
 window.addEventListener('online', () => toast('Back online'));
 
-window.GBT = { get state() { return state; }, refCard: refCardFor, save, openOrders: aiOpenOrders, oc, summary, periodRange, goalInfo, feeFor, putOrder, removeOrder, setOrderStatus, processRecurring, unitCost, allocated, avail, genSample, enterApp, render, ui, ACT, OPEN, FORMS, alerts, visibleAlerts, archiveBlock, archiveRecords, deleteRecords, parseCsv, csvProducts, exportCsv, curType, dupRecord, listingPrice, listingTotals, taxInfo, normalize, bulkListPlan, V, TITLES, ic, download, pdfMake, pdfBizName };
+window.GBT = { get state() { return state; }, FLOW, ISSUES, refCard: refCardFor, save, openOrders: aiOpenOrders, oc, summary, periodRange, goalInfo, feeFor, putOrder, removeOrder, setOrderStatus, processRecurring, unitCost, allocated, avail, genSample, enterApp, render, ui, ACT, OPEN, FORMS, alerts, visibleAlerts, archiveBlock, archiveRecords, deleteRecords, parseCsv, csvProducts, exportCsv, curType, dupRecord, listingPrice, listingTotals, taxInfo, normalize, bulkListPlan, V, TITLES, ic, download, pdfMake, pdfBizName };
 $$('[data-ic]').forEach(el => { el.outerHTML = ic(el.dataset.ic); });
 load();
 applyTheme(state.settings.theme, state.settings.font);
@@ -14490,7 +14556,7 @@ function fromTpl(t) {
 }
 
 /* ---------- live sections: fill themselves from your app (you can still edit, tick, add and remove) ---------- */
-const NOS = ['Cancelled', 'Payment Failed'], FLOWS = ['Payment Processing', 'Order Received', 'In Preparation', 'Packaged', 'Shipped', 'Out for Delivery', 'Delivered', 'Customer Received', 'Awaiting Feedback', 'Awaiting Fulfillment', 'Fulfilled'];
+const NOS = ['Cancelled', 'Payment Failed'], FLOWS = G.FLOW || ['Payment Processing', 'Order Received', 'In Preparation', 'Packaged', 'Shipped', 'Out for Delivery', 'Delivered', 'Customer Received', 'Awaiting Feedback', 'Awaiting Fulfillment', 'Fulfilled'];
 const sd = (o, k) => (o.stepDates || {})[k];
 const LIVE = {
   paid: ['Orders paid today', (T, H) => ['o', o => o.date === T]],
