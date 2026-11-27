@@ -337,11 +337,17 @@ button.metric{text-align:left}
 .fph{display:flex;align-items:center;gap:8px;margin:14px 0 6px;font-size:13px}
 .fph b{font-weight:800;letter-spacing:-.01em}
 .fph .link{margin-left:auto;font-size:12px}
-.phcard{border:1px solid var(--line);border-radius:16px;padding:10px 12px 8px;margin:0 0 12px;background:var(--card)}
-.phh{display:flex;align-items:center;gap:8px;margin:0 0 8px}
-.phh b{display:block;font-size:14px;font-weight:800;letter-spacing:-.01em}
-.phh .icon-btn{width:32px;height:32px}
-.phico{color:var(--p);background:var(--p-soft)}
+.phcard{border:1px solid var(--line);border-radius:16px;margin:0 0 14px;background:var(--card);overflow:hidden}
+.phh{display:flex;align-items:center;gap:8px;padding:10px 10px 10px 12px;background:var(--p-soft)}
+.phh b{display:block;font-size:15px;font-weight:800;letter-spacing:-.01em}
+.phh .pk{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--p)}
+.phh .icon-btn{width:30px;height:30px;background:transparent}
+.phico{color:var(--p);background:var(--card)}
+.phsteps{padding:10px 12px 6px}
+.pk2{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--sub);margin:0 0 8px}
+.phsteps .frow{margin:0 0 4px 6px;padding-left:10px;border-left:2px solid var(--line)}
+.phsteps .frow .fico{width:30px;height:30px;border-radius:9px}
+.phsteps .frow .icon-btn{width:30px;height:30px;background:transparent}
 .phadd{margin:2px 0 4px;font-size:12.5px;display:inline-flex;align-items:center;gap:4px}
 .pipe-h{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px}
 .pipe-h:first-of-type{margin-top:0}
@@ -3638,7 +3644,6 @@ function orderNextRow(o) {
   return `<button class="btn btn-primary btn-sm obtn" data-act="advance-quick" data-id="${o.id}" data-to="${esc(next)}">${esc(stepVerb(next))} ${ic('arrow-right')}</button>${skip}`;
 }
 /* Orders page: every single step as its own filter (same names as the Home pipeline), and a note that is always visible when a filter is on. */
-const stepChips = () => { const base = state.orders.filter(o => !!o.archived === ui.arch), cnt = x => base.filter(o => o.status === x).length, row = (ico, name, list) => `<div class="eyebrow phl">${ic(ico)} ${esc(name)}</div>` + chips(list.map(x => [x, esc(x) + ' · ' + cnt(x)]), ui.filter); return `<div class="eyebrow" style="margin:2px 0 -2px">Each step, by phase</div>` + stepGroups().filter(g => g[2].length).map(g => row(g[3] || 'circle', g[1], g[2])).join('') + row('alert-triangle', 'Problems, returns & refunds', ISSUES); };
 const filterLabel = f => f === 'open' ? 'Open orders' : f === 'attn' ? 'Needs attention (problems, late deliveries, missed ship-by dates, overdue invoices)' : f === 'late' ? 'Late delivery (past the estimated delivery date)' : f === 'low' ? 'Low profit' : f.startsWith('g:') ? (() => { const g = GROUPS.find(x => x[0] === f.slice(2)); return g ? g[1] + ' (' + g[2].join(', ') + ')' : f; })() : f;
 const filterNote = () => ui.filter && ui.filter !== 'all' ? `<div class="row between" style="gap:8px;margin-bottom:6px"><span class="sm-t">Showing only: <b>${esc(filterLabel(ui.filter))}</b></span><button class="link" data-act="chip" data-v="all">Show all ${ic('x')}</button></div>` : '';
 function salesList() {
@@ -3658,7 +3663,7 @@ function orderSeg() {
 const SALES_SORTS = [['newest', 'Newest first'], ['oldest', 'Oldest first'], ['high', 'Highest value'], ['low', 'Lowest value'], ['ship', 'Ship-by date'], ['eta', 'Delivery date'], ['profit_l', 'Lowest profit first'], ['profit_h', 'Highest profit first'], ['sku_d', 'Order SKU high to low'], ['sku', 'Order SKU low to high']];
 V.sales = () => {
   const K = invLook('sales'), search = searchBox('Search customer, item, order #, PO…');
-  const tools = `${chips([['all', 'All'], ['attn', 'Needs attention'], ['open', 'Open'], ['late', 'Late delivery'], ['low', 'Low profit']].concat(GROUPS.map(g => ['g:' + g[0], g[1]])), ui.filter)}${stepChips()}
+  const tools = `${chips([['all', 'All'], ['attn', 'Needs attention'], ['open', 'Open'], ['late', 'Late delivery'], ['low', 'Low profit']].concat(GROUPS.map(g => ['g:' + g[0], g[1]])), ui.filter)}
   <div class="grid2">${optSel('ch', [['', 'All channels']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Channel')}${optSel('sort', SALES_SORTS, ui.sort || 'newest', 'Sort')}</div>
   <div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="add-bulk">${ic('layers')} Bulk order</button><button class="btn btn-line btn-sm grow" data-act="bell">${ic('inbox')} Order alerts</button></div>`;
   const glance = K.glance === 'off' ? '' : lkSlim('sales');
@@ -5035,7 +5040,7 @@ const flowEditor = () => {
       return `<div class="row frow" style="gap:4px"><span class="fico ${MARK_FILL.has(look.s) ? 'fillsym' : ''}" style="color:${markCol(look.c)};background:color-mix(in srgb,${markCol(look.c)} 14%,transparent)">${ic(markSym(look.s))}</span><div class="grow" style="min-width:0;padding:0 6px"><div class="b sm-t trunc">${esc(st)}</div>${isF ? '<div class="xs sub">Always last. A sale counts as earned here.</div>' : n ? `<div class="xs sub">${n} order${n === 1 ? '' : 's'} on this step</div>` : ''}</div>${isF ? `<span class="icon-btn" style="opacity:.5;pointer-events:none">${ic('lock')}</span>` : btn('flow-move-up', `data-i="${i}"`, 'arrow-up', upL, canUp) + btn('flow-move-down', `data-i="${i}"`, 'arrow-down', dnL, canDn) + btn('flow-edit', `data-i="${i}"`, 'pencil', 'Edit name, icon and phase', true) + btn('flow-del', `data-i="${i}"`, 'trash', 'Remove', true)}</div>`;
     }).join('');
     const ctl = fin ? `<span class="icon-btn" style="opacity:.5;pointer-events:none">${ic('lock')}</span>` : btn('phase-up', `data-ph="${g[0]}"`, 'arrow-up', 'Move this phase up', pi > 0) + btn('phase-down', `data-ph="${g[0]}"`, 'arrow-down', 'Move this phase down', !lastPh) + btn('phase-edit', `data-ph="${g[0]}"`, 'pencil', 'Rename this phase or change its icon', true) + btn('phase-del', `data-ph="${g[0]}"`, 'trash', REQ_PHASES.includes(g[0]) ? 'Built-in phase: you can rename it but not remove it' : 'Remove this phase', !REQ_PHASES.includes(g[0]));
-    return `<div class="phcard"><div class="phh"><span class="fico phico">${ic(g[3] || 'circle')}</span><div class="grow" style="min-width:0"><b class="trunc">${pi + 1}. ${esc(g[1])}</b><div class="xs sub">${steps.length} step${steps.length === 1 ? '' : 's'}${fin ? ' · always last' : ''}</div></div>${ctl}</div>${rows || '<div class="xs sub" style="padding:2px 0 8px 4px">No steps in this phase yet.</div>'}${fin ? '' : `<button type="button" class="link phadd" data-act="flow-add" data-ph="${g[0]}">${ic('plus')} Add a step to ${esc(g[1])}</button>`}</div>`;
+    return `<div class="phcard"><div class="phh"><span class="fico phico">${ic(g[3] || 'circle')}</span><div class="grow" style="min-width:0"><div class="pk">Phase ${pi + 1}</div><b class="trunc">${esc(g[1])}</b></div>${ctl}</div><div class="phsteps"><div class="pk2">Steps in this phase</div>${rows || '<div class="xs sub" style="padding:2px 0 8px 4px">No steps in this phase yet.</div>'}${fin ? '' : `<button type="button" class="link phadd" data-act="flow-add" data-ph="${g[0]}">${ic('plus')} Add a step</button>`}</div></div>`;
   }).join('');
   return `<p class="hint" style="margin:0 0 10px">Orders move through your phases from top to bottom, and through the steps inside each phase. Add your own steps (like "Placed On Porch") and pick an icon and a phase for each. Add your own phases too. To move a step to a different phase, tap its pencil and choose the phase, or keep tapping its arrows: they carry a step across into the next or previous phase.</p>${sec}<div class="row" style="gap:16px;flex-wrap:wrap;margin-top:8px"><button class="link" data-act="flow-add">${ic('plus')} Add a step</button><button class="link" data-act="phase-add">${ic('plus')} Add a phase</button><button class="link" data-act="order-labels">${ic('pencil')} Update these labels</button></div>`;
 };
