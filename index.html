@@ -1047,6 +1047,123 @@ html[data-motion=off] *{animation:none!important;transition:none!important}
 .invh.inv-flat .card{background:transparent;border-color:transparent;box-shadow:none;border-radius:0;border-bottom:1px solid var(--line)}
 .invh.inv-outline .card{border:2px solid color-mix(in srgb,var(--p) 40%,var(--line));box-shadow:none}
 
+/* ---------- Inventory "Dashboard" + "Table" looks (responsive by container width, so the phone frame and full desktop both work) ---------- */
+.idash{container-type:inline-size;container-name:idash;display:flex;flex-direction:column;gap:12px}
+.itabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 1px 6px;margin:0 -2px;-webkit-overflow-scrolling:touch}
+.itabs::-webkit-scrollbar{display:none}
+.itab{flex:none;display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:13px;color:var(--text);white-space:nowrap;transition:background-color .15s,border-color .15s,box-shadow .15s}
+.itab .ic{width:17px;height:17px}
+.itab:hover{border-color:color-mix(in srgb,var(--p) 50%,var(--line))}
+.itab.on{background:var(--p);border-color:var(--p);color:var(--on-p);box-shadow:0 8px 18px -10px var(--p)}
+.itab .cnt{font-size:11px;font-weight:800;padding:1px 8px;border-radius:99px;background:color-mix(in srgb,currentColor 14%,transparent)}
+@media(max-width:480px){.itab{padding:9px 12px;gap:6px;font-size:12.5px}.itab:not(.on)>.ic{display:none}}
+.ikpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ikpi{position:relative;display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:18px;background:var(--card);border:1px solid var(--line);box-shadow:inset 4px 0 0 var(--kc,var(--p)),0 1px 2px rgba(0,0,0,.04);min-width:0;color:var(--text)}
+.ikico{flex:none;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--kc,var(--p)) 16%,transparent);color:var(--kc,var(--p))}
+.ikico .ic{width:19px;height:19px}
+.ikbody{min-width:0;flex:1;display:flex;flex-direction:column}
+.ikbody small{font-size:12px;color:var(--sub);font-weight:600}
+.ikbody b{font-size:21px;font-weight:800;letter-spacing:-.02em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ikfoot{font-size:11.5px;color:var(--sub);margin-top:1px}
+.ikview{display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:12px;font-weight:700;color:var(--p);align-self:flex-start}
+.ikview .ic{width:13px;height:13px}
+.ipan{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04);min-width:0}
+.ipan>h3{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;letter-spacing:-.01em;margin:0 0 12px}
+.ipan>h3 .ic{width:18px;height:18px;color:var(--p)}
+.imid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.iglance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.igl{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;text-align:center;color:var(--text);border-radius:0;transition:background-color .15s}
+.igl:hover{background:var(--p-soft)}
+.igl+.igl{border-left:1px solid var(--line)}
+.igl .ic{width:22px;height:22px;color:var(--p);margin-bottom:2px}
+.igl b{font-size:22px;font-weight:800;line-height:1.1}
+.igl small{font-size:12px;color:var(--sub);font-weight:600}
+.igl span{font-size:12px;color:var(--sub)}
+.isplit{display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--line);margin:14px 0 10px}
+.isplit i{display:block;height:100%}
+.ileg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--sub)}
+.ileg span{display:inline-flex;align-items:center;gap:6px}
+.ileg i{width:9px;height:9px;border-radius:50%;flex:none}
+.iatt{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.iatt:first-of-type{border-top:0;padding-top:0}
+.iatt:last-child{padding-bottom:0}
+.iai{flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--kc) 16%,transparent);color:var(--kc)}
+.iai .ic{width:18px;height:18px}
+.iatt .grow b{display:block;font-size:13.5px;font-weight:700}
+.iatt .grow small{display:block;font-size:12px;color:var(--sub)}
+.iatt .rv{flex:none;display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:12.5px;color:var(--p);padding:8px 4px;min-height:36px}
+.iatt .rv .ic{width:14px;height:14px}
+.iq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.iq button{display:flex;align-items:center;gap:10px;min-height:46px;padding:10px 12px;border-radius:12px;background:var(--p);color:var(--on-p);font-weight:600;font-size:13px;text-align:left;transition:transform .08s,opacity .15s}
+.iq button:hover{opacity:.92}.iq button:active{transform:scale(.98)}
+.iq button .ic{width:17px;height:17px;flex:none}
+.itip{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:var(--p-soft);color:var(--text);font-size:12.5px}
+.itip>.ic{flex:none;width:18px;height:18px;color:var(--p)}
+.itip>span{flex:1;min-width:200px}
+.itip button{font-weight:700;color:var(--p);font-size:12.5px;display:inline-flex;align-items:center;gap:4px;padding:6px 0}
+.itip button .ic{width:14px;height:14px}
+.idash-h{margin:6px 4px -4px}
+@container idash (min-width:640px){
+  .imid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .imid .iq-wrap{grid-column:1/-1}
+  .iq{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@container idash (min-width:760px){
+  .ikpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .ikpi{padding:16px 18px;gap:12px}
+  .ikico{width:46px;height:46px}.ikico .ic{width:22px;height:22px}
+  .ikbody b{font-size:26px}
+  .ikpi.hasview .ikview{position:absolute;right:16px;bottom:14px;margin:0}
+}
+@container idash (min-width:1000px){
+  .imid{grid-template-columns:minmax(0,1.25fr) minmax(0,1.4fr) minmax(0,1fr)}
+  .imid .iq-wrap{grid-column:auto}
+  .iq{grid-template-columns:minmax(0,1fr)}
+}
+
+/* listings: table on wide screens, cards on phones */
+.ltool{display:flex;flex-direction:column;gap:8px}
+.ltool-l{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.ltool-l .search{grid-column:1/-1}
+.ltool-r{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.ltool-r::-webkit-scrollbar{display:none}
+.ltool-r .btn{flex:none}
+.ltool-r .btn-primary{order:-1}
+.ipills .itab{padding:7px 13px;font-size:12.5px}
+.ipills .itab .ic{display:inline-block!important;width:15px;height:15px}
+.ltb{background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.ltr{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px;align-items:center;padding:12px 14px;border-top:1px solid var(--line);transition:background-color .15s}
+.ltr:first-child{border-top:0}
+.ltr:hover{background:color-mix(in srgb,var(--p-soft) 55%,var(--card))}
+.ltr.selected{background:var(--p-soft)}
+.ltr-main{display:flex;align-items:center;gap:12px;min-width:0;text-align:left;color:inherit;background:none;border:0;padding:0}
+.lava{flex:none;width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;background:var(--p-soft);color:var(--p);border:1px solid color-mix(in srgb,var(--p) 18%,transparent)}
+.ltt{min-width:0}
+.ltt b{display:block;font-size:14px;font-weight:700;letter-spacing:-.01em}
+.ltt small{display:block;font-size:11.5px;color:var(--sub)}
+.lmeta{grid-column:1/-1;grid-row:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.lc{font-size:12.5px;color:var(--text);display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.lprice b{font-size:14.5px;font-weight:800}
+.lprice s{font-size:11px;color:var(--sub)}
+.ldisc{font-style:normal;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--p-soft);color:var(--p)}
+.lempty{display:none;color:var(--sub)}
+.lact2{display:flex;align-items:center;gap:6px;flex:none;grid-column:2;grid-row:1}
+.lact2 .btn{min-height:36px}
+.ltr .check{flex:none}
+@media(max-width:480px){.lact2 .btn span{display:none}.lact2 .btn{padding:8px 11px}}
+@container idash (min-width:560px){
+  .ltool{flex-direction:row;align-items:center;flex-wrap:wrap}
+  .ltool-l{flex:1;min-width:300px;grid-template-columns:minmax(180px,1.6fr) minmax(0,1fr) minmax(0,1fr)}
+  .ltool-l .search{grid-column:auto}
+}
+@container idash (min-width:860px){
+  .ltr{grid-template-columns:minmax(0,2.4fr) minmax(0,1.5fr) minmax(0,1.3fr) minmax(0,.95fr) minmax(0,.9fr) minmax(0,1.1fr) 150px;gap:10px 14px;padding:10px 16px}
+  .lact2{justify-content:flex-end}
+  .lmeta{display:contents}
+  .lact2{grid-column:auto;grid-row:auto}
+  .lempty{display:inline}
+}
+
 /* ---------- v1.2: true full width on computers + full page list in the side menu ---------- */
 @media(min-width:640px){
   html:is([data-frame=wide],[data-frame=full]) body{padding:0;display:block}
@@ -1715,6 +1832,7 @@ const THEMES = {
   x_dusty: Dk('Dusty Rose Night', '#fb7185', '#4c0519', '#e11d48', '#160f11', '#221619', '#fff1f2', '#d1a5ad', '#3d262b'),
   x_mocha: Dk('Mocha', '#d6a77a', '#3b2a1a', '#a8753f', '#14100c', '#1f1812', '#f7efe6', '#bfa690', '#33271c'),
   /* Business themes: cool neutral greys, one calm accent, built for the Professional look */
+  grimms_purple: { ...Lt('Grimms Purple', '#5b34b8', '#efe9fb', '#46258f', '#f6f3fc'), t: '#1d1537', s: '#6a6285', b: '#e7e1f4', pro: true },
   pro_blue: { ...Lt('Corporate Blue', '#2563eb', '#eaf1ff', '#1d4ed8', '#f3f5f9'), t: '#111827', s: '#667085', b: '#e0e4ea', pro: true },
   pro_navy: { ...Lt('Executive Navy', '#1e3a8a', '#e8edf8', '#172554', '#f2f4f8'), t: '#111827', s: '#667085', b: '#dfe3ea', pro: true },
   pro_teal: { ...Lt('Ledger Teal', '#0f766e', '#e6f4f2', '#115e59', '#f2f5f5'), t: '#111827', s: '#667085', b: '#dde3e3', pro: true },
@@ -1924,7 +2042,7 @@ const guessWeekStart = () => {
 const DEFAULTS = () => ({
   v: 3, setup: false,
   settings: {
-    name: '', industry: '', currency: 'USD', theme: 'pro_blue', font: "'Inter', sans-serif", taxRate: 0, lowStock: 5, transitDays: 5, weekStart: guessWeekStart(),
+    name: '', industry: '', currency: 'USD', theme: 'grimms_purple', font: "'Inter', sans-serif", taxRate: 0, lowStock: 5, transitDays: 5, weekStart: guessWeekStart(),
     relistDays: 30, autoRenew: true, valueBasis: 'est', mileRate: 0.725, mileRateYear: 2026, marginFloor: 10, targetMargin: 30, mileUnit: 'mi', budgets: {}, homeHide: [], quarterly: true,
     business: { address: '', email: '', phone: '', taxId: '', note: 'Thank you for your business!' },
     channels: [{ id: 'ch1', name: 'In person', pct: 0, fixed: 0, renew: 0, tax: false }, { id: 'ch2', name: 'Online', pct: 0, fixed: 0, renew: 0, tax: false }],
@@ -3766,7 +3884,7 @@ function listingsList() {
   if (!state.listings.length) return empty('store', 'No listings yet', 'A listing is what buyers see: a title, description and price on one or more platforms. Create one, or make many at once from your products.', `<div class="row" style="gap:8px;justify-content:center;margin-top:12px"><button class="btn btn-primary btn-sm" data-act="add" data-type="listing">Add a listing</button><button class="btn btn-soft btn-sm" data-act="bulk-listings">Bulk create</button></div>`);
   const live_ = state.listings.filter(x => active(x) && x.status === 'Active').length;
   return `${listHead(`${l.length} ${ui.arch ? 'archived' : 'listing' + (l.length === 1 ? '' : 's')}${ui.arch ? '' : ' · ' + live_ + ' live'}`)}${archNote()}
-    ${l.length ? lkWrap(invLook('listings').style, l.slice(0, ui.limit).map(x => isCardLk(invLook('listings').style) ? listingCard(x) : lkListing(x, invLook('listings').style)).join('')) : empty('search', 'No matches', 'Try a different search or filter.')}${l.length > ui.limit ? `<button class="btn btn-line block btn-sm" data-act="more-rows">Show more</button>` : ''}${selBar()}`;
+    ${l.length ? (invLook('listings').style === 'table' ? listingsTable(l) : lkWrap(invLook('listings').style, l.slice(0, ui.limit).map(x => isCardLk(invLook('listings').style) ? listingCard(x) : lkListing(x, invLook('listings').style)).join(''))) : empty('search', 'No matches', 'Try a different search or filter.')}${l.length > ui.limit ? `<button class="btn btn-line block btn-sm" data-act="more-rows">Show more</button>` : ''}${selBar()}`;
 }
 function stockList() {
   if (ui.seg.stock === 'home') return '';
@@ -3909,6 +4027,7 @@ function inventoryHome() {
   const stats = show('totals') ? `<div class="invstats"><div class="invstat"><small>Stock value</small><b>${money(total, true)}</b></div><div class="invstat ${low ? 'warn' : ''}"><small>Running low</small><b>${low}</b></div><div class="invstat ${out ? 'bad' : ''}"><small>Out of stock</small><b>${out}</b></div></div>` : '';
   const tiles = show('groups') ? `<div class="invtiles">${[...(by.groups || []), ...(by.listings || [])].map(e => { const nm = (e.querySelector('h4') || {}).textContent || '', meta = ((e.querySelector('.meta') || {}).textContent || '').split(' \u00b7 ').slice(0, 2).join(' \u00b7 '), av = (e.querySelector('.ava') || {}).innerHTML || '', v = e.getAttribute('data-v') || ''; return `<button type="button" class="invtile" data-act="seg" data-k="stock" data-v="${v}"><span class="invico">${av}</span><span class="grow"><b class="trunc">${esc(nm)}</b><small class="trunc">${esc(meta)}</small></span></button>`; }).join('')}</div>` : '';
   const list = rows.length ? `<div class="invlist">${rows.map(([k, icon, title, sum2]) => `<div class="invsec ${op[k] ? 'open' : ''}"><button type="button" class="invrow" data-act="inv-open" data-k="${k}" aria-expanded="${op[k] ? 'true' : 'false'}"><span class="invico">${ic(icon)}</span><span class="grow"><b>${title}</b><small>${esc(sum2)}</small></span>${ic('chevron-right', 'chev')}</button>${op[k] ? `<div class="invbody">${body(k)}</div>` : ''}</div>`).join('')}</div>` : '';
+  if (st === 'dash') return invDash({ S, C, P, total, list, showK: show('totals'), showG: show('groups') });
   return stats + tiles + list || '<div class="card"><p class="sub sm-t" style="margin:0">Everything on this page is hidden. Tap "Choose what to show" to bring sections back.</p></div>';
 }
 function inventoryHome0() {
@@ -4018,6 +4137,66 @@ const plannedCard = () => {
   return `<details class="card sm" data-planned-dd style="padding:10px 12px"><summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px"><span class="eyebrow grow">Planned listings (${l.length})</span>${ic('chevron-right', 'refchev')}</summary><div class="row between" style="margin-top:8px"><span class="xs sub">Soonest first</span><button class="link" data-act="planned-sheet">See all</button></div>${l.slice(0, 5).map(x => { const ps = listingProdObjs(x); return `<button class="row" style="gap:8px;align-items:flex-start;width:100%;text-align:left;padding:7px 0;border-top:1px solid var(--line)" data-act="edit" data-type="listing" data-id="${x.id}"><div class="grow" style="min-width:0"><div class="b" style="font-size:13px;word-break:break-word">${esc(x.title)}</div><div class="xs sub" style="word-break:break-word">${esc([x.sku ? 'SKU ' + x.sku : '', ps.map(p => p.name + (p.sku ? ' (' + p.sku + ')' : '')).join(' + ')].filter(Boolean).join(' · ') || 'No product linked yet')}</div></div>${!x.listedDate ? pill('No date', 'mute') : plannedDue(x) ? listingStatusPill(x) : pill(fmtDate(x.listedDate), 'brand')}</button>`; }).join('')}${l.length > 5 ? `<div class="xs sub" style="padding-top:6px">+ ${l.length - 5} more</div>` : ''}</div></details>`;
 };
 const syncSelTop = () => { };
+/* ---------- Inventory "Dashboard" home, pill tabs, and "Table" listings ---------- */
+const INV_TAB_IC = { home: 'house', materials: 'layers', products: 'package', listings: 'store' };
+const invTabs = (cur, opts) => `<div class="itabs" role="tablist">${opts.map(o => `<button type="button" class="itab ${o[0] === cur ? 'on' : ''}" data-act="seg" data-k="stock" data-v="${o[0]}" role="tab" aria-selected="${o[0] === cur}">${ic(INV_TAB_IC[o[0]] || 'circle')}${o[1]}</button>`).join('')}</div>`;
+
+function invDash(o) {
+  const { S, C, P, total, list, showK, showG } = o;
+  const units = Math.round(S.units + C.units + P.units), nItems = S.l.length + C.l.length + P.l.length, L = listingStats();
+  const lowN = S.low.length + C.low.length + P.low.length, outN = S.out.length + C.out.length + P.out.length;
+  const pl = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+  const lowSeg = (S.low.length + C.low.length) >= P.low.length ? 'materials' : 'products', outSeg = (S.out.length + C.out.length) >= P.out.length ? 'materials' : 'products';
+  const view = (sg, f) => `<button type="button" class="ikview" data-act="inv-go" data-seg="${sg}" data-f="${f}">View ${ic('arrow-right')}</button>`;
+  const kp = (icon, tone, label, big, foot, v) => `<div class="ikpi ${v ? 'hasview' : ''}" style="--kc:${tone}"><span class="ikico">${ic(icon)}</span><div class="ikbody"><small>${label}</small><b class="num">${big}</b>${foot ? `<span class="ikfoot">${foot}</span>` : ''}${v || ''}</div></div>`;
+  const kpis = showK ? `<div class="ikpis">${kp('dollar', 'var(--p)', 'Stock value', money(total, true), 'Across ' + pl(units, 'unit'))}${kp('package', 'var(--p)', 'Total units', String(units), 'In ' + pl(nItems, 'item'))}${kp('alert-triangle', 'var(--warn)', 'Running low', pl(lowN, 'item'), '', lowN ? view(lowSeg, 'low') : '')}${kp('alert-circle', 'var(--bad)', 'Out of stock', pl(outN, 'item'), '', outN ? view(outSeg, 'out') : '')}</div>` : '';
+
+  const grp = [['Products', P, 'products', 'package', 'var(--p)'], ['Components', C, 'components', 'layers', 'color-mix(in srgb,var(--p) 50%,var(--card))'], ['Supplies', S, 'supplies', 'box', 'color-mix(in srgb,var(--sub) 45%,var(--card))']];
+  const gt = grp.reduce((a, g) => a + g[1].value, 0);
+  const glance = showG ? `<div class="ipan"><h3>${ic('bar-chart')} Inventory at a glance</h3>
+    <div class="iglance">${grp.map(([n, q, sg, icon]) => `<button type="button" class="igl" data-act="inv-go" data-seg="${sg}">${ic(icon)}<small>${n}</small><b class="num">${q.l.length}</b><span class="num">${money(q.value, true)}</span></button>`).join('')}</div>
+    ${gt > 0 ? `<div class="isplit" role="img" aria-label="Share of value by type">${grp.map(g => `<i style="width:${(g[1].value / gt * 100).toFixed(1)}%;background:${g[4]}"></i>`).join('')}</div><div class="ileg">${grp.map(g => `<span><i style="background:${g[4]}"></i>${g[0]} ${Math.round(g[1].value / gt * 100)}%</span>`).join('')}</div>` : ''}</div>` : '';
+
+  const rows = [];
+  if (outN) rows.push(['alert-circle', 'var(--bad)', 'Out of stock', pl(outN, 'item') + ' unavailable', 'reorder', '', '']);
+  if (lowN) rows.push(['alert-triangle', 'var(--warn)', 'Low stock', pl(lowN, 'item') + ' need replenishing', 'reorder', '', '']);
+  if (L.renew) rows.push(['refresh', 'var(--warn)', 'Renew due', pl(L.renew, 'listing') + ' to renew', 'inv-go', 'listings', 'renew']);
+  if (L.oos) rows.push(['store', 'var(--bad)', 'Listings sold out', pl(L.oos, 'live listing') + ' with no stock', 'inv-go', 'listings', 'oos']);
+  if (L.old) rows.push(['clock', 'var(--p)', 'Slow-moving listings', pl(L.old, 'listing') + ' live 30+ days', 'inv-go', 'listings', 'old']);
+  const att = `<div class="ipan"><h3>${ic('alert-triangle')} Needs your attention</h3>${rows.length ? rows.slice(0, 4).map(([icon, tone, t, d, act, sg, f]) => `<div class="iatt" style="--kc:${tone}"><span class="iai">${ic(icon)}</span><div class="grow"><b>${t}</b><small>${d}</small></div><button type="button" class="rv" data-act="${act}" ${sg ? `data-seg="${sg}" data-f="${f}"` : ''}>Review ${ic('chevron-right')}</button></div>`).join('') : `<div class="iatt" style="--kc:var(--ok)"><span class="iai">${ic('check-circle')}</span><div class="grow"><b>All good</b><small>Nothing needs your attention right now</small></div></div>`}</div>`;
+
+  const quick = `<div class="ipan iq-wrap"><h3>Quick actions</h3><div class="iq"><button type="button" data-act="add" data-type="product">${ic('plus')} Add a product</button><button type="button" data-act="add" data-type="supply">${ic('box')} Add a material</button><button type="button" data-act="add" data-type="listing">${ic('store')} Create a listing</button><button type="button" data-act="reorder">${ic('list-checks')} Reorder list</button></div></div>`;
+  const tip = `<div class="itip">${ic('lightbulb')}<span><b>Tip:</b> Use the “What to order” card to get a suggested purchase list based on your sales pace.</span><button type="button" data-act="inv-open" data-k="smartorder">View more insights ${ic('arrow-right')}</button></div>`;
+  return `<div class="idash">${kpis}<div class="imid">${glance}${att}${quick}</div>${tip}${list ? `<div class="eyebrow idash-h">More insights</div>${list}` : ''}</div>`;
+}
+
+const needsActionL = x => !x.archived && ((x.status === 'Active' && (renewDue(x) || listingOOS(x) || listingAge(x) >= 30 || (x.pending || []).length)) || plannedDue(x));
+function listingSalesMap() {
+  const m = {};
+  try { state.orders.forEach(o => { if (o.archived || NOT_SALE.includes(o.status) || NO_STOCK.includes(o.status)) return; (o.items || []).forEach(i => { if (i.listingId) m[i.listingId] = (m[i.listingId] || 0) + num(i.price) * (i.qty == null ? 1 : num(i.qty)); }); }); } catch (e) { /* never block the page */ }
+  return m;
+}
+function listingPills() {
+  const act = state.listings.filter(active), cur = ui.arch ? 'arch' : ui.filter;
+  const P = [['all', 'Listings', act.length], ['Active', 'Active', act.filter(x => x.status === 'Active').length], ['action', 'Needs action', act.filter(needsActionL).length], ['Planned', 'Planned', act.filter(x => x.status === 'Planned').length], ['Sold', 'Sold', act.filter(x => x.status === 'Sold').length], ['arch', 'Archived', state.listings.filter(x => x.archived).length]];
+  return `<div class="itabs ipills" role="tablist">${P.map(([v, t, n]) => `<button type="button" class="itab ${cur === v ? 'on' : ''}" data-act="ls-pill" data-v="${v}" role="tab" aria-selected="${cur === v}">${t}<span class="cnt num">${n}</span></button>`).join('')}</div>`;
+}
+const listingToolbar = () => `<div class="ltool"><div class="ltool-l">${searchBox('Search listings…')}${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${optSel('sort', LISTING_SORTS, ui.sort || 'sku_d', 'Sort')}</div>
+  <div class="ltool-r"><button type="button" class="btn btn-primary btn-sm" data-act="add" data-type="listing">${ic('plus')} Add listing</button><button type="button" class="btn btn-line btn-sm" data-act="bulk-listings">${ic('layers')} Bulk create</button><button type="button" class="btn btn-line btn-sm" data-act="bulk-discount">${ic('percent')} Bulk discount</button><button type="button" class="btn btn-line btn-sm" data-act="bulk-renew">${ic('refresh')} Bulk renew</button><button type="button" class="btn btn-line btn-sm" data-act="bulk-schedule">${ic('calendar')} Bulk schedule</button></div></div>`;
+function listingsTable(l) {
+  const sales = listingSalesMap(), dash = '<span class="lc lempty">—</span>';
+  return `<div class="ltb">${l.slice(0, ui.limit).map(x => {
+    const lp = listingPrice(x), ad = activeDisc(x), age = listingAge(x), prods = listingProdObjs(x), q = prods.length ? Math.min(...prods.map(p => num(p.qty))) : null, sv = sales[x.id] || 0, ch = listingChans(x).join(', ') || 'No platform';
+    const st = x.status === 'Active' && age != null ? pill('Active · ' + age + 'd live', 'ok') : listingStatusPill(x);
+    const flag = (renewDue(x) ? pill('Renew due', 'warn', 'refresh') : '') + (listingOOS(x) ? pill('Out of stock', 'bad') : '');
+    const ini = esc((x.title || '?').trim().slice(0, 2).toUpperCase());
+    const btn = x.status === 'Planned' ? `<button type="button" class="btn btn-soft btn-sm" data-act="edit" data-type="listing" data-id="${x.id}">Open</button>` : x.status === 'Sold' ? `<button type="button" class="btn btn-line btn-sm" data-act="edit" data-type="listing" data-id="${x.id}">View</button>` : `<button type="button" class="btn btn-line btn-sm" data-act="analytics" data-id="${x.id}" aria-label="Analytics">${ic('bar-chart')}<span>Analytics</span></button>`;
+    return `<div class="ltr ${selCls(x.id)}" ${selAttr(x.id)}><button type="button" class="ltr-main" data-act="edit" data-type="listing" data-id="${x.id}">${selMark(x.id)}<span class="lava">${ini}</span><span class="ltt"><b class="trunc">${esc(x.title)}</b><small class="trunc">${x.sku ? 'SKU: ' + esc(x.sku) + ' · ' : ''}${esc(ch)}</small></span></button>
+      <div class="lmeta"><span class="lc lprice num"><b>${money(lp)}</b>${ad ? `<s>${money(x.price)}</s><em class="ldisc">${pct(num(ad.pct))} off</em>` : ''}</span><span class="lc">${st}</span>${sv > 0 ? `<span class="lc num">${money(sv, true)} sales</span>` : dash}${q == null ? dash : `<span class="lc num">${q} in stock</span>`}${flag ? `<span class="lc">${flag}</span>` : dash}</div>
+      ${ui.selMode ? '' : `<div class="lact2">${btn}<button type="button" class="icon-btn" data-act="copy-title" data-id="${x.id}" aria-label="Copy title" title="Copy title">${ic('copy')}</button></div>`}</div>`;
+  }).join('')}</div>`;
+}
+
 const invTop = () => { const n = plannedListings().length, lst = ui.seg.stock !== 'home'; return `<div class="row" style="gap:8px"><button class="btn btn-soft btn-sm grow" data-act="planned-sheet">${ic('calendar')} Planned${n ? ' (' + n + ')' : ''}</button><button class="btn btn-line btn-sm grow" data-act="ref-sheet">${ic('list-checks')} SKU lookup</button>${(() => { let k = 0; try { k = dataChecks().filter(c => c.tone !== 'info').length; } catch (e) { } return `<button class="btn btn-line btn-sm grow" data-act="data-check">${ic('check-circle')} Check data${k ? ' (' + k + ')' : ''}</button>`; })()}</div>`; };
 const refSt = { q: '', v: 'all', s: 'sku_d' };
 const REF_SORTS = [['sku_d', 'SKU high to low'], ['sku', 'SKU low to high'], ['planned', 'Planned: nearest date first'], ['planned_f', 'Planned: furthest date first'], ['name', 'Name A to Z'], ['price_h', 'Price / value high to low'], ['price_l', 'Price / value low to high']];
@@ -4064,7 +4243,7 @@ function invCustInner() {
   <div class="stack-sm">${INV_SECS.map(([k, t, d]) => { const on = !h.includes(k); return `<button type="button" class="mb-top ${on ? 'on' : ''}" data-act="inv-tog" data-k="${k}"><span class="mb-chk">${on ? '\u2713' : ''}</span><span class="grow"><b class="sm-t">${t}</b><span class="xs sub" style="display:block">${d}</span></span></button>`; }).join('')}</div>`;
 }
 /* ---------- Inventory page looks (one button per page) ---------- */
-const INV_LOOK_DEF = { home: { style: 'compact' }, sales: { style: 'list', glance: 'slim', tools: 'tuck' }, materials: { style: 'list', glance: 'slim', tools: 'tuck' }, products: { style: 'list', glance: 'slim', tools: 'tuck' }, listings: { style: 'list', glance: 'slim', tools: 'tuck' } };
+const INV_LOOK_DEF = { home: { style: 'dash' }, sales: { style: 'list', glance: 'slim', tools: 'tuck' }, materials: { style: 'list', glance: 'slim', tools: 'tuck' }, products: { style: 'list', glance: 'slim', tools: 'tuck' }, listings: { style: 'table', glance: 'slim', tools: 'tuck' } };
 const invLook = pg => ({ ...(INV_LOOK_DEF[pg] || {}), ...(((state.settings.invLook || {})[pg]) || {}) });
 const LK_NAMES = { cards: 'Cards', list: 'Clean list', tiles: 'Tiles', compact: 'Compact', classic: 'Classic', numbers: 'Numbers only' };
 const LK_PAGES = { sales: 'Sales', home: 'Home', materials: 'Materials', products: 'Products', listings: 'Listings' };
@@ -4082,8 +4261,9 @@ const LK_MORE = (x, d) => [
 ];
 const LK_OPTS = {
   list: LK_MORE('item'),
+  listings: [['table', 'Table', 'One row per listing: price, status, stock and actions']].concat(LK_MORE('listing')),
   sales: LK_MORE('order'),
-  home: [['compact', 'Compact', 'Three numbers, shortcuts and short rows that open'], ['classic', 'Classic', 'The long original page with every section open'], ['flat', 'Classic, flat', 'Every section open, no boxes around them'], ['filled', 'Classic, filled', 'Every section open on soft colored cards'], ['outline', 'Classic, outlined', 'Every section open with a colored outline'], ['numbers', 'Numbers only', 'Just the top numbers and shortcuts']]
+  home: [['dash', 'Dashboard', 'Big number cards, what needs attention and quick actions'], ['compact', 'Compact', 'Three numbers, shortcuts and short rows that open'], ['classic', 'Classic', 'The long original page with every section open'], ['flat', 'Classic, flat', 'Every section open, no boxes around them'], ['filled', 'Classic, filled', 'Every section open on soft colored cards'], ['outline', 'Classic, outlined', 'Every section open with a colored outline'], ['numbers', 'Numbers only', 'Just the top numbers and shortcuts']]
 };
 const invBar = pg => {
   const L = invLook(pg), tk = pg !== 'home' && L.tools === 'tuck', sl = pg === 'sales', open = sl ? ui.salesTools : ui.invTools;
@@ -4131,7 +4311,7 @@ function lkNames(pg) {
   const d = [['Beaded Bracelet', '14'], ['Wire Ring', '22'], ['Gift Set', '3'], ['Tote Bag', '30']]; while (a.length < 4) a.push(d[a.length]); return a;
 }
 function lkPreview(pg, st) {
-  st = ({ filled: pg === 'home' ? 'classic' : 'cards', open: 'list', bubbles: 'list', zebra: 'list', compact: pg === 'home' ? 'compact' : 'list', minimal: 'list', tiles3: 'tiles', flat: 'classic', outline: 'classic' })[st] || st;
+  st = ({ dash: pg === 'home' ? 'compact' : 'list', table: 'list', filled: pg === 'home' ? 'classic' : 'cards', open: 'list', bubbles: 'list', zebra: 'list', compact: pg === 'home' ? 'compact' : 'list', minimal: 'list', tiles3: 'tiles', flat: 'classic', outline: 'classic' })[st] || st;
   const n = lkNames(pg), e = esc, stats = '<div class="lp3"><div class="lpt"><span>Value</span><b>$419</b></div><div class="lpt"><span>Low</span><b>2</b></div><div class="lpt"><span>Out</span><b>2</b></div></div>';
   if (st === 'cards') return n.slice(0, 2).map(x => `<div class="lpc"><b>${e(x[0])}</b><i></i><i class="s"></i><em>${e(x[1])}</em></div>`).join('');
   if (st === 'list') return n.map(x => `<div class="lpr"><span>${e(x[0])}</span><em>${e(x[1])}</em></div>`).join('');
@@ -4141,7 +4321,7 @@ function lkPreview(pg, st) {
   return stats + `<div class="lp2">${['Supplies', 'Components', 'Products', 'Listings'].map(x => `<div class="lpt"><span>${x}</span></div>`).join('')}</div>`;
 }
 function lkInner(pg) {
-  const L = invLook(pg), opts = pg === 'home' ? LK_OPTS.home : pg === 'sales' ? LK_OPTS.sales : LK_OPTS.list;
+  const L = invLook(pg), opts = pg === 'home' ? LK_OPTS.home : pg === 'sales' ? LK_OPTS.sales : pg === 'listings' ? LK_OPTS.listings : LK_OPTS.list;
   const seg3 = (k, vals) => `<div class="lkseg">${vals.map(([v, t]) => `<button type="button" class="${L[k] === v ? 'on' : ''}" data-act="lk-set" data-pg="${pg}" data-k="${k}" data-v="${v}">${t}</button>`).join('')}</div>`;
   return `<p class="sub sm-t" style="margin:0 0 10px">Pick how this page looks. It changes right away and only affects this page.</p>
   <div class="stack-sm">${opts.map(([v, t, d]) => `<button type="button" class="lkopt ${L.style === v ? 'on' : ''}" data-act="lk-set" data-pg="${pg}" data-k="style" data-v="${v}"><span class="lkpv">${lkPreview(pg, v)}</span><span class="grow"><b>${t}</b><small>${d}</small></span><span class="mb-chk">${L.style === v ? '✓' : ''}</span></button>`).join('')}</div>
@@ -4150,7 +4330,8 @@ function lkInner(pg) {
 }
 V.stock = () => {
   const s = ui.seg.stock, prod = s === 'products', SEG = [['home', 'Home'], ['materials', 'Materials'], ['products', 'Products'], ['listings', 'Listings']];
-  if (s === 'home') return `<div class="page stack-sm fade">${invTop()}${seg('stock', SEG, s)}${invBar('home')}${valBasisPicker()}<div class="invh stack-sm inv-${invLook('home').style}">${inventoryHome()}</div></div>`;
+  if (s === 'home') return `<div class="page stack-sm fade">${invTabs(s, SEG)}${invTop()}${invBar('home')}${valBasisPicker()}<div class="invh stack-sm inv-${invLook('home').style}">${inventoryHome()}</div></div>`;
+  if (s === 'listings' && invLook(s).style === 'table') return `<div class="page stack-sm fade">${invTabs(s, SEG)}${invTop()}<div class="idash">${listingToolbar()}${listingPills()}<div id="list" class="stack-sm">${stockList()}</div><button class="btn btn-line btn-sm block" data-act="archive-sold">${ic('archive')} Archive all sold listings</button></div></div>`;
   const K = invLook(s), filt = s === 'listings'
       ? chips([['all', 'All'], ['action', 'Needs action'], ['disc', 'Discounted']].concat(LISTING_STATUSES.map(x => [x, x])), ui.filter) + `<div class="grid2">${optSel('ch', [['', 'All platforms']].concat(state.settings.channels.map(c => [c.name, c.name])), ui.ch, 'Platform')}${(K.tools === 'show' ? optSel('sort', LISTING_SORTS, ui.sort || 'sku_d', 'Sort') : '')}</div>
          <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn btn-soft btn-sm grow" data-act="bulk-listings">${ic('layers')} Bulk create</button><button class="btn btn-soft btn-sm grow" data-act="bulk-discount">${ic('percent')} Bulk discount</button><button class="btn btn-soft btn-sm grow" data-act="bulk-renew">${ic('refresh')} Bulk renew</button><button class="btn btn-soft btn-sm grow" data-act="bulk-schedule">${ic('calendar')} Bulk schedule</button></div>`
@@ -4164,7 +4345,7 @@ V.stock = () => {
   const matf = s === 'materials' ? chips([['all', 'All'], ['supplies', 'Supplies'], ['components', 'Components']], ui.matf, 'matf') : '';
   const body = K.tools === 'show' ? `${matf}${pre}${glance}${search}${post}` : `${matf}${glance}${search}${ui.invTools ? `<div class="stack-sm">${pre}${post}</div>` : ''}`;
   return `<div class="page stack-sm fade">
-    ${invTop()}${seg('stock', SEG, s)}${invBar(s)}
+    ${invTabs(s, SEG)}${invTop()}${invBar(s)}
     ${body}
     <div id="list" class="stack-sm" style="margin-top:4px">${stockList()}</div></div>`;
 };
@@ -10230,6 +10411,8 @@ Object.assign(ACT, {
   'lk-set': el => { const pg = el.dataset.pg, o = state.settings.invLook = state.settings.invLook || {}; o[pg] = { ...(o[pg] || {}), [el.dataset.k]: el.dataset.v }; save(); const w = $('#lk-wrap'); if (w) w.innerHTML = lkInner(pg); render(); },
   'lk-reset': el => { const pg = el.dataset.pg; if (state.settings.invLook) delete state.settings.invLook[pg]; if (pg === 'home') delete state.settings.invHide2; save(); const w = $('#lk-wrap'); if (w) w.innerHTML = lkInner(pg); render(); },
   'lk-tools': el => { const k = el.dataset.pg === 'sales' ? 'salesTools' : 'invTools'; ui[k] = !ui[k]; render(); },
+  'inv-go': el => { const sg = el.dataset.seg || 'materials'; if (sg === 'materials' && ui.seg.stock !== 'materials') ui.matf = 'all'; setSeg('stock', sg); resetFilters(); if (el.dataset.f) ui.filter = el.dataset.f; render(); const sc = $('#scroll'); if (sc) sc.scrollTop = 0; },
+  'ls-pill': el => { const v = el.dataset.v; ui.sel.clear(); ui.limit = 60; if (v === 'arch') { ui.arch = true; ui.filter = 'all'; } else { ui.arch = false; ui.filter = v; } render(); },
   'inv-open': el => { ui.invOpen = ui.invOpen || {}; ui.invOpen[el.dataset.k] = !ui.invOpen[el.dataset.k]; render(); },
   'inv-cust': () => openSheet('What to show on Inventory', `<div class="sheet-body" id="inv-wrap">${invCustInner()}</div>`, { noFocus: true }),
   'inv-tog': el => { const h = invHidden().slice(), k = el.dataset.k, i = h.indexOf(k); if (i < 0) h.push(k); else h.splice(i, 1); state.settings.invHide2 = h; save(); const w = $('#inv-wrap'); if (w) w.innerHTML = invCustInner(); render(); },
@@ -17064,6 +17247,291 @@ G.V.bf = () => '<div class="page stack-sm fade" id="bf-host"></div>';
 function inject() { if (G.ui.sub === 'bf') setTimeout(growAll, 0); if (G.ui.sub === 'bf') { const h = $('#bf-host'); if (h && !h.dataset.ready) { h.dataset.ready = '1'; V.key = null; V.view = null; V.step = ''; V.edit = ''; V.tab = 'forms'; paint(); } } }
 new MutationObserver(inject).observe($('#scroll'), { childList: true });
 inject();
+})();
+</script>
+
+
+<!-- =====================================================================
+     PRO REDESIGN  -  calm, Notion-style look for the whole app.
+     Visual layer only: every button, page and feature is unchanged.
+     ===================================================================== -->
+<script>
+(function () {
+const P = 'html[data-pro][data-round][data-frame]';
+const S = 'html[data-layout=sidebar][data-pro][data-frame] #screen-app>#nav';
+const css = `
+§{--line:color-mix(in srgb,var(--text) 10%,transparent);--ring:color-mix(in srgb,var(--p) 22%,transparent);
+  --sh1:0 1px 2px rgba(16,24,40,.05);--sh2:0 1px 2px rgba(16,24,40,.04),0 8px 22px -10px rgba(16,24,40,.12)}
+§ body{font-size:14px;letter-spacing:-.006em;-webkit-font-smoothing:antialiased;font-feature-settings:'cv11','ss01'}
+§ ::selection{background:var(--ring)}
+§ :focus-visible{outline:2px solid var(--p);outline-offset:2px}
+
+/* cards */
+§ :is(.card,.list-row,.tile,.alert,.mail-group,.snap,.line,.disc-row,.banner,.preview,.invoice){border-radius:14px}
+§ .card{border-color:var(--line);box-shadow:var(--sh2);padding:18px 20px}
+§ .card.sm{padding:14px 16px;border-radius:12px}
+§ .list-row,.tile{box-shadow:var(--sh1);border-color:var(--line)}
+§ .list-row{border-radius:12px;padding:12px 14px}
+§ .list-row:hover,.tile:hover{border-color:color-mix(in srgb,var(--p) 45%,var(--line));box-shadow:var(--sh2)}
+§ .notice{border-radius:12px;border-color:color-mix(in srgb,var(--p) 22%,transparent)}
+§ .kv+.kv{border-top:1px solid var(--line)}
+§ .eyebrow{font-size:11px;font-weight:600;letter-spacing:.07em}
+§ .rev{font-size:30px;font-weight:700;letter-spacing:-.03em}
+§ .metric .k{font-size:12px;font-weight:600}
+§ .metric .v{font-size:23px;font-weight:700;letter-spacing:-.02em}
+§ .tile{padding:14px 8px}
+§ .tile b{font-size:17px;font-weight:700;letter-spacing:-.02em}
+§ .item h4{font-size:13.5px;font-weight:600}
+§ :is(.item .ava,.list-row .ico){width:36px;height:36px;border-radius:10px}
+§ .quick button{border-radius:12px;padding:12px 4px;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh1);transition:all .15s}
+§ .quick button:hover{opacity:1;border-color:var(--p);transform:translateY(-1px)}
+§ .bar,§ .bar>i{border-radius:99px}
+§ .bar{height:6px}
+
+/* buttons */
+§ .btn{border-radius:10px;padding:9px 15px;font-size:13px;font-weight:600;letter-spacing:-.005em;transition:all .15s}
+§ .btn:hover{opacity:1;filter:brightness(.97)}
+§ .btn-primary{box-shadow:0 1px 2px rgba(16,24,40,.18),inset 0 1px 0 rgba(255,255,255,.2)}
+§ .btn-primary:hover{filter:brightness(1.06);box-shadow:0 4px 12px -4px var(--p)}
+§ .btn-line{background:var(--card);box-shadow:var(--sh1);border-color:color-mix(in srgb,var(--text) 14%,transparent)}
+§ .btn-line:hover{background:var(--bg)}
+§ .btn-soft:hover{background:color-mix(in srgb,var(--p) 14%,var(--p-soft))}
+§ .btn-sm{padding:7px 12px;font-size:12px;border-radius:9px}
+§ .btn.block{padding:12px 16px}
+§ .icon-btn{width:34px;height:34px;border-radius:10px;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh1);transition:all .15s}
+§ .icon-btn:hover{background:var(--bg);border-color:color-mix(in srgb,var(--text) 18%,transparent)}
+§ .icon-btn.p{background:var(--p-soft);border-color:transparent;color:var(--p)}
+
+/* tabs, chips, pills */
+§ .seg{border-radius:11px;padding:3px;background:color-mix(in srgb,var(--text) 6%,transparent)}
+§ .seg button{border-radius:8px;font-size:12.5px;font-weight:600;padding:7px 8px}
+§ .seg button.on{box-shadow:0 1px 3px rgba(16,24,40,.12);color:var(--text)}
+§ .chip{border-radius:999px;padding:6px 13px;font-size:12px;font-weight:600;border-color:var(--line);transition:all .15s}
+§ .chip:not(.on):hover{background:var(--bg);color:var(--text)}
+§ .chip.on{box-shadow:0 1px 2px rgba(16,24,40,.15)}
+§ .pill{border-radius:999px;font-size:11px;font-weight:600;padding:2px 9px}
+§ .pill:is(.ok,.bad,.warn):not(:has(.ic))::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+§ .delta{border-radius:999px;font-weight:600}
+
+/* inputs */
+§ :is(.input,.select,.textarea){border-radius:10px;padding:9px 12px;font-size:13.5px;border-color:color-mix(in srgb,var(--text) 14%,transparent);box-shadow:var(--sh1)}
+§ :is(.input,.select,.textarea):hover{border-color:color-mix(in srgb,var(--text) 24%,transparent)}
+§ :is(.input,.select,.textarea):focus{border-color:var(--p);box-shadow:0 0 0 3px var(--ring)}
+§ .fld>span,§ .fld>.lbl{font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text);opacity:.75}
+§ .inline-select{border-radius:9px}
+§ .search .input{padding-left:38px}
+
+/* header */
+§ .hdr{border-bottom:1px solid var(--line);box-shadow:none;padding:14px 20px}
+§ .hdr h1{font-size:17px;font-weight:700;letter-spacing:-.02em}
+
+/* sheets and popups */
+§ .modal-root{background:rgba(15,17,26,.42);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+§ .sheet{border-radius:20px 20px 0 0;box-shadow:0 -10px 40px -12px rgba(0,0,0,.3)}
+§ .sheet-head h3{font-size:17px;font-weight:700;letter-spacing:-.02em}
+§ .toast{border-radius:12px;box-shadow:0 12px 30px -10px rgba(0,0,0,.4);font-weight:500}
+§ .logo{border-radius:22px;color:#fff;background:linear-gradient(135deg,var(--p),var(--p-dark));box-shadow:0 14px 30px -12px var(--p)}
+
+/* phone: softer bottom bar */
+@media(max-width:899px){
+  § .nav{border-top:1px solid var(--line);padding-top:6px}
+  § .nav button{border-radius:12px;font-weight:600;transition:all .15s}
+  § .nav button.on{background:var(--p-soft)}
+  § .nav button.on::before{display:none}
+  § .page{padding:14px 16px 28px}
+}
+
+/* computer: app shell with a real sidebar */
+@media(min-width:900px){
+  html[data-layout=sidebar][data-pro][data-frame] #screen-app.on{grid-template-columns:244px minmax(0,1fr)}
+  html[data-pro][data-frame]:is([data-frame=wide],[data-frame=full]) :is(.scroll,.hdr){zoom:calc(var(--zoom) * 1.04)}
+  § .hdr{padding-top:16px;padding-bottom:16px}
+  § .hdr h1{font-size:22px;font-weight:700;letter-spacing:-.03em}
+  § .hdr [data-act=gsearch]{width:250px;height:36px;justify-content:flex-start;gap:8px;padding:0 12px;border-radius:10px;background:var(--bg);box-shadow:none;color:var(--sub);order:-1}
+  § .hdr [data-act=gsearch]::after{content:"Search anything\\2026";font-size:13px;font-weight:500}
+  § .hdr .bell .dot{border-color:var(--card)}
+  § .sheet{border-radius:18px;max-width:460px;box-shadow:0 30px 70px -20px rgba(0,0,0,.45)}
+  § .card{padding:20px 22px}
+  § .chart svg{height:230px;width:100%}
+  § .chart svg path{vector-effect:non-scaling-stroke;stroke-width:2.5px}
+  § .chart svg :is(circle,.gd){display:none}
+
+  ${S}{background:var(--card);border-right:1px solid var(--line);border-top:0;padding:18px 12px 24px;gap:2px;overflow-y:auto;scrollbar-width:thin}
+  ${S} .nav-brand{padding:2px 8px 16px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+  ${S} .nav-logo{width:36px;height:36px;border-radius:10px;font-size:16px;background:linear-gradient(135deg,var(--p),var(--p-dark));box-shadow:0 6px 14px -6px var(--p)}
+  ${S} .nav-bn b{font-size:14px;font-weight:700;letter-spacing:-.01em}
+  ${S} .nav-bn small{font-size:11.5px}
+  ${S} button{font-size:13.5px;font-weight:500;padding:8px 12px;gap:11px;border-radius:9px;color:var(--sub);transition:background .12s,color .12s}
+  ${S} button .ic{width:18px;height:18px;opacity:.85}
+  ${S} button:hover{background:color-mix(in srgb,var(--text) 6%,transparent);color:var(--text)}
+  ${S} button.on{background:var(--p-soft);color:var(--p);font-weight:600}
+  ${S} button.on .ic{opacity:1}
+  ${S} button.on::before{display:none}
+  ${S} .nav-sec{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--sub);opacity:.8;padding:16px 12px 6px;margin:6px 0 0}
+  ${S} .nav-n{background:var(--p);color:var(--on-p);font-size:10.5px;font-weight:700;height:18px;line-height:18px;padding:0 6px;border-radius:9px}
+}
+
+/* ===== pass 2: bolder, dashboard-style ===== */
+§ #screen-app,§ .scroll{background:color-mix(in srgb,var(--p) 4.5%,var(--bg))}
+§ .hdr,§ .nav{background:var(--card)}
+§ .hdr h1[data-sub]::after{content:attr(data-sub);display:block;font-size:12.5px;font-weight:400;letter-spacing:0;color:var(--sub);margin-top:2px;white-space:normal}
+§ .btn-primary{background:linear-gradient(180deg,color-mix(in srgb,var(--p) 88%,#fff),var(--p))}
+§ :is(.card,.tile){border-radius:16px}
+/* number cards: colored icon circles */
+§ .metric{gap:12px}
+§ .metric .k{gap:10px;color:var(--sub);font-size:12.5px}
+§ .metric .k .ic{box-sizing:content-box;width:18px;height:18px;padding:9px;border-radius:50%;background:var(--p-soft);color:var(--p)}
+§ .grid2>:nth-child(2) .metric .k .ic,§ .grid2>.metric:nth-child(2) .k .ic{background:color-mix(in srgb,var(--ok) 14%,var(--card));color:var(--ok)}
+§ .grid2>:nth-child(3) .metric .k .ic,§ .grid2>.metric:nth-child(3) .k .ic{background:color-mix(in srgb,var(--warn) 16%,var(--card));color:var(--warn)}
+§ .metric .v{font-size:26px;font-weight:700;letter-spacing:-.03em}
+/* lists become one grouped table-style panel */
+§ :is(.stack-sm,.stack):has(>.list-row+.list-row){background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--sh2)}
+§ :is(.stack-sm,.stack):has(>.list-row+.list-row)>*+*{margin-top:0}
+§ :is(.stack-sm,.stack)>.list-row:is(:first-child,:last-child,:not(:first-child)){border-radius:0}
+§ :is(.stack-sm,.stack):has(>.list-row+.list-row)>.list-row{border:0;border-top:1px solid var(--line);box-shadow:none;padding:14px 18px;background:transparent}
+§ :is(.stack-sm,.stack):has(>.list-row+.list-row)>.list-row:first-child{border-top:0}
+§ :is(.stack-sm,.stack):has(>.list-row+.list-row)>.list-row:hover{background:color-mix(in srgb,var(--p) 5%,var(--card));box-shadow:none;border-color:var(--line)}
+§ .pill{padding:3px 10px}
+§ .hdr .avatar{display:none}
+@media(min-width:900px){
+  § .hdr .avatar{display:flex;width:36px;height:36px;border-radius:50%;align-items:center;justify-content:center;background:var(--p-soft);color:var(--p);font-weight:700;font-size:13px;flex:none;border:1px solid color-mix(in srgb,var(--p) 25%,transparent)}
+  § .page .grid2:has(.metric){grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  § .page{padding-top:22px}
+  § .card{box-shadow:0 1px 2px rgba(16,24,40,.04),0 12px 28px -16px rgba(16,24,40,.16)}
+}
+
+/* ===== purple + white premium touches ===== */
+§{--sh1:0 1px 2px rgba(60,35,120,.06);--sh2:0 1px 2px rgba(60,35,120,.04),0 10px 26px -12px rgba(60,35,120,.2)}
+§ .btn-primary{box-shadow:0 1px 2px rgba(40,20,90,.25),0 8px 18px -8px var(--p),inset 0 1px 0 rgba(255,255,255,.22)}
+§ .chip.on,§ .seg button.on{box-shadow:0 6px 14px -8px var(--p)}
+@media(min-width:900px){
+  § .hdr h1{font-size:28px;font-weight:700;letter-spacing:-.035em}
+  § .hdr h1[data-sub]::after{font-size:13.5px}
+  § .hdr .avatar{background:color-mix(in srgb,var(--p) 14%,var(--card));color:var(--p-dark)}
+  html[data-layout=sidebar][data-pro][data-frame] #screen-app>#nav{background:linear-gradient(180deg,var(--card),color-mix(in srgb,var(--p) 3%,var(--card)))}
+}
+
+/* ===== interactive: swipe-to-advance, stock bars, count-up ===== */
+§ .lkorder{touch-action:pan-y;position:relative}
+§ .lkorder.swiping{z-index:2;background:var(--card);box-shadow:var(--sh2);user-select:none;-webkit-user-select:none}
+§ .lkorder.swiping::before{content:attr(data-swp);position:absolute;right:100%;top:0;bottom:0;width:100%;display:flex;align-items:center;justify-content:flex-end;padding-right:16px;background:linear-gradient(90deg,var(--p-dark),var(--p));color:var(--on-p);font-size:13px;font-weight:700;opacity:var(--sp,0)}
+§ .lkorder.armed::before{filter:brightness(1.14)}
+§ .lklist:has(.swiping){overflow:hidden}
+§ .sbar{display:block;height:4px;margin-top:7px;max-width:220px;border-radius:99px;background:color-mix(in srgb,var(--text) 8%,transparent);overflow:hidden}
+§ .sbar u{display:block;height:100%;width:0;border-radius:99px;background:var(--ok);transition:width .9s cubic-bezier(.2,.8,.2,1)}
+§ .sbar.low u{background:var(--warn)}
+§ .sbar.out u{background:var(--bad)}
+@keyframes advpop{0%{transform:scale(.6);opacity:.2}60%{transform:scale(1.18)}100%{transform:none;opacity:1}}
+@keyframes advglow{0%{background:color-mix(in srgb,var(--ok) 22%,transparent)}100%{background:transparent}}
+@keyframes sbshake{0%,100%{transform:none}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+§ .lkorder.adv{animation:advglow 1s ease-out}
+§ .lkorder.adv .pill{animation:advpop .6s cubic-bezier(.2,.9,.3,1.4)}
+§ .lkrow.shake{animation:sbshake .5s .6s}
+@media(prefers-reduced-motion:reduce){§ .lkorder.adv,§ .lkorder.adv .pill,§ .lkrow.shake,§ .sbar u{animation:none;transition:none}}
+`.replace(/§/g, P);
+const st = document.createElement('style'); st.id = 'pro-ui'; st.textContent = css; document.body.appendChild(st);
+
+/* On a computer, switch to the side menu once (and follow the window size). Settings can still change it. */
+const G = window.GBT; if (!G) return;
+const mq = matchMedia('(min-width:900px)');
+function apply(L) { const d = document.documentElement.dataset; d.layout = L.layout; d.hgrid = L.homeGrid || 'single'; d.frame = L.frame;
+  if (document.querySelector('#screen-app.on')) { try { G.render(); } catch (e) { } } }
+function sync(first) {
+  try {
+    const L = G.state && G.state.settings && G.state.settings.look; if (!L) return;
+    let ch = false;
+    if (L.proAuto === undefined) { L.proAuto = true; ch = true; if (mq.matches && L.layout === 'bottom') { L.layout = 'sidebar'; L.frame = 'full'; if (!L.homeGrid || L.homeGrid === 'single') L.homeGrid = 'two'; } }
+    else if (L.proAuto && (L.layout === 'bottom' || L.layout === 'sidebar')) {
+      if (!mq.matches && L.layout === 'sidebar') { L.layout = 'bottom'; ch = true; }
+      else if (mq.matches && !first && L.layout === 'bottom') { L.layout = 'sidebar'; ch = true; }
+    }
+    if (ch) { G.save(); apply(L); }
+  } catch (e) { }
+}
+sync(true);
+/* one-time: switch an existing app to the Grimms Purple theme (change it anytime in Settings > Colors) */
+try { const s0 = G.state.settings, L0 = s0.look || (s0.look = {}); if (!s0.purpleApplied) { s0.purpleApplied = 1; s0.theme = 'grimms_purple'; L0.accent = ''; L0.bg = ''; L0.card = ''; if (typeof applyTheme === 'function') applyTheme('grimms_purple', s0.font); G.save(); if (document.querySelector('#screen-app.on')) G.render(); } } catch (e) { }
+/* page subtitles + header avatar */
+const SUB = { home: "Here's how your business is doing.", sales: 'Track your sales and orders.', stock: 'Your stock, materials and listings.', money: 'Income, expenses and profit.', plan: 'Tasks, calendar and goals.', inbox: 'What needs your attention.', customers: 'The people you buy from you.', goals: 'Where your business is headed.', taxes: 'Set aside and stay ready.', bills: 'Bills and invoices in one place.', forecast: 'See the money coming up.', suppliers: 'Where your supplies come from.', mileage: 'Trips for your business.', notes: 'Quick notes and ideas.', activity: 'Everything that happened lately.' };
+SUB.customers = 'The people who buy from you.';
+const decorate = () => { try {
+  const h = document.querySelector('#hdr .hdr'); if (!h) return;
+  const k = (G.ui && (G.ui.sub || G.ui.tab)) || '', t1 = h.querySelector('h1'); if (t1 && SUB[k]) t1.dataset.sub = SUB[k];
+  if (!h.querySelector('.avatar')) { const r = h.querySelector('.row:last-child') || h; const nm = (G.state.settings.name || 'G').trim(); const a = document.createElement('span'); a.className = 'avatar'; a.setAttribute('aria-hidden', 'true'); a.textContent = nm.slice(0, 1).toUpperCase(); r.appendChild(a); }
+} catch (e) { } };
+try { const hd = document.querySelector('#hdr'); if (hd) new MutationObserver(decorate).observe(hd, { childList: true }); decorate(); } catch (e) { }
+/* wide screens: let charts stretch cleanly instead of scaling up thick */
+const fixCharts = () => { if (!mq.matches) return; document.querySelectorAll('.chart svg:not([preserveAspectRatio])').forEach(s => s.setAttribute('preserveAspectRatio', 'none')); };
+try { const sc = document.querySelector('#scroll'); if (sc) new MutationObserver(fixCharts).observe(sc, { childList: true, subtree: true }); fixCharts(); } catch (e) { }
+/* ---------- interactive touches ---------- */
+const calm = () => document.documentElement.dataset.motion === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches;
+let lastKey = null, flashId = null;
+/* count-up on big numbers when you open a page */
+const CU = '.rev,.metric .v,.tile b,.ikbody b,.igl b,.kv.total .num';
+function countUp() {
+  document.querySelectorAll(CU).forEach(el => {
+    if (el.dataset.cu || el.childNodes.length !== 1 || el.firstChild.nodeType !== 3) return;
+    const m = el.textContent.trim().match(/^(\D*?)(-?\d[\d,]*(?:\.\d+)?)(.*)$/); if (!m || /\d/.test(m[3])) return;
+    el.dataset.cu = '1';
+    const raw = m[2], dec = (raw.split('.')[1] || '').length, comma = raw.includes(','), end = parseFloat(raw.replace(/,/g, ''));
+    if (!isFinite(end) || Math.abs(end) < 1) return;
+    const fmt = v => comma ? v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : v.toFixed(dec);
+    const t0 = performance.now(), D = 700;
+    const step = now => { const k = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - k, 3); el.textContent = m[1] + fmt(end * e) + m[3]; if (k < 1) requestAnimationFrame(step); else el.textContent = m[1] + raw + m[3]; };
+    requestAnimationFrame(step);
+  });
+}
+/* live stock bars + one shake for anything out of stock */
+function stockBars(shake) {
+  try {
+    document.querySelectorAll('.lkrow .lkmain[data-id]:not([data-sb])').forEach(b => {
+      const ty = b.dataset.type; b.dataset.sb = '1';
+      const arr = ty === 'product' ? G.state.products : (ty === 'supply' || ty === 'component' || ty === 'material') ? G.state.supplies : null; if (!arr) return;
+      const it = arr.find(x => x.id === b.dataset.id); if (!it) return;
+      const raw = ty === 'product' ? Number(it.qty) : Number(G.avail(it)), q = Math.max(0, raw || 0);
+      const lw = (it.low === '' || it.low == null) ? Number(G.state.settings.lowStock) || 0 : Number(it.low) || 0;
+      const cap = Math.max(lw * 3, 1), s = (raw || 0) <= 0 ? 'out' : (!it.oneOff && q <= lw) ? 'low' : 'ok';
+      const bar = document.createElement('span'); bar.className = 'sbar ' + s; bar.innerHTML = '<u></u>'; b.appendChild(bar);
+      const w = s === 'out' ? 3 : Math.max(6, Math.min(100, q / cap * 100));
+      requestAnimationFrame(() => requestAnimationFrame(() => { bar.firstChild.style.width = w + '%'; }));
+      if (shake && s === 'out' && !calm()) b.closest('.lkrow').classList.add('shake');
+    });
+  } catch (e) { }
+}
+const onPaint = () => {
+  if (!document.querySelector('#scroll').children.length) return;
+  const k = (G.ui && (G.ui.sub || G.ui.tab)) + '|' + ((G.ui && G.ui.seg && G.ui.seg.stock) || ''), changed = k !== lastKey; lastKey = k;
+  if (changed && !calm()) countUp();
+  stockBars(changed);
+  if (flashId) { const r = [...document.querySelectorAll('.lkorder')].find(x => x.querySelector('[data-id="' + flashId + '"]')); if (r) { flashId = null; r.classList.add('adv'); setTimeout(() => r.classList.remove('adv'), 1100); } }
+};
+try { const sc = document.querySelector('#scroll'); if (sc) { new MutationObserver(onPaint).observe(sc, { childList: true, subtree: true }); onPaint(); } } catch (e) { }
+
+/* swipe an order right to move it to its next step (uses the same button, so nothing else changes) */
+try {
+  const sc = document.querySelector('#scroll'); let sw = null, until = 0, bypass = false; const TH = 90;
+  sc.addEventListener('pointerdown', e => {
+    if (e.button > 0) return; const row = e.target.closest('.lkorder'); if (!row || e.target.closest('[data-act=mark],input,select,textarea')) return;
+    const btn = row.querySelector('[data-act=advance-quick]:not(.btn-line)'); if (!btn) return;
+    sw = { row, btn, x: e.clientX, y: e.clientY, on: false, hit: false };
+  });
+  sc.addEventListener('pointermove', e => {
+    if (!sw) return; const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+    if (!sw.on) { if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; } if (dx > 12 && dx > Math.abs(dy) * 1.4) { sw.on = true; sw.row.classList.add('swiping'); sw.row.dataset.swp = '\u2192 ' + sw.btn.textContent.trim(); try { sw.row.setPointerCapture(e.pointerId); } catch (x) { } } else return; }
+    const d = Math.max(0, Math.min(dx, 170)); sw.row.style.transition = 'none'; sw.row.style.transform = 'translateX(' + d + 'px)'; sw.row.style.setProperty('--sp', Math.min(1, d / TH));
+    if (d >= TH && !sw.hit) { sw.hit = true; sw.row.classList.add('armed'); try { navigator.vibrate && navigator.vibrate(12); } catch (x) { } } else if (d < TH && sw.hit) { sw.hit = false; sw.row.classList.remove('armed'); }
+  });
+  const end = () => {
+    if (!sw) return; const s = sw; sw = null; if (!s.on) return; until = Date.now() + 400;
+    s.row.style.transition = 'transform .22s ease'; s.row.style.transform = '';
+    if (s.hit) { flashId = s.btn.dataset.id; setTimeout(() => { bypass = true; try { s.btn.click(); } finally { bypass = false; } }, 170); }
+    setTimeout(() => { s.row.classList.remove('swiping', 'armed'); s.row.style.transition = ''; }, 260);
+  };
+  sc.addEventListener('pointerup', end); sc.addEventListener('pointercancel', end);
+  sc.addEventListener('click', e => { if (!bypass && Date.now() < until) { e.stopPropagation(); e.preventDefault(); } }, true);
+} catch (e) { }
+
+mq.addEventListener('change', () => sync(false));
 })();
 </script>
 
