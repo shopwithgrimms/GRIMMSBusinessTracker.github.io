@@ -1794,6 +1794,7 @@ const THEMES = {
   emerald_luxe: Dk('Emerald Luxe', '#34d399', '#022c22', '#059669', '#0a1410', '#14221b', '#ecfdf5', '#86efac', '#1f382d'),
   graphite: Dk('Graphite', '#cbd5e1', '#1e293b', '#64748b', '#0f1115', '#1a1f26', '#f1f5f9', '#94a3b8', '#2d3748'),
   crimson_noir: Dk('Crimson Noir', '#f87171', '#450a0a', '#dc2626', '#140c0c', '#211515', '#fef2f2', '#fca5a5', '#3d2222'),
+  light_purple: Lt('Light Purple', '#8e6bd8', '#f0eafb', '#6f4fb8', '#f9f6fe'),
   paper: Lt('Paper White', '#374151', '#f3f4f6', '#1f2937', '#fafafa'),
   lemon: Lt('Sunny Lemon', '#eab308', '#fefce8', '#a16207', '#fffdf5'),
   lilac: Lt('Lilac Mist', '#a855f7', '#faf5ff', '#7e22ce', '#fbf8fe'),
@@ -1833,6 +1834,7 @@ const THEMES = {
   x_mocha: Dk('Mocha', '#d6a77a', '#3b2a1a', '#a8753f', '#14100c', '#1f1812', '#f7efe6', '#bfa690', '#33271c'),
   /* Business themes: cool neutral greys, one calm accent, built for the Professional look */
   grimms_purple: { ...Lt('Grimms Purple', '#5b34b8', '#efe9fb', '#46258f', '#f6f3fc'), t: '#1d1537', s: '#6a6285', b: '#e7e1f4', pro: true },
+  pro_light_purple: { ...Lt('Light Purple', '#8e6bd8', '#f0eafb', '#6f4fb8', '#f9f6fe'), t: '#241a3d', s: '#70688a', b: '#e9e3f6', pro: true },
   pro_blue: { ...Lt('Corporate Blue', '#2563eb', '#eaf1ff', '#1d4ed8', '#f3f5f9'), t: '#111827', s: '#667085', b: '#e0e4ea', pro: true },
   pro_navy: { ...Lt('Executive Navy', '#1e3a8a', '#e8edf8', '#172554', '#f2f4f8'), t: '#111827', s: '#667085', b: '#dfe3ea', pro: true },
   pro_teal: { ...Lt('Ledger Teal', '#0f766e', '#e6f4f2', '#115e59', '#f2f5f5'), t: '#111827', s: '#667085', b: '#dde3e3', pro: true },
@@ -17535,5 +17537,81 @@ mq.addEventListener('change', () => sync(false));
 })();
 </script>
 
+
+<style>
+#cp-root{position:fixed;inset:0;z-index:99999;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.5);-webkit-tap-highlight-color:transparent}
+#cp-root.on{display:flex}
+#cp-root .cp-sheet{width:100%;max-width:440px;max-height:92%;overflow:auto;background:var(--card,#fff);color:var(--text,#222);border-radius:24px 24px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.25);font-family:var(--font,inherit)}
+@media(min-width:640px){#cp-root{align-items:center}#cp-root .cp-sheet{border-radius:24px}}
+#cp-root .cp-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+#cp-root .cp-prev{width:52px;height:52px;border-radius:14px;border:1px solid var(--line,#ddd);flex:none}
+#cp-root .cp-hex{flex:1;min-width:0;font:600 16px/1 ui-monospace,Menlo,monospace;padding:12px;border:1px solid var(--line,#ddd);border-radius:12px;background:var(--bg,#fff);color:var(--text,#222);text-transform:uppercase}
+#cp-root .cp-lbl{font-size:12px;font-weight:700;color:var(--sub,#777);margin:12px 0 6px;letter-spacing:.03em}
+#cp-root .cp-hues{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}
+#cp-root .cp-shades{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+#cp-root .cp-c{aspect-ratio:1;min-height:36px;border-radius:12px;border:2px solid transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);padding:0;cursor:pointer;touch-action:manipulation}
+#cp-root .cp-shades .cp-c{aspect-ratio:auto;height:46px}
+#cp-root .cp-c.on{border-color:var(--text,#222);box-shadow:0 0 0 2px var(--card,#fff) inset}
+#cp-root .cp-btns{display:flex;gap:10px;margin-top:16px}
+#cp-root .cp-btns button{flex:1;padding:14px;border-radius:14px;font:700 15px var(--font,inherit);border:1px solid var(--line,#ddd);background:var(--bg,#f5f5f5);color:var(--text,#222);cursor:pointer;touch-action:manipulation}
+#cp-root .cp-btns .cp-ok{background:var(--p,#6d4fd6);border-color:var(--p,#6d4fd6);color:#fff}
+</style>
+<script>
+/* Tap-to-pick color picker: replaces the phone's sliding color spectrum */
+(function () {
+  const HUES = [0, 20, 40, 55, 80, 120, 150, 175, 195, 215, 240, 265, 285, 310, 335];
+  const LS = [93, 85, 76, 67, 58, 49, 40, 31, 22, 14];
+  const hsl2hex = (h, s, l) => { s /= 100; l /= 100; const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l), f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return '#' + [f(0), f(8), f(4)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join(''); };
+  const hex2hsl = hex => { const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; let h = 0; if (d) { h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h = (h * 60 + 360) % 360; } const l = (mx + mn) / 2, s = d ? d / (1 - Math.abs(2 * l - 1)) : 0; return { h, s, l }; };
+  const normHex = v => { v = String(v || '').trim().replace(/^#/, ''); if (/^[0-9a-f]{3}$/i.test(v)) v = v.split('').map(c => c + c).join(''); return /^[0-9a-f]{6}$/i.test(v) ? '#' + v.toLowerCase() : null; };
+  let root, cur = '#8e6bd8', grp = 0, target = null;
+  function build() {
+    root = document.createElement('div'); root.id = 'cp-root';
+    root.innerHTML = '<div class="cp-sheet" role="dialog" aria-label="Pick a color"><div class="cp-top"><div class="cp-prev"></div><input class="cp-hex" maxlength="7" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Hex color"></div><div class="cp-lbl">1. TAP A COLOR FAMILY</div><div class="cp-hues"></div><div class="cp-lbl">2. TAP A SHADE (LIGHT TO DARK)</div><div class="cp-shades"></div><div class="cp-lbl">OR TYPE A HEX CODE ABOVE</div><div class="cp-btns"><button type="button" class="cp-no">Cancel</button><button type="button" class="cp-ok">Use this color</button></div></div>';
+    document.body.appendChild(root);
+    root.addEventListener('click', e => {
+      const t = e.target;
+      if (t === root || t.closest('.cp-no')) return close();
+      if (t.closest('.cp-ok')) return done();
+      const h = t.closest('[data-cph]'); if (h) { grp = +h.dataset.cph; paint(); return; }
+      const c = t.closest('[data-cpc]'); if (c) { cur = c.dataset.cpc; paint(); }
+    });
+    root.querySelector('.cp-hex').addEventListener('input', e => { const h = normHex(e.target.value); if (h) { cur = h; const x = hex2hsl(h); grp = x.s < .08 ? HUES.length : nearest(x.h); paint(true); } });
+  }
+  const nearest = h => { let b = 0, bd = 999; HUES.forEach((x, i) => { const d = Math.min(Math.abs(x - h), 360 - Math.abs(x - h)); if (d < bd) { bd = d; b = i; } }); return b; };
+  function shades() { return grp >= HUES.length ? LS.map((l, i) => hsl2hex(0, 0, 100 - i * (100 / (LS.length - 1)))) : LS.map(l => hsl2hex(HUES[grp], l > 80 || l < 25 ? 75 : 78, l)); }
+  function paint(keepHex) {
+    root.querySelector('.cp-prev').style.background = cur;
+    const hx = root.querySelector('.cp-hex'); if (!keepHex) hx.value = cur;
+    root.querySelector('.cp-hues').innerHTML = HUES.map((h, i) => '<button type="button" class="cp-c ' + (i === grp ? 'on' : '') + '" data-cph="' + i + '" style="background:' + hsl2hex(h, 78, 55) + '" aria-label="Color family ' + (i + 1) + '"></button>').join('') + '<button type="button" class="cp-c ' + (grp >= HUES.length ? 'on' : '') + '" data-cph="' + HUES.length + '" style="background:linear-gradient(90deg,#fff 50%,#222 50%)" aria-label="Grays"></button>';
+    root.querySelector('.cp-shades').innerHTML = shades().map(c => '<button type="button" class="cp-c ' + (c === cur ? 'on' : '') + '" data-cpc="' + c + '" style="background:' + c + '" aria-label="' + c + '"></button>').join('');
+  }
+  function open(inp) {
+    if (!root) build();
+    target = inp; cur = normHex(inp.value) || '#8e6bd8';
+    const x = hex2hsl(cur); grp = x.s < .08 ? HUES.length : nearest(x.h);
+    paint(); root.classList.add('on');
+  }
+  function close() { if (root) root.classList.remove('on'); target = null; }
+  function done() {
+    let el = target; const val = cur;
+    if (el && !el.isConnected) {
+      const d = el.dataset || {}, key = Object.keys(d).find(k => /^(lookColor|lsC|kcust|sdcust|lbK)$/.test(k));
+      if (key) { const attr = 'data-' + key.replace(/[A-Z]/g, m => '-' + m.toLowerCase()); el = document.querySelector('input[type=color][' + attr + (d[key] ? '="' + d[key] + '"' : '') + ']') || el; }
+    }
+    close();
+    if (!el) return;
+    el.value = val;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target.closest('input[type=color]') : null;
+    if (!t || t.disabled) return;
+    e.preventDefault(); e.stopPropagation(); open(t);
+  }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && root && root.classList.contains('on')) close(); });
+})();
+</script>
 </body>
 </html>
